@@ -2,7 +2,11 @@
   "name": "@shiftsync/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
   "private": true,
   "dependencies": {
     "@nestjs/common": "^11.0.0",
