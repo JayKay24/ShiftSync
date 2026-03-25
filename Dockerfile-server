@@ -1,0 +1,33 @@
+# Stage 1: Build the application
+FROM node:24-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependency manifests
+COPY package*.json ./
+
+# Install all dependencies (including Nx and build tools)
+RUN npm install
+
+# Copy the entire workspace
+COPY . .
+
+# Build the server application
+RUN npx nx build server --configuration=production
+
+# Stage 2: Run the application
+FROM node:24-alpine
+
+WORKDIR /app
+
+# Copy the compiled application from the build stage
+COPY --from=builder /app/apps/server/dist/apps/server .
+
+# Install ONLY production dependencies
+RUN npm install --omit=dev
+
+# Expose the application port
+EXPOSE 3000
+
+# Run the compiled application
+CMD ["node", "main.js"]
