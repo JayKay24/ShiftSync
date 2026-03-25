@@ -5,6 +5,7 @@
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
+    "db:seed": "tsx apps/server/src/db/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
   "private": true,
@@ -48,6 +49,7 @@
     "ts-jest": "^29.4.0",
     "ts-node": "10.9.1",
     "tslib": "^2.3.0",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.40.0",
     "webpack-cli": "^5.1.4"
