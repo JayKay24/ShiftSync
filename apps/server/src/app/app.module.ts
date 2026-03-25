@@ -16,7 +16,7 @@ export const DBS = {
       name: DBS.POSTGRES,
       useFactory: (config: ConfigService) => ({
         type: "postgres",
-        url: config.get<string>("DATABASE_URL")!,
+        url: config.get<string>("DATABASE_URL"),
         schema,
       }),
       inject: [ConfigService],
