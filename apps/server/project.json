@@ -1,7 +1,7 @@
 {
   "name": "shiftsync",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "apps/shiftsync/src",
+  "sourceRoot": "apps/server/src",
   "projectType": "application",
   "tags": [],
   "targets": {
@@ -10,7 +10,7 @@
       "options": {
         "command": "webpack-cli build",
         "args": ["--node-env=production"],
-        "cwd": "apps/shiftsync"
+        "cwd": "apps/server"
       },
       "configurations": {
         "development": {
@@ -23,8 +23,8 @@
       "cache": true,
       "executor": "@nx/js:prune-lockfile",
       "outputs": [
-        "{workspaceRoot}/dist/apps/shiftsync/package.json",
-        "{workspaceRoot}/dist/apps/shiftsync/package-lock.json"
+        "{workspaceRoot}/dist/apps/server/package.json",
+        "{workspaceRoot}/dist/apps/server/package-lock.json"
       ],
       "options": {
         "buildTarget": "build"
@@ -33,7 +33,7 @@
     "copy-workspace-modules": {
       "dependsOn": ["build"],
       "cache": true,
-      "outputs": ["{workspaceRoot}/dist/apps/shiftsync/workspace_modules"],
+      "outputs": ["{workspaceRoot}/dist/apps/server/workspace_modules"],
       "executor": "@nx/js:copy-workspace-modules",
       "options": {
         "buildTarget": "build"
