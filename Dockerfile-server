@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM node:24-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ COPY . .
 RUN npx nx build server --configuration=production
 
 # Stage 2: Run the application
-FROM node:24-alpine
+FROM node:25-alpine
 
 WORKDIR /app
 
