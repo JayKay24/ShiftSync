@@ -8,7 +8,7 @@
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
       "options": {
-        "jestConfig": "apps/shiftsync-e2e/jest.config.cts",
+        "jestConfig": "apps/server-e2e/jest.config.cts",
         "passWithNoTests": true
       },
       "dependsOn": ["shiftsync:build", "shiftsync:serve"]
