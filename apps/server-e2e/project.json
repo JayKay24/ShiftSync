@@ -1,8 +1,8 @@
 {
-  "name": "shiftsync-e2e",
+  "name": "server-e2e",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "implicitDependencies": ["shiftsync"],
+  "implicitDependencies": ["server"],
   "targets": {
     "e2e": {
       "executor": "@nx/jest:jest",
@@ -11,7 +11,7 @@
         "jestConfig": "apps/server-e2e/jest.config.cts",
         "passWithNoTests": true
       },
-      "dependsOn": ["shiftsync:build", "shiftsync:serve"]
+      "dependsOn": ["server:build", "server:serve"]
     }
   }
 }

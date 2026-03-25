@@ -1,5 +1,5 @@
 {
-  "name": "shiftsync",
+  "name": "server",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/server/src",
   "projectType": "application",
@@ -49,15 +49,15 @@
       "defaultConfiguration": "development",
       "dependsOn": ["build"],
       "options": {
-        "buildTarget": "shiftsync:build",
+        "buildTarget": "server:build",
         "runBuildTargetDependencies": false
       },
       "configurations": {
         "development": {
-          "buildTarget": "shiftsync:build:development"
+          "buildTarget": "server:build:development"
         },
         "production": {
-          "buildTarget": "shiftsync:build:production"
+          "buildTarget": "server:build:production"
         }
       }
     },

@@ -38,7 +38,7 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/shiftsync-e2e/**/*"]
+      "exclude": ["apps/server-e2e/**/*"]
     }
   ]
 }
