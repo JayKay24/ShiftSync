@@ -9,20 +9,11 @@
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
-    "@sixaphone/nestjs-drizzle": "^1.0.1",
     "axios": "^1.6.0",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0"
-  },
-  "overrides": {
-    "@sixaphone/nestjs-drizzle": {
-      "@nestjs/common": "$@nestjs/common",
-      "@nestjs/core": "$@nestjs/core",
-      "@nestjs/platform-express": "$@nestjs/platform-express",
-      "drizzle-orm": "$drizzle-orm"
-    }
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
