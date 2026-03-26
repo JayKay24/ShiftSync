@@ -19,7 +19,8 @@ interface Staff {
   id: string;
   firstName: string;
   lastName: string;
-  skills: { name: string }[];
+  staffSkills: { skill: { name: string } }[];
+  staffCertifications: { location: { name: string } }[];
 }
 
 interface Shift {
@@ -192,9 +193,11 @@ export function ShiftDetailsModal({
                     <div key={staff.id} className="flex items-center justify-between rounded-md border p-2 hover:bg-slate-50">
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{staff.firstName} {staff.lastName}</span>
-                        <div className="flex gap-1">
-                          {staff.skills.map(sk => (
-                            <span key={sk.name} className="text-[9px] uppercase text-muted-foreground">{sk.name.replace('_', ' ')}</span>
+                        <div className="flex flex-wrap gap-1">
+                          {staff.staffSkills?.map(ss => (
+                            <span key={ss.skill.name} className="text-[9px] uppercase text-muted-foreground bg-slate-100 px-1 rounded">
+                              {ss.skill.name.replace('_', ' ')}
+                            </span>
                           ))}
                         </div>
                       </div>
