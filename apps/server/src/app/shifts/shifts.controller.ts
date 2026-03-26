@@ -4,6 +4,7 @@ import { CreateShiftDto, AssignStaffDto } from './dto/shift.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { Shift, AssignmentResult } from '@shiftsync/data-access';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('shifts')
@@ -12,7 +13,7 @@ export class ShiftsController {
 
   @Post()
   @Roles('Admin', 'Manager')
-  async create(@Body() createShiftDto: CreateShiftDto, @Req() req) {
+  async create(@Body() createShiftDto: CreateShiftDto, @Req() req): Promise<Shift> {
     return this.shiftsService.createShift({
       ...createShiftDto,
       startTime: new Date(createShiftDto.startTime),
@@ -28,7 +29,7 @@ export class ShiftsController {
     @Param('id') id: string,
     @Body() assignStaffDto: AssignStaffDto & { overrideReason?: string },
     @Req() req
-  ) {
+  ): Promise<AssignmentResult> {
     return this.shiftsService.assignStaff(
       id,
       assignStaffDto.userId,

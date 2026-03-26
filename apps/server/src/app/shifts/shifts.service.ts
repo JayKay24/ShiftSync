@@ -13,9 +13,20 @@ export class ShiftsService {
   ) {}
 
   async createShift(newShift: NewShift) {
+    // Requirement #5: Friday/Saturday evening shifts are premium
+    // Assume evening starts at 6 PM (18:00)
+    const startDate = new Date(newShift.startTime);
+    const day = startDate.getUTCDay(); // 5 = Friday, 6 = Saturday
+    const hours = startDate.getUTCHours();
+    
+    const isPremium = (day === 5 || day === 6) && hours >= 18;
+
     const [result] = await this.db
       .insert(shifts)
-      .values(newShift)
+      .values({
+        ...newShift,
+        isPremium: newShift.isPremium || isPremium,
+      })
       .returning();
     return result;
   }
