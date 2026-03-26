@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, ChevronLeft, ChevronRight, Filter, Users, MapPin, Clock } from 'lucide-react';
 import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
+import { CreateShiftModal } from '@/components/create-shift-modal';
 
 interface Location {
   id: string;
@@ -49,6 +50,7 @@ export default function ManagerSchedule() {
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const weekStart = React.useMemo(() => 
     startOfWeek(currentDate, { weekStartsOn: 1 }), 
@@ -59,6 +61,25 @@ export default function ManagerSchedule() {
     Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i)),
     [weekStart]
   );
+
+  const fetchShifts = React.useCallback(async () => {
+    if (!selectedLocation) return;
+    setIsLoading(true);
+    try {
+      const res = await api.get('/shifts', {
+        params: {
+          locationId: selectedLocation,
+          startDate: weekStart.toISOString(),
+          endDate: addDays(weekStart, 7).toISOString(),
+        },
+      });
+      setShifts(res.data);
+    } catch (error) {
+      console.error('Failed to fetch shifts:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedLocation, weekStart]);
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -80,27 +101,8 @@ export default function ManagerSchedule() {
   }, []);
 
   useEffect(() => {
-    if (!selectedLocation) return;
-
-    const fetchShifts = async () => {
-      setIsLoading(true);
-      try {
-        const res = await api.get('/shifts', {
-          params: {
-            locationId: selectedLocation,
-            startDate: weekStart.toISOString(),
-            endDate: addDays(weekStart, 7).toISOString(),
-          },
-        });
-        setShifts(res.data);
-      } catch (error) {
-        console.error('Failed to fetch shifts:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchShifts();
-  }, [selectedLocation, weekStart]);
+  }, [fetchShifts]);
 
   const nextWeek = () => setCurrentDate(addDays(currentDate, 7));
   const prevWeek = () => setCurrentDate(addDays(currentDate, -7));
@@ -121,11 +123,20 @@ export default function ManagerSchedule() {
           <Button variant="outline" onClick={nextWeek}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button className="ml-4">
+          <Button className="ml-4" onClick={() => setIsCreateModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> New Shift
           </Button>
         </div>
       </div>
+
+      <CreateShiftModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={fetchShifts}
+        locations={locations}
+        skills={skills}
+        initialDate={currentDate}
+      />
 
       <div className="flex items-center gap-4 rounded-lg border bg-white p-4 shadow-sm">
         <div className="flex items-center gap-2">
