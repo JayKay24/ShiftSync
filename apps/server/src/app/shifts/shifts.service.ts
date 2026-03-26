@@ -2,7 +2,7 @@ import { Injectable, Inject, BadRequestException, NotFoundException } from '@nes
 import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift, locations, skills } from '@shiftsync/data-access';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { eq, and, gte, lte, count } from 'drizzle-orm';
 import { ComplianceService } from './compliance.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
@@ -32,8 +32,44 @@ export class ShiftsService {
         firstName: true,
         lastName: true,
         email: true,
+        desiredWeeklyHours: true,
       },
+      with: {
+        staffCertifications: {
+          with: {
+            location: true,
+          }
+        },
+        staffSkills: {
+          with: {
+            skill: true,
+          }
+        }
+      }
     });
+  }
+
+  async getDashboardStats() {
+    const [staffCount] = await this.db
+      .select({ value: count() })
+      .from(schema.users)
+      .where(eq(schema.users.role, 'Staff'));
+
+    const [pendingSwapsCount] = await this.db
+      .select({ value: count() })
+      .from(schema.swapRequests)
+      .where(eq(schema.swapRequests.status, 'pending_manager'));
+
+    const [upcomingShiftsCount] = await this.db
+      .select({ value: count() })
+      .from(schema.shifts)
+      .where(gte(schema.shifts.startTime, new Date()));
+
+    return {
+      totalStaff: Number(staffCount.value),
+      pendingSwaps: Number(pendingSwapsCount.value),
+      upcomingShifts: Number(upcomingShiftsCount.value),
+    };
   }
 
   async getUserAssignments(userId: string) {

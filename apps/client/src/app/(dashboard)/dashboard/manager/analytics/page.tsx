@@ -66,12 +66,12 @@ export default function AnalyticsPage() {
             <Scale className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fairness?.score.toFixed(1)} / 10</div>
+            <div className="text-2xl font-bold">{(fairness?.score ?? 0).toFixed(1)} / 10</div>
             <p className="text-xs text-muted-foreground">Based on hours distribution variance</p>
             <div className="mt-4 h-2 w-full rounded-full bg-secondary">
               <div 
                 className="h-full rounded-full bg-primary" 
-                style={{ width: `${(fairness?.score || 0) * 10}%` }}
+                style={{ width: `${(fairness?.score ?? 0) * 10}%` }}
               />
             </div>
           </CardContent>
@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fairness?.averageHours.toFixed(1)}h</div>
+            <div className="text-2xl font-bold">{(fairness?.averageHours ?? 0).toFixed(1)}h</div>
             <p className="text-xs text-muted-foreground">Current scheduling period</p>
           </CardContent>
         </Card>
@@ -94,7 +94,7 @@ export default function AnalyticsPage() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fairness?.standardDeviation.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{(fairness?.standardDeviation ?? 0).toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">Lower is more equitable</p>
           </CardContent>
         </Card>
@@ -105,7 +105,7 @@ export default function AnalyticsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{fairness?.totalStaff}</div>
+            <div className="text-2xl font-bold">{fairness?.totalStaff ?? 0}</div>
             <p className="text-xs text-muted-foreground">Assigned to at least 1 shift</p>
           </CardContent>
         </Card>
@@ -155,14 +155,14 @@ export default function AnalyticsPage() {
                 The **Fairness Score** is calculated using the Coefficient of Variation of assigned hours. 
                 A score of 10.0 indicates perfectly equal distribution across all staff.
               </p>
-              <p>
+              <div>
                 High variance (lower score) might indicate:
                 <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
                   <li>Specific staff being over-scheduled</li>
                   <li>Incomplete training/certification for some team members</li>
                   <li>Heavy reliance on a few "senior" staff</li>
                 </ul>
-              </p>
+              </div>
               <p className="pt-2 italic">
                 *Requirement #8: Analytics Dashboard for Managerial Oversight.*
               </p>

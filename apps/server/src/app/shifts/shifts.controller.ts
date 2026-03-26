@@ -31,6 +31,12 @@ export class ShiftsController {
     return this.shiftsService.getStaff();
   }
 
+  @Get('stats')
+  @Roles('Admin', 'Manager')
+  async getStats() {
+    return this.shiftsService.getDashboardStats();
+  }
+
   @Get()
   async getAll(
     @Query('startDate') startDate?: string,

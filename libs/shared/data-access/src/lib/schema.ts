@@ -1,4 +1,4 @@
-import { users, userRoleEnum } from "./entities/user.entity";
+import { users, userRoleEnum, usersRelations } from "./entities/user.entity";
 import { locations } from "./entities/location.entity";
 import { skills, employeeSkillEnum } from "./entities/skill.entity";
 import { staffCertifications } from "./entities/staff-certification.entity";
@@ -15,6 +15,7 @@ import { timeEntries } from "./entities/time-entry.entity";
 
 export const schema = {
   users,
+  usersRelations,
   locations,
   skills,
   staffCertifications,
