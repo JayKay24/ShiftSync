@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { login, TEST_USERS } from '../support/test-helpers';
+import { login, TEST_USERS, seedDatabase } from '../support/test-helpers';
 
 describe('Shift Swap Workflow (Requirement #5)', () => {
   let managerToken: string;
@@ -12,9 +12,10 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
   const bartenderSkillId = '22222222-2222-4222-8222-222222222221';
 
   beforeAll(async () => {
+    seedDatabase();
     managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
-    charlieToken = await login('staff@coastaleats.com', 'password123');
-    daveToken = await login('dave@coastaleats.com', 'password123');
+    charlieToken = await login(TEST_USERS.charlie.email, TEST_USERS.charlie.pass);
+    daveToken = await login(TEST_USERS.dave.email, TEST_USERS.dave.pass);
   });
 
   async function safePut(url: string, data: any, token: string) {

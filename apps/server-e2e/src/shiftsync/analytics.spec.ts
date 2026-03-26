@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { login, TEST_USERS } from '../support/test-helpers';
+import { login, TEST_USERS, seedDatabase } from '../support/test-helpers';
 
 describe('Analytics & Fairness (Requirement #8)', () => {
   let managerToken: string;
@@ -9,6 +9,7 @@ describe('Analytics & Fairness (Requirement #8)', () => {
   const bartenderSkillId = '22222222-2222-4222-8222-222222222221';
 
   beforeAll(async () => {
+    seedDatabase();
     managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
   });
 
