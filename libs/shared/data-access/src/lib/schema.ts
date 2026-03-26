@@ -24,8 +24,7 @@ export const schema = {
   staffSkillsRelations,
   availability,
   availabilityRelations,
-...
-
+  shifts,
   shiftsRelations,
   assignments,
   assignmentsRelations,
