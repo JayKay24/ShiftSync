@@ -24,7 +24,16 @@ export class ShiftsController {
 
   @Post(':id/assign')
   @Roles('Admin', 'Manager')
-  async assign(@Param('id') id: string, @Body() assignStaffDto: AssignStaffDto) {
-    return this.shiftsService.assignStaff(id, assignStaffDto.userId);
+  async assign(
+    @Param('id') id: string,
+    @Body() assignStaffDto: AssignStaffDto & { overrideReason?: string },
+    @Req() req
+  ) {
+    return this.shiftsService.assignStaff(
+      id,
+      assignStaffDto.userId,
+      req.user.userId,
+      assignStaffDto.overrideReason
+    );
   }
 }

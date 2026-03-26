@@ -1,13 +1,15 @@
 import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema, shifts, assignments, staffSkills, staffCertifications, NewShift } from '@shiftsync/data-access';
-import { eq, and, or, lte, gte, lt, gt, sql } from 'drizzle-orm';
+import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift } from '@shiftsync/data-access';
+import { eq, and } from 'drizzle-orm';
+import { ComplianceService } from './compliance.service';
 
 @Injectable()
 export class ShiftsService {
   constructor(
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
+    private complianceService: ComplianceService,
   ) {}
 
   async createShift(newShift: NewShift) {
@@ -18,7 +20,7 @@ export class ShiftsService {
     return result;
   }
 
-  async assignStaff(shiftId: string, userId: string) {
+  async assignStaff(shiftId: string, userId: string, managerId?: string, overrideReason?: string) {
     // 1. Check if shift exists
     const [shift] = await this.db
       .select()
@@ -90,26 +92,38 @@ export class ShiftsService {
       const newEnd = new Date(shift.endTime).getTime();
 
       // 6. Constraint: No Double-Booking (Overlapping)
-      // Overlap if (StartA < EndB) and (EndA > StartB)
       if (newStart < existingEnd && newEnd > existingStart) {
         throw new BadRequestException('Staff member has an overlapping shift');
       }
 
-      // 7. Constraint: Minimum 10-hour rest (36,000,000 ms)
+      // 7. Constraint: Minimum 10-hour rest
       const restPeriodMs = 10 * 60 * 60 * 1000;
-      
-      // If existing shift is before new shift
       if (existingEnd > newStart - restPeriodMs && existingEnd <= newStart) {
         throw new BadRequestException('Minimum 10-hour rest period required between shifts');
       }
-      
-      // If existing shift is after new shift
       if (existingStart < newEnd + restPeriodMs && existingStart >= newEnd) {
         throw new BadRequestException('Minimum 10-hour rest period required between shifts');
       }
     }
 
-    // 8. Create assignment
+    // 8. Compliance Checks (Requirement #4)
+    const compliance = await this.complianceService.checkCompliance(userId, shiftId);
+
+    if (compliance.hasHardBlock) {
+      throw new BadRequestException(`Hard Block: ${compliance.warnings.join(', ')}`);
+    }
+
+    if (compliance.requiresOverride) {
+      if (!overrideReason || !managerId) {
+        throw new BadRequestException({
+          message: 'Assignment requires manager override (7th consecutive day)',
+          warnings: compliance.warnings,
+          code: 'OVERRIDE_REQUIRED'
+        });
+      }
+    }
+
+    // 9. Create assignment
     const [assignment] = await this.db
       .insert(assignments)
       .values({
@@ -119,7 +133,19 @@ export class ShiftsService {
       })
       .returning();
 
-    return assignment;
+    // 10. Log override if applicable
+    if (compliance.requiresOverride && managerId && overrideReason) {
+      await this.db.insert(complianceOverrides).values({
+        assignmentId: assignment.id,
+        managerId,
+        overrideReason,
+        overrideType: '7th_consecutive_day',
+      });
+    }
+
+    return {
+      ...assignment,
+      warnings: compliance.warnings,
+    };
   }
 }
-
