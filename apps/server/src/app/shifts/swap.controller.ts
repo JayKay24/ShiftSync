@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req, Param, Put } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Param, Put, Get } from '@nestjs/common';
 import { SwapService } from './swap.service';
 import { CreateSwapRequestDto, RespondToSwapDto } from './dto/swap.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -9,6 +9,11 @@ import { Roles } from '../auth/roles.decorator';
 @Controller('swaps')
 export class SwapController {
   constructor(private readonly swapService: SwapService) {}
+
+  @Get()
+  async get(@Req() req) {
+    return this.swapService.getSwapRequests(req.user.userId, req.user.role);
+  }
 
   @Post('request')
   @Roles('Staff')

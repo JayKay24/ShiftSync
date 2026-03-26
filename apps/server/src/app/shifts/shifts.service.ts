@@ -1,7 +1,7 @@
 import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift } from '@shiftsync/data-access';
+import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift, locations, skills } from '@shiftsync/data-access';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { ComplianceService } from './compliance.service';
 import { AuditService } from '../audit/audit.service';
@@ -15,6 +15,43 @@ export class ShiftsService {
     private auditService: AuditService,
     private notificationService: NotificationService,
   ) {}
+
+  async getLocations() {
+    return this.db.select().from(locations);
+  }
+
+  async getSkills() {
+    return this.db.select().from(skills);
+  }
+
+  async getStaff() {
+    return this.db.query.users.findMany({
+      where: eq(schema.users.role, 'Staff'),
+      columns: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+    });
+  }
+
+  async getUserAssignments(userId: string) {
+    return this.db.query.assignments.findMany({
+      where: and(
+        eq(assignments.userId, userId),
+        eq(assignments.status, 'confirmed')
+      ),
+      with: {
+        shift: {
+          with: {
+            location: true,
+          }
+        },
+      },
+      orderBy: (assignments, { asc }) => [asc(assignments.id)], // Temporary sort, shift time would be better if possible via relations
+    });
+  }
 
   async getShifts(filters: { startDate?: Date; endDate?: Date; locationId?: string }) {
     const whereClauses = [];

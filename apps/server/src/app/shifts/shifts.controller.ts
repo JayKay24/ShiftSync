@@ -11,6 +11,26 @@ import { Shift, AssignmentResult } from '@shiftsync/data-access';
 export class ShiftsController {
   constructor(private readonly shiftsService: ShiftsService) {}
 
+  @Get('locations')
+  async getLocations() {
+    return this.shiftsService.getLocations();
+  }
+
+  @Get('skills')
+  async getSkills() {
+    return this.shiftsService.getSkills();
+  }
+
+  @Get('my-assignments')
+  async getMyAssignments(@Req() req) {
+    return this.shiftsService.getUserAssignments(req.user.userId);
+  }
+
+  @Get('staff')
+  async getStaff() {
+    return this.shiftsService.getStaff();
+  }
+
   @Get()
   async getAll(
     @Query('startDate') startDate?: string,

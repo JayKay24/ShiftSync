@@ -6,7 +6,7 @@ import { staffSkills } from "./entities/staff-skill.entity";
 import { availability } from "./entities/availability.entity";
 import { shifts, shiftStatusEnum, shiftsRelations } from "./entities/shift.entity";
 import { assignments, assignmentStatusEnum, assignmentsRelations } from "./entities/assignment.entity";
-import { swapRequests, swapStatusEnum } from "./entities/swap-request.entity";
+import { swapRequests, swapStatusEnum, swapRequestsRelations } from "./entities/swap-request.entity";
 import { notifications, notificationTypeEnum } from "./entities/notification.entity";
 import { notificationSettings } from "./entities/notification-setting.entity";
 import { auditLogs } from "./entities/audit-log.entity";
@@ -25,6 +25,7 @@ export const schema = {
   assignments,
   assignmentsRelations,
   swapRequests,
+  swapRequestsRelations,
   notifications,
   notificationSettings,
   auditLogs,

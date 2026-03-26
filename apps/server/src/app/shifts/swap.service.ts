@@ -227,4 +227,37 @@ export class SwapService {
 
     return { status: 'approved' };
   }
+
+  async getSwapRequests(userId: string, role: string) {
+    if (role === 'Admin' || role === 'Manager') {
+      return this.db.query.swapRequests.findMany({
+        where: eq(swapRequests.status, 'pending_manager'),
+        with: {
+          shift: {
+            with: {
+              location: true,
+            },
+          },
+          requestingUser: true,
+          targetUser: true,
+        },
+      });
+    }
+
+    return this.db.query.swapRequests.findMany({
+      where: or(
+        eq(swapRequests.requestingUserId, userId),
+        eq(swapRequests.targetUserId, userId)
+      ),
+      with: {
+        shift: {
+          with: {
+            location: true,
+          },
+        },
+        requestingUser: true,
+        targetUser: true,
+      },
+    });
+  }
 }

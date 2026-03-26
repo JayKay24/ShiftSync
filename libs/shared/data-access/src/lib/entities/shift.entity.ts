@@ -30,8 +30,16 @@ export const shifts = pgTable("shifts", {
     .notNull(),
 });
 
-export const shiftsRelations = relations(shifts, ({ many }) => ({
+export const shiftsRelations = relations(shifts, ({ one, many }) => ({
   assignments: many(assignments),
+  location: one(locations, {
+    fields: [shifts.locationId],
+    references: [locations.id],
+  }),
+  requiredSkill: one(skills, {
+    fields: [shifts.requiredSkillId],
+    references: [skills.id],
+  }),
 }));
 
 export type Shift = InferSelectModel<typeof shifts>;
