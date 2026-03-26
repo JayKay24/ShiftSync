@@ -1,10 +1,7 @@
 import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import * as schema from '../schemas/schema';
-import { locations } from '../entities/location.entity';
-import { skills } from '../entities/skill.entity';
-import { users } from '../entities/user.entity';
+import { schema, locations, skills, users } from '@shiftsync/data-access';
 import * as bcrypt from 'bcryptjs';
 
 async function main() {
