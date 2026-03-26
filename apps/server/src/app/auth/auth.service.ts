@@ -1,10 +1,12 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema } from '@shiftsync/data-access';
+import { schema, User } from '@shiftsync/data-access';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
+
+export type UserWithoutPassword = Omit<User, 'passwordHash'>;
 
 @Injectable()
 export class AuthService {
@@ -13,7 +15,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, pass: string): Promise<any> {
+  async validateUser(email: string, pass: string): Promise<UserWithoutPassword | null> {
     const [user] = await this.db
       .select()
       .from(schema.users)
@@ -27,7 +29,7 @@ export class AuthService {
     return null;
   }
 
-  async login(user: any) {
+  async login(user: UserWithoutPassword) {
     const payload = { email: user.email, sub: user.id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
@@ -41,3 +43,4 @@ export class AuthService {
     };
   }
 }
+

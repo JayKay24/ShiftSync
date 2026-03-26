@@ -1,4 +1,5 @@
 import { pgTable, text, uuid, varchar, timestamp, pgEnum, integer } from "drizzle-orm/pg-core";
+import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum("user_role", ["Admin", "Manager", "Staff"]);
 
@@ -12,3 +13,6 @@ export const users = pgTable("users", {
   desiredWeeklyHours: integer("desired_weekly_hours").default(40).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export type User = InferSelectModel<typeof users>;
+export type NewUser = InferInsertModel<typeof users>;
