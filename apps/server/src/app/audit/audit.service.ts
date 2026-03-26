@@ -10,12 +10,12 @@ export class AuditService {
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
   ) {}
 
-  async logChange(
+  async logChange<T>(
     actorId: string,
     entityType: string,
     entityId: string,
-    oldState: any,
-    newState: any
+    oldState: T | null,
+    newState: T | null
   ) {
     return this.db.insert(auditLogs).values({
       actorId,
