@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, text, boolean, jsonb, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { users } from "./user.entity";
+import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 export const notificationTypeEnum = pgEnum("notification_type", [
   "shift_assigned",
@@ -25,3 +26,6 @@ export const notifications = pgTable("notifications", {
   payload: jsonb("payload"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export type Notification = InferSelectModel<typeof notifications>;
+export type NewNotification = InferInsertModel<typeof notifications>;

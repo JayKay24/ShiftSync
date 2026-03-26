@@ -5,6 +5,7 @@ import { schema, shifts, assignments, staffSkills, staffCertifications, complian
 import { eq, and } from 'drizzle-orm';
 import { ComplianceService } from './compliance.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationService } from '../notifications/notification.service';
 
 @Injectable()
 export class ShiftsService {
@@ -12,6 +13,7 @@ export class ShiftsService {
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
     private complianceService: ComplianceService,
     private auditService: AuditService,
+    private notificationService: NotificationService,
   ) {}
 
   async createShift(newShift: NewShift) {
@@ -175,6 +177,15 @@ export class ShiftsService {
         null,
         assignment
       );
+
+      // Requirement #7: Notify staff of new assignment
+      await this.notificationService.createNotification({
+        userId,
+        type: 'shift_assigned',
+        title: 'New Shift Assigned',
+        message: `You have been assigned to a shift starting at ${new Date(shift.startTime).toLocaleString()}.`,
+        payload: { shiftId, assignmentId: assignment.id },
+      });
     }
 
     return {

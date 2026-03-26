@@ -5,6 +5,7 @@ import { schema, swapRequests, assignments, shifts, NewShift } from '@shiftsync/
 import { eq, and, or, count } from 'drizzle-orm';
 import { ShiftsService } from './shifts.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationService } from '../notifications/notification.service';
 
 @Injectable()
 export class SwapService {
@@ -12,6 +13,7 @@ export class SwapService {
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
     private shiftsService: ShiftsService,
     private auditService: AuditService,
+    private notificationService: NotificationService,
   ) {}
 
   async requestSwap(userId: string, shiftId: string, targetUserId?: string) {
@@ -62,6 +64,17 @@ export class SwapService {
       request
     );
 
+    if (targetUserId) {
+      // Requirement #7: Notify peer of swap request
+      await this.notificationService.createNotification({
+        userId: targetUserId,
+        type: 'swap_request_update',
+        title: 'New Swap Request',
+        message: 'A colleague has requested to swap a shift with you.',
+        payload: { requestId: request.id, shiftId },
+      });
+    }
+
     return request;
   }
 
@@ -96,6 +109,15 @@ export class SwapService {
       updatedRequest
     );
 
+    // Requirement #7: Notify original requester that peer accepted
+    await this.notificationService.createNotification({
+      userId: request.requestingUserId,
+      type: 'swap_request_update',
+      title: 'Swap Accepted by Peer',
+      message: 'Your swap request was accepted by your colleague and is now awaiting manager approval.',
+      payload: { requestId },
+    });
+
     return { message: 'Swap accepted, awaiting manager approval' };
   }
 
@@ -124,6 +146,15 @@ export class SwapService {
         request,
         rejectedRequest
       );
+
+      // Requirement #7: Notify requester of rejection
+      await this.notificationService.createNotification({
+        userId: request.requestingUserId,
+        type: 'swap_request_update',
+        title: 'Swap Request Rejected',
+        message: 'Your swap request was rejected by the manager.',
+        payload: { requestId },
+      });
 
       return { status: 'rejected' };
     }
@@ -174,6 +205,25 @@ export class SwapService {
       request,
       finalRequest
     );
+
+    // Requirement #7: Notify both parties of final approval
+    await this.notificationService.createNotification({
+      userId: request.requestingUserId,
+      type: 'swap_request_update',
+      title: 'Swap Request Approved',
+      message: 'Your swap request has been approved by the manager.',
+      payload: { requestId, shiftId: request.shiftId },
+    });
+
+    if (request.targetUserId) {
+      await this.notificationService.createNotification({
+        userId: request.targetUserId,
+        type: 'swap_request_update',
+        title: 'Swap Finalized',
+        message: 'The shift swap has been approved and your schedule has been updated.',
+        payload: { requestId, shiftId: request.shiftId },
+      });
+    }
 
     return { status: 'approved' };
   }

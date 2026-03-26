@@ -1,6 +1,7 @@
 import { User } from './entities/user.entity';
 import { Shift } from './entities/shift.entity';
 import { Assignment } from './entities/assignment.entity';
+import { Notification } from './entities/notification.entity';
 
 /**
  * Response returned after a successful login
@@ -41,6 +42,16 @@ export interface FairnessScoreResponse {
   periodStart: Date;
   periodEnd: Date;
 }
+
+/**
+ * Single notification response
+ */
+export type NotificationResponse = Notification;
+
+/**
+ * List of notifications
+ */
+export type NotificationListResponse = Notification[];
 
 /**
  * Generic API Error Response
