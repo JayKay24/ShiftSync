@@ -13,24 +13,24 @@ export class AnalyticsController {
   @Get('distribution')
   @Roles('Admin', 'Manager')
   async getHoursDistribution(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ): Promise<HourDistributionRecord[]> {
-    return this.analyticsService.getHoursDistribution(
-      new Date(startDate),
-      new Date(endDate)
-    );
+    const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const end = endDate ? new Date(endDate) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+    
+    return this.analyticsService.getHoursDistribution(start, end);
   }
 
   @Get('fairness')
   @Roles('Admin', 'Manager')
   async getFairnessScore(
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ): Promise<FairnessScoreResponse> {
-    return this.analyticsService.getFairnessScore(
-      new Date(startDate),
-      new Date(endDate)
-    );
+    const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const end = endDate ? new Date(endDate) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+
+    return this.analyticsService.getFairnessScore(start, end);
   }
 }

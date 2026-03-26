@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema, assignments, shifts, users } from '@shiftsync/data-access';
+import { schema, assignments, shifts, users, HourDistributionRecord, FairnessScoreResponse } from '@shiftsync/data-access';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 
 @Injectable()
@@ -10,14 +10,14 @@ export class AnalyticsService {
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
   ) {}
 
-  async getHoursDistribution(startDate: Date, endDate: Date) {
+  async getHoursDistribution(startDate: Date, endDate: Date): Promise<HourDistributionRecord[]> {
     // Get total hours per staff member in the range
     const results = await this.db
       .select({
         userId: users.id,
         firstName: users.firstName,
         lastName: users.lastName,
-        totalHours: sql<number>`COALESCE(SUM(EXTRACT(EPOCH FROM (${shifts.endTime} - ${shifts.startTime})) / 3600), 0)`,
+        totalHours: sql<number>`CAST(COALESCE(SUM(EXTRACT(EPOCH FROM (${shifts.endTime} - ${shifts.startTime})) / 3600), 0) AS FLOAT)`,
         desiredWeeklyHours: users.desiredWeeklyHours,
       })
       .from(users)
@@ -27,17 +27,17 @@ export class AnalyticsService {
       .groupBy(users.id)
       .orderBy(users.lastName);
 
-    return results;
+    return results as HourDistributionRecord[];
   }
 
-  async getFairnessScore(startDate: Date, endDate: Date) {
+  async getFairnessScore(startDate: Date, endDate: Date): Promise<FairnessScoreResponse> {
     // Get distribution of premium shifts per staff
     const distribution = await this.db
       .select({
         userId: users.id,
         firstName: users.firstName,
         lastName: users.lastName,
-        premiumShiftCount: sql<number>`COUNT(${shifts.id})`,
+        premiumShiftCount: sql<number>`CAST(COUNT(${shifts.id}) AS INTEGER)`,
       })
       .from(users)
       .leftJoin(assignments, eq(assignments.userId, users.id))
@@ -47,7 +47,7 @@ export class AnalyticsService {
       .orderBy(users.lastName);
 
     return {
-      distribution,
+      distribution: distribution as FairnessScoreResponse['distribution'],
       periodStart: startDate,
       periodEnd: endDate,
     };
