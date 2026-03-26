@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, ChevronLeft, ChevronRight, Filter, Users, MapPin, Clock } from 'lucide-react';
 import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
 import { CreateShiftModal } from '@/components/create-shift-modal';
+import { PendingSwapsModal } from '@/components/pending-swaps-modal';
+import { ShiftDetailsModal } from '@/components/shift-details-modal';
+import { ArrowRightLeft } from 'lucide-react';
 
 interface Location {
   id: string;
@@ -51,6 +54,9 @@ export default function ManagerSchedule() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+  const [pendingSwapsCount, setPendingSwapsCount] = useState(0);
 
   const weekStart = React.useMemo(() => 
     startOfWeek(currentDate, { weekStartsOn: 1 }), 
@@ -81,6 +87,15 @@ export default function ManagerSchedule() {
     }
   }, [selectedLocation, weekStart]);
 
+  const fetchStats = React.useCallback(async () => {
+    try {
+      const res = await api.get('/shifts/stats');
+      setPendingSwapsCount(res.data.pendingSwaps);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
@@ -98,7 +113,8 @@ export default function ManagerSchedule() {
       }
     };
     fetchMetadata();
-  }, []);
+    fetchStats();
+  }, [fetchStats]);
 
   useEffect(() => {
     fetchShifts();
@@ -108,6 +124,12 @@ export default function ManagerSchedule() {
   const prevWeek = () => setCurrentDate(addDays(currentDate, -7));
 
   const getSkillName = (id: string) => skills.find((s) => s.id === id)?.name || 'Unknown';
+
+  const onModalSuccess = () => {
+    fetchShifts();
+    fetchStats();
+    setSelectedShift(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -123,6 +145,18 @@ export default function ManagerSchedule() {
           <Button variant="outline" onClick={nextWeek}>
             <ChevronRight className="h-4 w-4" />
           </Button>
+          
+          {pendingSwapsCount > 0 && (
+            <Button 
+              variant="outline" 
+              className="ml-2 border-primary text-primary hover:bg-primary/10"
+              onClick={() => setIsSwapModalOpen(true)}
+            >
+              <ArrowRightLeft className="mr-2 h-4 w-4" />
+              Review Swaps ({pendingSwapsCount})
+            </Button>
+          )}
+
           <Button className="ml-4" onClick={() => setIsCreateModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> New Shift
           </Button>
@@ -132,10 +166,23 @@ export default function ManagerSchedule() {
       <CreateShiftModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={fetchShifts}
+        onSuccess={onModalSuccess}
         locations={locations}
         skills={skills}
         initialDate={currentDate}
+      />
+
+      <PendingSwapsModal
+        isOpen={isSwapModalOpen}
+        onClose={() => setIsSwapModalOpen(false)}
+        onSuccess={onModalSuccess}
+      />
+
+      <ShiftDetailsModal
+        isOpen={!!selectedShift}
+        onClose={() => setSelectedShift(null)}
+        shift={selectedShift}
+        onSuccess={onModalSuccess}
       />
 
       <div className="flex items-center gap-4 rounded-lg border bg-white p-4 shadow-sm">
@@ -181,7 +228,11 @@ export default function ManagerSchedule() {
                 <div className="flex flex-col gap-2 min-h-[400px] rounded-lg bg-slate-100/50 p-2">
                   {dayShifts.length > 0 ? (
                     dayShifts.map((shift) => (
-                      <Card key={shift.id} className="cursor-pointer transition-shadow hover:shadow-md">
+                      <Card 
+                        key={shift.id} 
+                        className="cursor-pointer transition-shadow hover:shadow-md"
+                        onClick={() => setSelectedShift(shift)}
+                      >
                         <CardHeader className="p-3 pb-0">
                           <div className="flex items-start justify-between gap-1">
                             <Badge variant={shift.isPremium ? "warning" : "secondary"} className="text-[10px] uppercase">

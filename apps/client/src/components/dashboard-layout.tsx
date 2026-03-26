@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useNotifications } from '@/hooks/use-notifications';
 
 interface NavItem {
   title: string;
@@ -73,6 +74,12 @@ const navItems: NavItem[] = [
     roles: ['Admin', 'Manager'],
   },
   {
+    title: 'Notifications',
+    href: '/dashboard/notifications',
+    icon: Bell,
+    roles: ['Admin', 'Manager', 'Staff'],
+  },
+  {
     title: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
@@ -82,6 +89,7 @@ const navItems: NavItem[] = [
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -156,9 +164,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </Sheet>
 
           <div className="ml-auto flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="text-muted-foreground">
-              <Bell className="h-5 w-5" />
-              <span className="sr-only">Notifications</span>
+            <Button asChild variant="ghost" size="icon" className="relative text-muted-foreground">
+              <Link href="/dashboard/notifications">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+                <span className="sr-only">Notifications</span>
+              </Link>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
