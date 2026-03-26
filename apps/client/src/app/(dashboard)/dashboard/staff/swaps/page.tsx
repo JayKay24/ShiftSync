@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ArrowRightLeft, Clock, MapPin, Check, X, User } from 'lucide-react';
+import { Loader2, ArrowRightLeft, Clock, MapPin, User } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 
@@ -46,7 +46,7 @@ interface Assignment {
   };
 }
 
-export default function SwapMarketplace() {
+function SwapMarketplaceContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const initialShiftId = searchParams.get('shiftId');
@@ -101,7 +101,6 @@ export default function SwapMarketplace() {
         shiftId: selectedShift,
         targetUserId: selectedTarget || undefined,
       });
-      // Refresh data
       const res = await api.get('/swaps');
       setSwaps(res.data);
       setSelectedShift('');
@@ -117,9 +116,6 @@ export default function SwapMarketplace() {
     try {
       if (accept) {
         await api.put(`/swaps/accept/${id}`);
-      } else {
-        // Reject not implemented in controller, but we could use a generic respond
-        // For now, only accept is there
       }
       const res = await api.get('/swaps');
       setSwaps(res.data);
@@ -135,7 +131,6 @@ export default function SwapMarketplace() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
-        {/* Left Column: Create Request */}
         <div className="space-y-6 lg:col-span-1">
           <Card>
             <CardHeader>
@@ -186,7 +181,6 @@ export default function SwapMarketplace() {
           </Card>
         </div>
 
-        {/* Right Column: List Requests */}
         <div className="space-y-6 lg:col-span-2">
           {requestsForMe.length > 0 && (
             <div className="space-y-4">
@@ -275,5 +269,17 @@ export default function SwapMarketplace() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SwapMarketplace() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <SwapMarketplaceContent />
+    </Suspense>
   );
 }
