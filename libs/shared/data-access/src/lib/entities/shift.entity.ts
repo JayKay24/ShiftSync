@@ -2,7 +2,8 @@ import { pgTable, uuid, timestamp, integer, boolean, pgEnum } from "drizzle-orm/
 import { locations } from "./location.entity";
 import { skills } from "./skill.entity";
 import { users } from "./user.entity";
-import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import { assignments } from "./assignment.entity";
+import { InferSelectModel, InferInsertModel, relations } from 'drizzle-orm';
 
 export const shiftStatusEnum = pgEnum("shift_status", [
   "draft",
@@ -28,6 +29,10 @@ export const shifts = pgTable("shifts", {
     .references(() => users.id)
     .notNull(),
 });
+
+export const shiftsRelations = relations(shifts, ({ many }) => ({
+  assignments: many(assignments),
+}));
 
 export type Shift = InferSelectModel<typeof shifts>;
 export type NewShift = InferInsertModel<typeof shifts>;

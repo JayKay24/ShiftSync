@@ -4,8 +4,8 @@ import { skills, employeeSkillEnum } from "./entities/skill.entity";
 import { staffCertifications } from "./entities/staff-certification.entity";
 import { staffSkills } from "./entities/staff-skill.entity";
 import { availability } from "./entities/availability.entity";
-import { shifts, shiftStatusEnum } from "./entities/shift.entity";
-import { assignments, assignmentStatusEnum } from "./entities/assignment.entity";
+import { shifts, shiftStatusEnum, shiftsRelations } from "./entities/shift.entity";
+import { assignments, assignmentStatusEnum, assignmentsRelations } from "./entities/assignment.entity";
 import { swapRequests, swapStatusEnum } from "./entities/swap-request.entity";
 import { notifications, notificationTypeEnum } from "./entities/notification.entity";
 import { notificationSettings } from "./entities/notification-setting.entity";
@@ -21,7 +21,9 @@ export const schema = {
   staffSkills,
   availability,
   shifts,
+  shiftsRelations,
   assignments,
+  assignmentsRelations,
   swapRequests,
   notifications,
   notificationSettings,

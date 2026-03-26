@@ -178,7 +178,7 @@ export class SwapService {
 
     const [updatedOldAssignment] = await this.db
       .update(assignments)
-      .set({ status: 'pending_swap' }) // Or delete/deactivate
+      .set({ status: 'swapped' })
       .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)))
       .returning();
 

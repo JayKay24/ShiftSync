@@ -16,6 +16,23 @@ export class ShiftsService {
     private notificationService: NotificationService,
   ) {}
 
+  async getShiftById(id: string) {
+    const shift = await this.db.query.shifts.findFirst({
+      where: eq(shifts.id, id),
+      with: {
+        assignments: {
+          where: eq(assignments.status, 'confirmed'),
+        },
+      },
+    });
+
+    if (!shift) {
+      throw new NotFoundException('Shift not found');
+    }
+
+    return shift;
+  }
+
   async createShift(newShift: NewShift) {
     // Requirement #5: Friday/Saturday evening shifts are premium
     // Assume evening starts at 6 PM (18:00)
