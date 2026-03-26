@@ -5,6 +5,7 @@ import * as schema from '../schemas/schema';
 import { locations } from '../entities/location.entity';
 import { skills } from '../entities/skill.entity';
 import { users } from '../entities/user.entity';
+import * as bcrypt from 'bcryptjs';
 
 async function main() {
   const pool = new Pool({
@@ -14,8 +15,15 @@ async function main() {
 
   console.log('--- Seeding Started ---');
 
+  // Clear existing data (optional but helpful for re-seeding)
+  console.log('Clearing existing data...');
+  await db.delete(users);
+  await db.delete(locations);
+  await db.delete(skills);
+
   // 1. Seed Locations (4 locations across 2 time zones)
   console.log('Seeding locations...');
+  // ... (rest of location seeding remains same)
   const seededLocations = await db
     .insert(locations)
     .values([
@@ -60,27 +68,27 @@ async function main() {
 
   // 3. Seed Initial Users (Admin, Manager, Staff)
   console.log('Seeding initial users...');
-  // Note: Using dummy password hash for now
-  const dummyHash = 'dummy_hash'; 
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash('password123', salt);
   
   await db.insert(users).values([
     {
       email: 'admin@coastaleats.com',
-      passwordHash: dummyHash,
+      passwordHash: passwordHash,
       firstName: 'Alice',
       lastName: 'Admin',
       role: 'Admin',
     },
     {
       email: 'manager@coastaleats.com',
-      passwordHash: dummyHash,
+      passwordHash: passwordHash,
       firstName: 'Bob',
       lastName: 'Manager',
       role: 'Manager',
     },
     {
       email: 'staff@coastaleats.com',
-      passwordHash: dummyHash,
+      passwordHash: passwordHash,
       firstName: 'Charlie',
       lastName: 'Staff',
       role: 'Staff',
