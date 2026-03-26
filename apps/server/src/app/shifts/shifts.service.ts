@@ -4,12 +4,14 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift } from '@shiftsync/data-access';
 import { eq, and } from 'drizzle-orm';
 import { ComplianceService } from './compliance.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class ShiftsService {
   constructor(
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
     private complianceService: ComplianceService,
+    private auditService: AuditService,
   ) {}
 
   async createShift(newShift: NewShift) {
@@ -28,6 +30,16 @@ export class ShiftsService {
         isPremium: newShift.isPremium || isPremium,
       })
       .returning();
+
+    // Log the creation
+    await this.auditService.logChange(
+      newShift.createdBy,
+      'shift',
+      result.id,
+      null,
+      result
+    );
+
     return result;
   }
 
@@ -152,6 +164,17 @@ export class ShiftsService {
         overrideReason,
         overrideType: '7th_consecutive_day',
       });
+    }
+
+    // Log the assignment
+    if (managerId) {
+      await this.auditService.logChange(
+        managerId,
+        'assignment',
+        assignment.id,
+        null,
+        assignment
+      );
     }
 
     return {

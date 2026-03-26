@@ -4,12 +4,14 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema, swapRequests, assignments, shifts, NewShift } from '@shiftsync/data-access';
 import { eq, and, or, count } from 'drizzle-orm';
 import { ShiftsService } from './shifts.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class SwapService {
   constructor(
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
     private shiftsService: ShiftsService,
+    private auditService: AuditService,
   ) {}
 
   async requestSwap(userId: string, shiftId: string, targetUserId?: string) {
@@ -51,6 +53,15 @@ export class SwapService {
       })
       .returning();
 
+    // Log the creation
+    await this.auditService.logChange(
+      userId,
+      'swap_request',
+      request.id,
+      null,
+      request
+    );
+
     return request;
   }
 
@@ -70,10 +81,20 @@ export class SwapService {
     }
 
     // Update to pending manager approval
-    await this.db
+    const [updatedRequest] = await this.db
       .update(swapRequests)
       .set({ status: 'pending_manager' })
-      .where(eq(swapRequests.id, requestId));
+      .where(eq(swapRequests.id, requestId))
+      .returning();
+
+    // Log the acceptance
+    await this.auditService.logChange(
+      userId,
+      'swap_request',
+      requestId,
+      request,
+      updatedRequest
+    );
 
     return { message: 'Swap accepted, awaiting manager approval' };
   }
@@ -89,7 +110,21 @@ export class SwapService {
     if (request.status !== 'pending_manager') throw new BadRequestException('Request is not awaiting manager approval');
 
     if (!approve) {
-      await this.db.update(swapRequests).set({ status: 'rejected' }).where(eq(swapRequests.id, requestId));
+      const [rejectedRequest] = await this.db
+        .update(swapRequests)
+        .set({ status: 'rejected' })
+        .where(eq(swapRequests.id, requestId))
+        .returning();
+
+      // Log the rejection
+      await this.auditService.logChange(
+        managerId,
+        'swap_request',
+        requestId,
+        request,
+        rejectedRequest
+      );
+
       return { status: 'rejected' };
     }
 
@@ -101,18 +136,44 @@ export class SwapService {
 
     // IMPORTANT: Re-verify all constraints for the NEW person before finalizing
     // We reuse the logic from shiftsService.assignStaff
-    await this.shiftsService.assignStaff(request.shiftId, request.targetUserId);
+    await this.shiftsService.assignStaff(request.shiftId, request.targetUserId, managerId);
 
     // If successful, deactivate the old assignment
-    await this.db
+    const [oldAssignment] = await this.db
+      .select()
+      .from(assignments)
+      .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)))
+      .limit(1);
+
+    const [updatedOldAssignment] = await this.db
       .update(assignments)
       .set({ status: 'pending_swap' }) // Or delete/deactivate
-      .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)));
+      .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)))
+      .returning();
 
-    await this.db
+    // Log the old assignment update
+    await this.auditService.logChange(
+      managerId,
+      'assignment',
+      oldAssignment.id,
+      oldAssignment,
+      updatedOldAssignment
+    );
+
+    const [finalRequest] = await this.db
       .update(swapRequests)
       .set({ status: 'approved' })
-      .where(eq(swapRequests.id, requestId));
+      .where(eq(swapRequests.id, requestId))
+      .returning();
+
+    // Log the final approval
+    await this.auditService.logChange(
+      managerId,
+      'swap_request',
+      requestId,
+      request,
+      finalRequest
+    );
 
     return { status: 'approved' };
   }
