@@ -92,6 +92,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { unreadCount } = useNotifications();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const filteredNavItems = navItems.filter((item) =>
     user ? item.roles.includes(user.role) : false
@@ -151,23 +156,27 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col">
         {/* Top Navbar */}
         <header className="flex h-14 items-center gap-4 border-b bg-white px-6">
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
-              <SidebarContent />
-            </SheetContent>
-          </Sheet>
+          {mounted ? (
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 p-0">
+                <SidebarContent />
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <div className="md:hidden w-10 h-10" />
+          )}
 
           <div className="ml-auto flex items-center gap-4">
             <Button asChild variant="ghost" size="icon" className="relative text-muted-foreground">
               <Link href="/dashboard/notifications">
                 <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
+                {mounted && unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
@@ -175,33 +184,38 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <span className="sr-only">Notifications</span>
               </Link>
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full border">
-                  <UserIcon className="h-5 w-5 text-muted-foreground" />
-                  <span className="sr-only">User menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>
-                  {user?.firstName} {user?.lastName}
-                  <p className="text-xs font-normal text-muted-foreground">
-                    {user?.role}
-                  </p>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/profile">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings">Settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-destructive">
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            
+            {mounted && user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full border">
+                    <UserIcon className="h-5 w-5 text-muted-foreground" />
+                    <span className="sr-only">User menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>
+                    {user?.firstName} {user?.lastName}
+                    <p className="text-xs font-normal text-muted-foreground">
+                      {user?.role}
+                    </p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-destructive">
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="w-10 h-10 rounded-full border border-transparent" />
+            )}
           </div>
         </header>
 

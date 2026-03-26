@@ -2,6 +2,10 @@ import { pgTable, text, uuid, varchar, timestamp, pgEnum, integer } from "drizzl
 import { InferSelectModel, InferInsertModel, relations } from 'drizzle-orm';
 import { staffCertifications } from "./staff-certification.entity";
 import { staffSkills } from "./staff-skill.entity";
+import { assignments } from "./assignment.entity";
+import { shifts } from "./shift.entity";
+import { swapRequests } from "./swap-request.entity";
+import { availability } from "./availability.entity";
 
 export const userRoleEnum = pgEnum("user_role", ["Admin", "Manager", "Staff"]);
 
@@ -19,6 +23,11 @@ export const users = pgTable("users", {
 export const usersRelations = relations(users, ({ many }) => ({
   staffCertifications: many(staffCertifications),
   staffSkills: many(staffSkills),
+  assignments: many(assignments),
+  createdShifts: many(shifts),
+  sentSwaps: many(swapRequests, { relationName: 'requestingUser' }),
+  receivedSwaps: many(swapRequests, { relationName: 'targetUser' }),
+  availability: many(availability),
 }));
 
 export type User = InferSelectModel<typeof users>;

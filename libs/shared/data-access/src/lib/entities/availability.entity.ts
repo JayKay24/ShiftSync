@@ -1,6 +1,6 @@
 import { pgTable, uuid, integer, time, boolean, date, check } from "drizzle-orm/pg-core";
 import { users } from "./user.entity";
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 
 export const availability = pgTable(
   "availability",
@@ -19,3 +19,10 @@ export const availability = pgTable(
     check("day_of_week_check", sql`${table.dayOfWeek} >= 0 AND ${table.dayOfWeek} <= 6`),
   ]
 );
+
+export const availabilityRelations = relations(availability, ({ one }) => ({
+  user: one(users, {
+    fields: [availability.userId],
+    references: [users.id],
+  }),
+}));

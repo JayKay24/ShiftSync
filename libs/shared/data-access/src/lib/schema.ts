@@ -1,9 +1,9 @@
 import { users, userRoleEnum, usersRelations } from "./entities/user.entity";
 import { locations } from "./entities/location.entity";
 import { skills, employeeSkillEnum } from "./entities/skill.entity";
-import { staffCertifications } from "./entities/staff-certification.entity";
-import { staffSkills } from "./entities/staff-skill.entity";
-import { availability } from "./entities/availability.entity";
+import { staffCertifications, staffCertificationsRelations } from "./entities/staff-certification.entity";
+import { staffSkills, staffSkillsRelations } from "./entities/staff-skill.entity";
+import { availability, availabilityRelations } from "./entities/availability.entity";
 import { shifts, shiftStatusEnum, shiftsRelations } from "./entities/shift.entity";
 import { assignments, assignmentStatusEnum, assignmentsRelations } from "./entities/assignment.entity";
 import { swapRequests, swapStatusEnum, swapRequestsRelations } from "./entities/swap-request.entity";
@@ -19,9 +19,13 @@ export const schema = {
   locations,
   skills,
   staffCertifications,
+  staffCertificationsRelations,
   staffSkills,
+  staffSkillsRelations,
   availability,
-  shifts,
+  availabilityRelations,
+...
+
   shiftsRelations,
   assignments,
   assignmentsRelations,

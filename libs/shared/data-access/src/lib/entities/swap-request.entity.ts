@@ -30,10 +30,12 @@ export const swapRequestsRelations = relations(swapRequests, ({ one }) => ({
   requestingUser: one(users, {
     fields: [swapRequests.requestingUserId],
     references: [users.id],
+    relationName: 'requestingUser',
   }),
   targetUser: one(users, {
     fields: [swapRequests.targetUserId],
     references: [users.id],
+    relationName: 'targetUser',
   }),
   shift: one(shifts, {
     fields: [swapRequests.shiftId],

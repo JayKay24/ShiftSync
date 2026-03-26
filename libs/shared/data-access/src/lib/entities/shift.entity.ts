@@ -40,6 +40,10 @@ export const shiftsRelations = relations(shifts, ({ one, many }) => ({
     fields: [shifts.requiredSkillId],
     references: [skills.id],
   }),
+  createdBy: one(users, {
+    fields: [shifts.createdBy],
+    references: [users.id],
+  }),
 }));
 
 export type Shift = InferSelectModel<typeof shifts>;
