@@ -20,6 +20,7 @@
     "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
