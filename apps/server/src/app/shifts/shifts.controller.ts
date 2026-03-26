@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Param, UseGuards, Req, Get } from '@nestjs/common';
+import { Controller, Post, Body, Param, UseGuards, Req, Get, Query } from '@nestjs/common';
 import { ShiftsService } from './shifts.service';
 import { CreateShiftDto, AssignStaffDto } from './dto/shift.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -10,6 +10,19 @@ import { Shift, AssignmentResult } from '@shiftsync/data-access';
 @Controller('shifts')
 export class ShiftsController {
   constructor(private readonly shiftsService: ShiftsService) {}
+
+  @Get()
+  async getAll(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('locationId') locationId?: string
+  ): Promise<Shift[]> {
+    return this.shiftsService.getShifts({
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      locationId,
+    });
+  }
 
   @Get(':id')
   async getOne(@Param('id') id: string): Promise<Shift> {

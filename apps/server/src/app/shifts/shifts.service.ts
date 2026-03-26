@@ -2,7 +2,7 @@ import { Injectable, Inject, BadRequestException, NotFoundException } from '@nes
 import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift } from '@shiftsync/data-access';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gte, lte } from 'drizzle-orm';
 import { ComplianceService } from './compliance.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
@@ -15,6 +15,26 @@ export class ShiftsService {
     private auditService: AuditService,
     private notificationService: NotificationService,
   ) {}
+
+  async getShifts(filters: { startDate?: Date; endDate?: Date; locationId?: string }) {
+    const whereClauses = [];
+    if (filters.startDate) whereClauses.push(gte(shifts.startTime, filters.startDate));
+    if (filters.endDate) whereClauses.push(lte(shifts.endTime, filters.endDate));
+    if (filters.locationId) whereClauses.push(eq(shifts.locationId, filters.locationId));
+
+    return this.db.query.shifts.findMany({
+      where: and(...whereClauses),
+      with: {
+        assignments: {
+          where: eq(assignments.status, 'confirmed'),
+          with: {
+            user: true,
+          },
+        },
+      },
+      orderBy: [shifts.startTime],
+    });
+  }
 
   async getShiftById(id: string) {
     const shift = await this.db.query.shifts.findFirst({
