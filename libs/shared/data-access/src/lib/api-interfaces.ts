@@ -47,11 +47,24 @@ export interface FairnessScoreResponse {
  * Single notification response
  */
 export type NotificationResponse = Notification;
-
 /**
  * List of notifications
  */
 export type NotificationListResponse = Notification[];
+
+/**
+ * WebSocket Event Payloads
+ */
+export interface WsNotificationPayload extends Notification {}
+
+export interface WsNotificationReadPayload {
+  id: string;
+}
+
+export interface WsScheduleUpdatePayload {
+  message: string;
+  timestamp: Date;
+}
 
 /**
  * Generic API Error Response
