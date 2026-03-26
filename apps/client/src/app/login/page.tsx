@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/hooks/use-auth';
 import { api } from '@/lib/api';
 import {
   Card,

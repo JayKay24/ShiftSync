@@ -23,7 +23,8 @@
     "types": ["jest", "node"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@shiftsync/data-access": ["../../libs/shared/data-access/src/index.ts"]
     }
   },
   "include": [
