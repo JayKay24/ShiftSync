@@ -86,7 +86,36 @@ The easiest way to run the entire stack (Frontend, Backend, and Database) is usi
    - **Backend API:** [http://localhost:3001/api](http://localhost:3001/api)
    - **Database:** `localhost:5432`
 
-### 2. Backend
+4. **Seed the Database:**
+   Once the database is running, seed it with test data (locations, users, shifts):
+   ```sh
+   # Ensure DATABASE_URL is set in your .env or shell
+   DATABASE_URL=postgresql://postgres:your_secure_password@localhost:5432/shiftsync?sslmode=disable npm run db:seed
+   ```
+
+## 🧪 Seeding & Test Accounts
+
+The project includes a comprehensive seeding script to populate the database with realistic data for testing compliance rules, shift swaps, and multi-location scenarios.
+
+### Running the Seed
+```sh
+npm run db:seed
+```
+*Note: This will clear existing data and recreate the core entities.*
+
+### Available Test Accounts
+All accounts use the password: `password123`
+
+| Role | Email | Name |
+| :--- | :--- | :--- |
+| **Admin** | `admin@coastaleats.com` | Alice Admin |
+| **Manager** | `bob.manager@coastaleats.com` | Bob Manager |
+| **Staff** | `charlie.staff@coastaleats.com` | Charlie Staff |
+| **Staff** | `dave.staff@coastaleats.com` | Dave Staff |
+| **Staff** | `eva.staff@coastaleats.com` | Eva Staff |
+| **Staff** | `frank.staff@coastaleats.com` | Frank Staff |
+
+## 🛠 Local Development (Manual)
 ```sh
 # Generate & Push Schema
 npm run db:push
@@ -109,6 +138,3 @@ npx nx serve client
 # Run E2E tests
 npx nx run server-e2e:e2e
 ```
-
----
-*Built as a Full-Stack Developer Assessment for Priority Soft.*
