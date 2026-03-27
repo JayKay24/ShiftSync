@@ -42,3 +42,9 @@ Thumbs.db
 .nx/workspace-data
 .claude/worktrees
 .claude/settings.local.json
+.env
+.geminiignore
+
+# Next.js
+.next
+out

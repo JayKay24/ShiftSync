@@ -1,0 +1,38 @@
+# Stage 1: Build the application
+FROM node:25-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependency manifests
+COPY package*.json ./
+
+# Install all dependencies (including Nx and build tools)
+RUN npm install
+
+# Copy the entire workspace
+COPY . .
+
+# Build the client application
+RUN npx nx build client --configuration=production
+
+# Stage 2: Run the application
+FROM node:25-alpine
+
+WORKDIR /app
+
+# Set production environment
+ENV NODE_ENV=production
+
+# In standalone mode, Next.js produces a standalone folder that contains 
+# only the necessary files for production, including the monorepo structure.
+# The standalone folder is located at dist/apps/client/.next/standalone
+COPY --from=builder /app/dist/apps/client/.next/standalone ./
+COPY --from=builder /app/dist/apps/client/.next/static ./apps/client/.next/static
+COPY --from=builder /app/dist/apps/client/public ./apps/client/public
+
+# Expose the application port
+EXPOSE 3000
+
+# Run the compiled application using the standalone server
+# Note: In an Nx monorepo, the standalone build keeps the original folder structure
+CMD ["node", "apps/client/server.js"]
