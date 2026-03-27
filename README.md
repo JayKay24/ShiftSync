@@ -1,5 +1,7 @@
 # ShiftSync — Multi-Location Staff Scheduling Platform
 
+**🌐 Live Demo:** [https://shiftsync-web.azurewebsites.net](https://shiftsync-web.azurewebsites.net)
+
 ShiftSync is a web-based scheduling platform designed for **Coastal Eats**, a fictional restaurant group operating across multiple locations and time zones. It solves the complexities of real-world workforce management by balancing manager control with staff flexibility and labor law compliance.
 
 ## 🌟 Overview
