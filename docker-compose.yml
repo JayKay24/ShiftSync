@@ -17,20 +17,33 @@ services:
       retries: 5
     restart: always
 
-  # server:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile-server
-  #   container_name: shiftsync_server
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - DATABASE_URL=${DATABASE_URL}
-  #     - PORT=3000
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   restart: always
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile-server
+    container_name: shiftsync_server
+    ports:
+      - "3001:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/shiftsync?sslmode=disable
+      - PORT=3000
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile-client
+    container_name: shiftsync_client
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+    depends_on:
+      - server
+    restart: always
 
 volumes:
   postgres_data:
