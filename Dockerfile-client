@@ -12,6 +12,9 @@ RUN npm install
 # Copy the entire workspace
 COPY . .
 
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Build the client application
 RUN npx nx build client --configuration=production
 
