@@ -129,7 +129,7 @@ npx nx serve server
 
 ### 3. Frontend
 ```sh
-npx nx serve client
+npx nx run client:start
 ```
 
 
