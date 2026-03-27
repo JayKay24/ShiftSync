@@ -76,7 +76,7 @@ jobs:
 
       - name: Push database schema
         run: |
-          npm run db:push
+          npx drizzle-kit push --force
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
