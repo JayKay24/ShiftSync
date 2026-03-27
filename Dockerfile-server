@@ -27,7 +27,7 @@ COPY --from=builder /app/apps/server/dist/apps/server .
 RUN npm install --omit=dev
 
 # Expose the application port
-EXPOSE 3000
+EXPOSE 3001
 
 # Run the compiled application
 CMD ["node", "main.js"]
