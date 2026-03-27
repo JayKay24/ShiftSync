@@ -10,6 +10,9 @@ The platform addresses critical pain points in hospitality management:
 - **Fairness:** Equitable distribution of "premium" shifts (e.g., weekend nights).
 - **Visibility:** A centralized view for corporate oversight across all locations.
 
+## DB Schema
+![DB Schema](./docs/ShiftSync_db_schema.drawio.png)
+
 ## 🚀 Key Features
 
 ### 📅 Intelligent Scheduling
