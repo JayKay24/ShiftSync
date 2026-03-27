@@ -58,22 +58,51 @@ Based on the requirements for Coastal Eats, the following technical and domain a
 ## 📖 Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
-- Docker (for database)
+- Node.js (v20+)
+- Docker & Docker Compose
 
 ### Installation
 ```sh
 npm install
 ```
 
-### Development
-```sh
-# Start the backend server
-npx nx serve server
+## 🐳 Docker Deployment 
 
-# Start the frontend client
+The easiest way to run the entire stack (Frontend, Backend, and Database) is using Docker Compose.
+
+1. **Configure Environment:**
+   Create a `.env` file in the root directory (or ensure these variables are set in your shell):
+   ```env
+   POSTGRES_PASSWORD=your_secure_password
+   ```
+
+2. **Launch the Stack:**
+   ```sh
+   docker-compose up --build
+   ```
+
+3. **Access the Applications:**
+   - **Frontend:** [http://localhost:3000](http://localhost:3000)
+   - **Backend API:** [http://localhost:3001/api](http://localhost:3001/api)
+   - **Database:** `localhost:5432`
+
+### 2. Backend
+```sh
+# Generate & Push Schema
+npm run db:push
+
+# Seed Data
+npm run db:seed
+
+# Start Server
+npx nx serve server
+```
+
+### 3. Frontend
+```sh
 npx nx serve client
 ```
+
 
 ### Server Testing
 ```sh
