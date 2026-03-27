@@ -32,18 +32,13 @@ jobs:
       # Build and push Frontend (Injecting API URL at build time)
       - name: Build and push frontend image
         run: |
-          docker buildx build --platform linux/amd64 \
-            -f Dockerfile-client \
-            --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
-            -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest .
+          docker buildx build --platform linux/amd64 -f Dockerfile-client --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest .
           docker push ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest
 
       # Build and push Backend
       - name: Build and push backend image
         run: |
-          docker buildx build --platform linux/amd64 \
-            -f Dockerfile-server \
-            -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest .
+          docker buildx build --platform linux/amd64 -f Dockerfile-server -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest .
           docker push ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest
 
       - name: Azure Login
