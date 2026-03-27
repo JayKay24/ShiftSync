@@ -10,6 +10,18 @@ The platform addresses critical pain points in hospitality management:
 - **Fairness:** Equitable distribution of "premium" shifts (e.g., weekend nights).
 - **Visibility:** A centralized view for corporate oversight across all locations.
 
+## 🤔 Implementation Assumptions
+
+Based on the requirements for Coastal Eats, the following technical and domain assumptions were made during development:
+
+- **Single Organization:** The platform is scoped to a single organization (Coastal Eats). Multi-tenancy is handled via `locationId` rather than a top-level `organizationId`.
+- **Shift Skills:** A single shift requires exactly **one primary skill** (e.g., "Bartender"). Shifts needing multiple distinct skills are modeled as separate parallel shift records.
+- **Group Assignments:** A single shift record can accommodate multiple staff members (`headcountNeeded` > 1) to prevent duplicating identical shift definitions.
+- **Compliance Timezones:** The "10-hour rest period" and "maximum consecutive days" compliance calculations are evaluated against the specific **location's local timezone**, not UTC or the user's browser timezone.
+- **Unified Swap/Drop Model:** A shift "drop" (putting a shift up for grabs) is modeled as a `swapRequest` with a `null` target user. 
+- **Manager Approvals:** Any user with a `Manager` role (or `Admin`) can approve shift swaps and overrides; approval is not strictly restricted to the original creator of the shift.
+- **Auditability:** Compliance overrides (like the 6th/7th consecutive workday) are recorded in a dedicated `complianceOverrides` table to maintain a strict audit trail, rather than an inline flag on the shift.
+
 ## DB Schema
 ![DB Schema](./docs/ShiftSync_db_schema.drawio.png)
 
