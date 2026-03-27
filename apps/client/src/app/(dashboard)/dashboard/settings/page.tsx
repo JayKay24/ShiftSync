@@ -119,20 +119,6 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-
-        <Card className="border-destructive/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <Shield className="h-5 w-5" />
-              Security
-            </CardTitle>
-            <CardDescription>Manage your password and session.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex gap-4">
-            <Button variant="outline">Change Password</Button>
-            <Button variant="ghost" className="text-destructive hover:bg-destructive/10">Log out all sessions</Button>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
