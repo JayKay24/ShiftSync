@@ -58,3 +58,32 @@ jobs:
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME_FRONTEND }}
           images: ghcr.io/${{ github.repository }}/client:latest
+
+  seed-database:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    environment: production
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Push database schema
+        run: |
+          npm run db:push
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Seed database
+        run: |
+          npm run db:seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
