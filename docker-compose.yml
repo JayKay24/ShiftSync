@@ -26,7 +26,6 @@ services:
       - "3001:3001"
     environment:
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/shiftsync?sslmode=disable
-      - PORT=3000
     depends_on:
       db:
         condition: service_healthy
