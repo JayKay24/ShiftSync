@@ -23,22 +23,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lower case owner name
+        run: |
+          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+        env:
+          OWNER: "${{ github.repository_owner }}"
+
       # Build and push Frontend (Injecting API URL at build time)
       - name: Build and push frontend image
         run: |
           docker buildx build --platform linux/amd64 \
             -f Dockerfile-client \
             --build-arg NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }} \
-            -t ghcr.io/${{ github.repository_owner }}/shiftsync-client:latest .
-          docker push ghcr.io/${{ github.repository_owner }}/shiftsync-client:latest
+            -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest .
+          docker push ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest
 
       # Build and push Backend
       - name: Build and push backend image
         run: |
           docker buildx build --platform linux/amd64 \
             -f Dockerfile-server \
-            -t ghcr.io/${{ github.repository_owner }}/shiftsync-server:latest .
-          docker push ghcr.io/${{ github.repository_owner }}/shiftsync-server:latest
+            -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest .
+          docker push ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest
 
       - name: Azure Login
         uses: azure/login@v1
@@ -50,14 +56,14 @@ jobs:
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME_BACKEND }}
-          images: ghcr.io/${{ github.repository_owner }}/shiftsync-server:latest
+          images: ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest
 
       # Deploy Frontend
       - name: Deploy frontend to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME_FRONTEND }}
-          images: ghcr.io/${{ github.repository_owner }}/shiftsync-client:latest
+          images: ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest
 
   seed-database:
     runs-on: ubuntu-latest
