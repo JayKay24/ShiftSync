@@ -23,6 +23,9 @@ Based on the requirements for Coastal Eats, the following technical and domain a
 - **Unified Swap/Drop Model:** A shift "drop" (putting a shift up for grabs) is modeled as a `swapRequest` with a `null` target user. 
 - **Manager Approvals:** Any user with a `Manager` role (or `Admin`) can approve shift swaps and overrides; approval is not strictly restricted to the original creator of the shift.
 - **Auditability:** Compliance overrides (like the 6th/7th consecutive workday) are recorded in a dedicated `complianceOverrides` table to maintain a strict audit trail, rather than an inline flag on the shift.
+- **Regret Swap Logic:** If a manager modifies a shift's critical details (time, location, or skill), the system automatically cancels any associated pending swap or drop requests to prevent staff from inheriting an altered schedule without consent.
+- **Marketplace Guardrails:** To maintain schedule stability and prevent spam, staff members are limited to **three active pending requests** (swaps or drops) at any given time.
+- **Unified Contract Architecture:** The platform uses a dedicated `@shiftsync/data-access` library as the single source of truth for both database schema and API request/response interfaces, ensuring full-stack type safety.
 
 ## DB Schema
 ![DB Schema](./docs/ShiftSync_db_schema.drawio.png)
@@ -95,6 +98,17 @@ The easiest way to run the entire stack (Frontend, Backend, and Database) is usi
    DATABASE_URL=postgresql://postgres:your_secure_password@localhost:5432/shiftsync?sslmode=disable npm run db:seed
    ```
 
+## 🧪 Testing
+
+### Server Integration Tests
+The backend integration suite verifies complex business logic, labor law compliance, and database state. These tests are executed against a real database instance using the specialized `server-e2e` project.
+
+```sh
+# Run all server integration tests
+npx nx run server-e2e:e2e
+```
+*Note: The suite handles automated seeding and environment setup for each test run.*
+
 ## 🧪 Seeding & Test Accounts
 
 The project includes a comprehensive seeding script to populate the database with realistic data for testing compliance rules, shift swaps, and multi-location scenarios.
@@ -132,11 +146,4 @@ npx nx serve server
 ### 3. Frontend
 ```sh
 npx nx run client:start
-```
-
-
-### Server Testing
-```sh
-# Run E2E tests
-npx nx run server-e2e:e2e
 ```
