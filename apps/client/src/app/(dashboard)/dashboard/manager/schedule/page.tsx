@@ -1,61 +1,28 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, shiftsApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { ShiftResponse, Location, Skill } from '@shiftsync/data-access';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, ChevronLeft, ChevronRight, Filter, Users, MapPin, Clock } from 'lucide-react';
+import { Loader2, Plus, ChevronLeft, ChevronRight, Filter, Users, MapPin, Clock, ArrowRightLeft } from 'lucide-react';
 import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
 import { CreateShiftModal } from '@/components/create-shift-modal';
 import { PendingSwapsModal } from '@/components/pending-swaps-modal';
 import { ShiftDetailsModal } from '@/components/shift-details-modal';
-import { ArrowRightLeft } from 'lucide-react';
-
-interface Location {
-  id: string;
-  name: string;
-}
-
-interface Skill {
-  id: string;
-  name: string;
-}
-
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-}
-
-interface Assignment {
-  id: string;
-  user: User;
-}
-
-interface Shift {
-  id: string;
-  locationId: string;
-  requiredSkillId: string;
-  startTime: string;
-  endTime: string;
-  headcountNeeded: number;
-  status: string;
-  isPremium: boolean;
-  assignments?: Assignment[];
-}
 
 export default function ManagerSchedule() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [shifts, setShifts] = useState<ShiftResponse[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
-  const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+  const [selectedShift, setSelectedShift] = useState<ShiftResponse | null>(null);
   const [pendingSwapsCount, setPendingSwapsCount] = useState(0);
 
   const weekStart = React.useMemo(() => 
@@ -72,12 +39,10 @@ export default function ManagerSchedule() {
     if (!selectedLocation) return;
     setIsLoading(true);
     try {
-      const res = await api.get('/shifts', {
-        params: {
-          locationId: selectedLocation,
-          startDate: weekStart.toISOString(),
-          endDate: addDays(weekStart, 7).toISOString(),
-        },
+      const res = await shiftsApi.getShifts({
+        locationId: selectedLocation,
+        start: weekStart.toISOString(),
+        end: addDays(weekStart, 7).toISOString(),
       });
       setShifts(res.data);
     } catch (error) {
@@ -134,15 +99,15 @@ export default function ManagerSchedule() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-3xl font-bold">Schedule Manager</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Schedule Manager</h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={prevWeek}>
+          <Button variant="outline" size="icon" onClick={prevWeek}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="min-w-[200px] text-center font-medium">
             {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d, yyyy')}
           </span>
-          <Button variant="outline" onClick={nextWeek}>
+          <Button variant="outline" size="icon" onClick={nextWeek}>
             <ChevronRight className="h-4 w-4" />
           </Button>
           
@@ -160,6 +125,108 @@ export default function ManagerSchedule() {
           <Button className="ml-4" onClick={() => setIsCreateModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> New Shift
           </Button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 overflow-x-auto pb-2">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mr-2">
+          <Filter className="h-4 w-4" /> Filter by Location:
+        </div>
+        {locations.map((loc) => (
+          <Button
+            key={loc.id}
+            variant={selectedLocation === loc.id ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedLocation(loc.id)}
+            className="whitespace-nowrap"
+          >
+            {loc.name}
+          </Button>
+        ))}
+      </div>
+
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="grid grid-cols-7 border-b bg-slate-50/50">
+          {weekDays.map((day) => (
+            <div key={day.toString()} className="p-3 text-center border-r last:border-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                {format(day, 'EEE')}
+              </p>
+              <p className={cn(
+                "text-lg font-bold mt-0.5",
+                isSameDay(day, new Date()) ? "text-primary" : ""
+              )}>
+                {format(day, 'd')}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 min-h-[500px]">
+          {weekDays.map((day) => {
+            const dayShifts = shifts.filter((s) => isSameDay(parseISO(s.startTime.toString()), day));
+            return (
+              <div key={day.toString()} className="p-2 border-r last:border-0 space-y-3 bg-slate-50/20">
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                ) : dayShifts.length > 0 ? (
+                  dayShifts.map((shift) => (
+                    <Card 
+                      key={shift.id} 
+                      className={cn(
+                        "cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 group",
+                        shift.isPremium ? "border-orange-200 bg-orange-50/30" : "bg-white"
+                      )}
+                      onClick={() => setSelectedShift(shift)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant="outline" className="text-[9px] uppercase font-bold px-1.5 py-0 h-4">
+                            {getSkillName(shift.requiredSkillId).replace('_', ' ')}
+                          </Badge>
+                          {shift.isPremium && <Badge className="bg-orange-500 hover:bg-orange-600 text-[8px] h-3.5 px-1 uppercase">Premium</Badge>}
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold">
+                            <Clock className="h-3 w-3 text-slate-400" />
+                            {format(parseISO(shift.startTime.toString()), 'HH:mm')} - {format(parseISO(shift.endTime.toString()), 'HH:mm')}
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                            <Users className="h-3 w-3" />
+                            {shift.assignments?.length || 0} / {shift.headcountNeeded}
+                          </div>
+                        </div>
+
+                        {shift.assignments && shift.assignments.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1">
+                            {shift.assignments.slice(0, 2).map((a) => (
+                              <div key={a.id} className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center text-[8px] font-bold border border-white" title={a.user?.firstName}>
+                                {a.user?.firstName[0]}{a.user?.lastName[0]}
+                              </div>
+                            ))}
+                            {shift.assignments.length > 2 && (
+                              <div className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center text-[8px] font-bold text-muted-foreground border border-white">
+                                +{shift.assignments.length - 2}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="h-full rounded-lg border-2 border-dashed border-slate-100 flex flex-col items-center justify-center p-4 text-center opacity-40">
+                    <Plus className="h-4 w-4 mb-1" />
+                    <p className="text-[9px] font-medium uppercase tracking-tight">Empty</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -184,99 +251,6 @@ export default function ManagerSchedule() {
         shift={selectedShift}
         onSuccess={onModalSuccess}
       />
-
-      <div className="flex items-center gap-4 rounded-lg border bg-white p-4 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Filter:</span>
-        </div>
-        <select
-          className="rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
-          value={selectedLocation}
-          onChange={(e) => setSelectedLocation(e.target.value)}
-        >
-          {locations.map((loc) => (
-            <option key={loc.id} value={loc.id}>
-              {loc.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {isLoading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-7">
-          {weekDays.map((day) => {
-            const dayShifts = shifts.filter((s) => isSameDay(parseISO(s.startTime), day));
-            return (
-              <div key={day.toString()} className="flex flex-col gap-3">
-                <div className="text-center">
-                  <div className="text-sm font-medium text-muted-foreground">
-                    {format(day, 'EEE')}
-                  </div>
-                  <div className={cn(
-                    "mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold",
-                    isSameDay(day, new Date()) ? "bg-primary text-primary-foreground" : "bg-muted"
-                  )}>
-                    {format(day, 'd')}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2 min-h-[400px] rounded-lg bg-slate-100/50 p-2">
-                  {dayShifts.length > 0 ? (
-                    dayShifts.map((shift) => (
-                      <Card 
-                        key={shift.id} 
-                        className="cursor-pointer transition-shadow hover:shadow-md"
-                        onClick={() => setSelectedShift(shift)}
-                      >
-                        <CardHeader className="p-3 pb-0">
-                          <div className="flex items-start justify-between gap-1">
-                            <Badge variant={shift.isPremium ? "warning" : "secondary"} className="text-[10px] uppercase">
-                              {getSkillName(shift.requiredSkillId)}
-                              {shift.isPremium && " + Premium"}
-                            </Badge>
-                            <span className="text-[10px] font-bold text-muted-foreground">
-                              {shift.assignments?.length || 0}/{shift.headcountNeeded}
-                            </span>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-2">
-                          <div className="flex items-center gap-1 text-xs font-semibold">
-                            <Clock className="h-3 w-3" />
-                            {format(parseISO(shift.startTime), 'HH:mm')} - {format(parseISO(shift.endTime), 'HH:mm')}
-                          </div>
-                          
-                          <div className="mt-2 space-y-1">
-                            {shift.assignments?.map((asgn) => (
-                              <div key={asgn.id} className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                <Users className="h-3 w-3" />
-                                <span className="truncate">{asgn.user.firstName} {asgn.user.lastName}</span>
-                              </div>
-                            ))}
-                            {(shift.assignments?.length || 0) < shift.headcountNeeded && (
-                              <div className="text-[10px] italic text-rose-500">
-                                Unfilled
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <div className="text-center py-4 text-[11px] text-muted-foreground">
-                      No shifts
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
