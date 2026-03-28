@@ -100,6 +100,7 @@ async function main() {
       firstName: 'Alice',
       lastName: 'Admin',
       role: 'Admin',
+      timezone: 'America/New_York',
     },
     {
       id: '33333333-3333-4333-8333-333333333331',
@@ -108,6 +109,7 @@ async function main() {
       firstName: 'Bob',
       lastName: 'Manager',
       role: 'Manager',
+      timezone: 'America/New_York',
     },
     {
       id: '33333333-3333-4333-8333-333333333332',
@@ -116,6 +118,7 @@ async function main() {
       firstName: 'Charlie',
       lastName: 'Staff',
       role: 'Staff',
+      timezone: 'America/New_York',
       desiredWeeklyHours: 35,
     },
     {
@@ -125,6 +128,7 @@ async function main() {
       firstName: 'Dave',
       lastName: 'Staff',
       role: 'Staff',
+      timezone: 'America/Chicago',
       desiredWeeklyHours: 40,
     },
     {
@@ -134,6 +138,7 @@ async function main() {
       firstName: 'Eva',
       lastName: 'Staff',
       role: 'Staff',
+      timezone: 'America/Denver',
       desiredWeeklyHours: 20, // Part-time
     },
     {
@@ -143,6 +148,7 @@ async function main() {
       firstName: 'Frank',
       lastName: 'Staff',
       role: 'Staff',
+      timezone: 'America/Los_Angeles',
       desiredWeeklyHours: 45, // Full-time / Overtime prone
     },
   ]).returning();
