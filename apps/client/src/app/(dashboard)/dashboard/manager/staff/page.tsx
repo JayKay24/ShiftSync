@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, User, Mail, ShieldCheck, MapPin, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { StaffProfileModal } from '@/components/staff-profile-modal';
 
 interface Skill {
   id: string;
@@ -30,6 +31,8 @@ interface StaffMember {
 export default function StaffManagement() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -45,6 +48,11 @@ export default function StaffManagement() {
     fetchStaff();
   }, []);
 
+  const openProfile = (member: StaffMember) => {
+    setSelectedStaff(member);
+    setIsProfileModalOpen(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -57,18 +65,18 @@ export default function StaffManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Staff Management</h1>
-        <Button>
+        <Button disabled className="opacity-50 cursor-not-allowed">
           <User className="mr-2 h-4 w-4" /> Add Staff Member
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {staff.map((person) => (
-          <Card key={person.id} className="overflow-hidden">
-            <CardHeader className="bg-muted/30 pb-4">
+          <Card key={person.id} className="overflow-hidden transition-all hover:shadow-md border-slate-200">
+            <CardHeader className="bg-slate-50/50 pb-4 border-b">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg shadow-sm">
                     {person.firstName[0]}{person.lastName[0]}
                   </div>
                   <div>
@@ -90,7 +98,7 @@ export default function StaffManagement() {
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {person.staffSkills.length > 0 ? person.staffSkills.map(({ skill }) => (
-                    <Badge key={skill.id} variant="secondary" className="px-2 py-0">
+                    <Badge key={skill.id} variant="secondary" className="px-2 py-0 font-medium">
                       {skill.name.replace('_', ' ')}
                     </Badge>
                   )) : (
@@ -105,7 +113,7 @@ export default function StaffManagement() {
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {person.staffCertifications.length > 0 ? person.staffCertifications.map(({ location }) => (
-                    <Badge key={location.id} variant="outline" className="px-2 py-0 flex items-center gap-1 border-primary/20 text-primary">
+                    <Badge key={location.id} variant="outline" className="px-2 py-0 flex items-center gap-1 border-primary/20 text-primary font-medium">
                       <ShieldCheck className="h-3 w-3" />
                       {location.name.split(' - ')[1] || location.name}
                     </Badge>
@@ -115,11 +123,18 @@ export default function StaffManagement() {
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-between border-t">
+              <div className="pt-2 flex items-center justify-between border-t border-slate-100">
                 <div className="text-xs text-muted-foreground">
                   Target: <span className="font-bold text-foreground">{person.desiredWeeklyHours}h/week</span>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 text-xs">View Profile</Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                  onClick={() => openProfile(person)}
+                >
+                  View Profile
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -127,12 +142,18 @@ export default function StaffManagement() {
       </div>
 
       {staff.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed p-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed p-20 text-center bg-slate-50/50">
           <User className="mb-4 h-12 w-12 text-muted-foreground/30" />
           <h3 className="text-lg font-medium">No staff members found</h3>
           <p className="text-sm text-muted-foreground">Start by adding your first team member.</p>
         </div>
       )}
+
+      <StaffProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+        staff={selectedStaff}
+      />
     </div>
   );
 }

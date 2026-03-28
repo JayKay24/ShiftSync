@@ -69,6 +69,9 @@ export const shiftsApi = {
   
   getOnDutyNow: () => 
     api.get<OnDutyStaffResponse[]>('/shifts/on-duty'),
+
+  getStaffAssignments: (userId: string) =>
+    api.get<AssignmentResult[]>(`/shifts/staff/${userId}/assignments`),
 };
 
 /**

@@ -27,6 +27,7 @@ export interface ShiftResponse extends Shift {
  */
 export interface AssignmentResult extends Assignment {
   warnings: string[];
+  shift?: ShiftResponse;
 }
 
 /**

@@ -31,6 +31,12 @@ export class ShiftsController {
     return this.shiftsService.getStaff();
   }
 
+  @Get('staff/:id/assignments')
+  @Roles('Admin', 'Manager')
+  async getStaffAssignments(@Param('id') id: string) {
+    return this.shiftsService.getUserAssignments(id);
+  }
+
   @Get('stats')
   @Roles('Admin', 'Manager')
   async getStats() {
