@@ -1,4 +1,14 @@
 import axios from 'axios';
+import { 
+  AuthResponse, 
+  ShiftResponse, 
+  AssignmentResult, 
+  AvailableStaffResponse,
+  OnDutyStaffResponse,
+  FairnessScoreResponse,
+  HourDistributionRecord,
+  NotificationListResponse
+} from '@shiftsync/data-access';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -26,9 +36,64 @@ api.interceptors.response.use(
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        // Optional: Redirect to login or use a signal from context
       }
     }
     return Promise.reject(error);
   }
 );
+
+/**
+ * Shifts API
+ */
+export const shiftsApi = {
+  getShifts: (params?: { start?: string; end?: string; locationId?: string }) => 
+    api.get<ShiftResponse[]>('/shifts', { params }),
+  
+  getShift: (id: string) => 
+    api.get<ShiftResponse>(`/shifts/${id}`),
+  
+  createShift: (data: any) => 
+    api.post<ShiftResponse>('/shifts', data),
+  
+  updateShift: (id: string, data: any) => 
+    api.patch<ShiftResponse>(`/shifts/${id}`, data),
+  
+  assignStaff: (shiftId: string, userId: string, overrideReason?: string) => 
+    api.post<AssignmentResult>(`/shifts/${shiftId}/assign`, { userId, overrideReason }),
+  
+  getAvailableStaff: (shiftId: string) => 
+    api.get<AvailableStaffResponse[]>(`/shifts/${shiftId}/available-staff`),
+  
+  getOnDutyNow: () => 
+    api.get<OnDutyStaffResponse[]>('/shifts/on-duty'),
+};
+
+/**
+ * Analytics API
+ */
+export const analyticsApi = {
+  getFairness: () => 
+    api.get<FairnessScoreResponse>('/analytics/fairness'),
+  
+  getDistribution: () => 
+    api.get<HourDistributionRecord[]>('/analytics/distribution'),
+};
+
+/**
+ * Notifications API
+ */
+export const notificationsApi = {
+  getNotifications: () => 
+    api.get<NotificationListResponse>('/notifications'),
+  
+  markRead: (id: string) => 
+    api.patch(`/notifications/${id}/read`),
+};
+
+/**
+ * Auth API
+ */
+export const authApi = {
+  login: (credentials: any) => 
+    api.post<AuthResponse>('/auth/login', credentials),
+};
