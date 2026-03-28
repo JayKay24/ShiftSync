@@ -2,6 +2,8 @@ import { User } from './entities/user.entity';
 import { Shift } from './entities/shift.entity';
 import { Assignment } from './entities/assignment.entity';
 import { Notification } from './entities/notification.entity';
+import { Location } from './entities/location.entity';
+import { Skill } from './entities/skill.entity';
 
 /**
  * Response returned after a successful login
@@ -15,9 +17,9 @@ export interface AuthResponse {
  * Response for a single shift, potentially with relations
  */
 export interface ShiftResponse extends Shift {
-  assignments?: Assignment[];
-  location?: any;
-  requiredSkill?: any;
+  assignments?: (Assignment & { user?: Omit<User, 'passwordHash'> })[];
+  location?: Location;
+  requiredSkill?: Skill;
 }
 
 /**
