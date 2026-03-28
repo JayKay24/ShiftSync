@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { ShiftResponse, Location, Skill } from '@shiftsync/data-access';
+import { ShiftResponse } from '@shiftsync/data-access';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +13,10 @@ import { CreateShiftModal } from '@/components/create-shift-modal';
 import { PendingSwapsModal } from '@/components/pending-swaps-modal';
 import { ShiftDetailsModal } from '@/components/shift-details-modal';
 import { useShifts } from '@/hooks/use-shifts';
+import { useMetadata } from '@/hooks/use-metadata';
 
 export default function ManagerSchedule() {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [skills, setSkills] = useState<Skill[]>([]);
+  const { locations, skills, fetchMetadata } = useMetadata();
   const { shifts, isLoading, fetchShifts } = useShifts();
   
   const [selectedLocation, setSelectedLocation] = useState<string>('');
@@ -55,24 +55,15 @@ export default function ManagerSchedule() {
   }, []);
 
   useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const [locRes, skillRes] = await Promise.all([
-          api.get('/shifts/locations'),
-          api.get('/shifts/skills'),
-        ]);
-        setLocations(locRes.data);
-        setSkills(skillRes.data);
-        if (locRes.data.length > 0 && !selectedLocation) {
-          setSelectedLocation(locRes.data[0].id);
-        }
-      } catch (error) {
-        console.error('Failed to fetch metadata:', error);
+    const loadMetadata = async () => {
+      const data = await fetchMetadata();
+      if (data.locations.length > 0 && !selectedLocation) {
+        setSelectedLocation(data.locations[0].id);
       }
     };
-    fetchMetadata();
+    loadMetadata();
     fetchStats();
-  }, [fetchStats, selectedLocation]);
+  }, [fetchMetadata, fetchStats, selectedLocation]);
 
   useEffect(() => {
     refreshShifts();

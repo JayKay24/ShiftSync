@@ -1,40 +1,29 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, User, Mail, ShieldCheck, MapPin, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StaffProfileModal } from '@/components/staff-profile-modal';
 import { StaffMemberResponse } from '@shiftsync/data-access';
+import { useStaff } from '@/hooks/use-staff';
 
 export default function StaffManagement() {
-  const [staff, setStaff] = useState<StaffMemberResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { staffList, isLoading, fetchStaff } = useStaff();
   const [selectedStaff, setSelectedStaff] = useState<StaffMemberResponse | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
-    const fetchStaff = async () => {
-      try {
-        const res = await api.get('/shifts/staff');
-        setStaff(res.data);
-      } catch (error) {
-        console.error('Failed to fetch staff:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchStaff();
-  }, []);
+  }, [fetchStaff]);
 
   const openProfile = (member: StaffMemberResponse) => {
     setSelectedStaff(member);
     setIsProfileModalOpen(true);
   };
 
-  if (isLoading) {
+  if (isLoading && staffList.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -49,7 +38,7 @@ export default function StaffManagement() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {staff.map((person) => (
+        {staffList.map((person) => (
           <Card key={person.id} className="overflow-hidden transition-all hover:shadow-md border-slate-200">
             <CardHeader className="bg-slate-50/50 pb-4 border-b">
               <div className="flex items-start justify-between">
@@ -103,7 +92,7 @@ export default function StaffManagement() {
 
               <div className="pt-2 flex items-center justify-between border-t border-slate-100">
                 <div className="text-xs text-muted-foreground">
-                  Target: <span className="font-bold text-foreground">{person.desiredWeeklyHours}h/week</span>
+                  Target: <span className="font-bold text-foreground">{person.desiredWeeklyHours || 40}h/week</span>
                 </div>
                 <Button 
                   variant="ghost" 
@@ -119,7 +108,7 @@ export default function StaffManagement() {
         ))}
       </div>
 
-      {staff.length === 0 && (
+      {staffList.length === 0 && !isLoading && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed p-20 text-center bg-slate-50/50">
           <User className="mb-4 h-12 w-12 text-muted-foreground/30" />
           <h3 className="text-lg font-medium">No staff members found</h3>
