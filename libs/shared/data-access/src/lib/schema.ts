@@ -9,9 +9,9 @@ import { assignments, assignmentStatusEnum, assignmentsRelations } from "./entit
 import { swapRequests, swapStatusEnum, swapRequestsRelations } from "./entities/swap-request.entity";
 import { notifications, notificationTypeEnum } from "./entities/notification.entity";
 import { notificationSettings } from "./entities/notification-setting.entity";
-import { auditLogs } from "./entities/audit-log.entity";
-import { complianceOverrides, overrideTypeEnum } from "./entities/compliance-override.entity";
-import { timeEntries } from "./entities/time-entry.entity";
+import { auditLogs, auditLogsRelations } from "./entities/audit-log.entity";
+import { complianceOverrides, complianceOverridesRelations, overrideTypeEnum } from "./entities/compliance-override.entity";
+import { timeEntries, timeEntriesRelations } from "./entities/time-entry.entity";
 
 export const schema = {
   users,
@@ -33,8 +33,11 @@ export const schema = {
   notifications,
   notificationSettings,
   auditLogs,
+  auditLogsRelations,
   complianceOverrides,
+  complianceOverridesRelations,
   timeEntries,
+  timeEntriesRelations,
 };
 
 export const enums = {

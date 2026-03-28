@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { api } from '@/lib/api';
+import { shiftsApi } from '@/lib/api';
+import { Location, Skill } from '@shiftsync/data-access';
 import {
   Dialog,
   DialogContent,
@@ -12,15 +13,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Star } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface CreateShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  locations: { id: string; name: string }[];
-  skills: { id: string; name: string }[];
+  locations: Location[];
+  skills: Skill[];
   initialDate?: Date;
 }
 
@@ -40,6 +41,7 @@ export function CreateShiftModal({
     startTime: '09:00',
     endTime: '17:00',
     headcountNeeded: 1,
+    isPremium: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,12 +52,13 @@ export function CreateShiftModal({
       const startTime = new Date(`${formData.date}T${formData.startTime}:00`).toISOString();
       const endTime = new Date(`${formData.date}T${formData.endTime}:00`).toISOString();
 
-      await api.post('/shifts', {
+      await shiftsApi.createShift({
         locationId: formData.locationId,
         requiredSkillId: formData.requiredSkillId,
         startTime,
         endTime,
         headcountNeeded: Number(formData.headcountNeeded),
+        isPremium: formData.isPremium,
         status: 'published',
       });
 
@@ -143,6 +146,20 @@ export function CreateShiftModal({
             </div>
           </div>
 
+          <div className="flex items-center space-x-2 py-2">
+            <input 
+              type="checkbox" 
+              id="premium" 
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              checked={formData.isPremium}
+              onChange={(e) => setFormData({ ...formData, isPremium: e.target.checked })}
+            />
+            <Label htmlFor="premium" className="flex items-center gap-1.5 cursor-pointer">
+              <Star className={`h-3.5 w-3.5 ${formData.isPremium ? 'text-orange-500 fill-orange-500' : 'text-slate-400'}`} />
+              Mark as Premium Shift
+            </Label>
+          </div>
+
           <div className="grid gap-2">
             <Label htmlFor="headcount">Headcount Needed</Label>
             <Input
@@ -156,9 +173,9 @@ export function CreateShiftModal({
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="w-full">
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Shift
+              Create & Publish Shift
             </Button>
           </DialogFooter>
         </form>

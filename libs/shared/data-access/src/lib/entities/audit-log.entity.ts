@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, jsonb, timestamp } from "drizzle-orm/pg-core";
 import { users } from "./user.entity";
+import { relations } from 'drizzle-orm';
 
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -12,3 +13,10 @@ export const auditLogs = pgTable("audit_logs", {
   newState: jsonb("new_state"),
   changedAt: timestamp("changed_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  actor: one(users, {
+    fields: [auditLogs.actorId],
+    references: [users.id],
+  }),
+}));

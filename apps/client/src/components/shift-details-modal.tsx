@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { shiftsApi } from '@/lib/api';
+import { ShiftResponse, AvailableStaffResponse } from '@shiftsync/data-access';
 import {
   Dialog,
   DialogContent,
@@ -10,40 +11,15 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, UserPlus, Users, Clock, MapPin, AlertTriangle } from 'lucide-react';
+import { Loader2, UserPlus, Users, Clock, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-interface Staff {
-  id: string;
-  firstName: string;
-  lastName: string;
-  staffSkills: { skill: { name: string } }[];
-  staffCertifications: { location: { name: string } }[];
-}
-
-interface Shift {
-  id: string;
-  startTime: string;
-  endTime: string;
-  headcountNeeded: number;
-  requiredSkillId: string;
-  isPremium: boolean;
-  assignments?: {
-    id: string;
-    user: {
-      id: string;
-      firstName: string;
-      lastName: string;
-    };
-  }[];
-}
-
 interface ShiftDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  shift: Shift | null;
+  shift: ShiftResponse | null;
   onSuccess: () => void;
 }
 
@@ -53,60 +29,67 @@ export function ShiftDetailsModal({
   shift,
   onSuccess,
 }: ShiftDetailsModalProps) {
-  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [availableStaff, setAvailableStaff] = useState<AvailableStaffResponse[]>([]);
   const [isLoadingStaff, setIsLoadingStaff] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
-  const [showOverride, setShowOverride] = useState(false);
+  const [pendingStaffId, setPendingStaffId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      const fetchStaff = async () => {
+    if (isOpen && shift) {
+      const fetchAvailableStaff = async () => {
         setIsLoadingStaff(true);
         try {
-          const res = await api.get('/shifts/staff');
-          setStaffList(res.data);
+          const res = await shiftsApi.getAvailableStaff(shift.id);
+          setAvailableStaff(res.data);
         } catch (error) {
-          console.error('Failed to fetch staff:', error);
+          console.error('Failed to fetch available staff:', error);
         } finally {
           setIsLoadingStaff(false);
         }
       };
-      fetchStaff();
+      fetchAvailableStaff();
       setError(null);
-      setShowOverride(false);
+      setPendingStaffId(null);
       setOverrideReason('');
     }
-  }, [isOpen]);
+  }, [isOpen, shift]);
 
   if (!shift) return null;
 
-  const handleAssign = async (userId: string) => {
+  const handleAssign = async (staff: AvailableStaffResponse) => {
+    if (staff.requiresOverride && pendingStaffId !== staff.id) {
+      setPendingStaffId(staff.id);
+      setError(staff.warnings.join(', '));
+      return;
+    }
+
     setIsAssigning(true);
     setError(null);
     try {
-      await api.post(`/shifts/${shift.id}/assign`, {
-        userId,
-        overrideReason: showOverride ? overrideReason : undefined,
-      });
+      await shiftsApi.assignStaff(
+        shift.id, 
+        staff.id, 
+        pendingStaffId === staff.id ? overrideReason : undefined
+      );
       onSuccess();
-      setShowOverride(false);
+      setPendingStaffId(null);
       setOverrideReason('');
     } catch (err: any) {
       const message = err.response?.data?.message || 'Failed to assign staff';
-      if (message.includes('7th consecutive day') || message.includes('compliance')) {
-        setShowOverride(true);
-        setError(message);
+      const code = err.response?.data?.code;
+      
+      if (code === 'OVERRIDE_REQUIRED') {
+        setPendingStaffId(staff.id);
+        setError(Array.isArray(message) ? message.join(', ') : message);
       } else {
-        setError(message);
+        setError(Array.isArray(message) ? message.join(', ') : message);
       }
     } finally {
       setIsAssigning(false);
     }
   };
-
-  const assignedUserIds = shift.assignments?.map((a) => a.user.id) || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -120,14 +103,14 @@ export function ShiftDetailsModal({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold">
                 <Clock className="h-4 w-4 text-primary" />
-                {format(parseISO(shift.startTime), 'EEEE, MMM d')}
+                {format(parseISO(shift.startTime.toString()), 'EEEE, MMM d')}
               </div>
               {shift.isPremium && <Badge variant="warning">Premium</Badge>}
             </div>
             <div className="text-sm text-muted-foreground flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {format(parseISO(shift.startTime), 'HH:mm')} - {format(parseISO(shift.endTime), 'HH:mm')}
+                {format(parseISO(shift.startTime.toString()), 'HH:mm')} - {format(parseISO(shift.endTime.toString()), 'HH:mm')}
               </span>
               <span className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
@@ -145,8 +128,8 @@ export function ShiftDetailsModal({
               {shift.assignments && shift.assignments.length > 0 ? (
                 shift.assignments.map((asgn) => (
                   <div key={asgn.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                    <span>{asgn.user.firstName} {asgn.user.lastName}</span>
-                    <Badge variant="outline" className="text-[10px]">Confirmed</Badge>
+                    <span>{asgn.user?.firstName} {asgn.user?.lastName}</span>
+                    <Badge variant="outline" className="text-[10px] uppercase">{asgn.status}</Badge>
                   </div>
                 ))
               ) : (
@@ -158,7 +141,7 @@ export function ShiftDetailsModal({
           <div className="space-y-3">
             <h3 className="text-sm font-bold flex items-center gap-2">
               <UserPlus className="h-4 w-4" />
-              Assign Available Staff
+              Suggested Staff
             </h3>
             
             {error && (
@@ -168,9 +151,13 @@ export function ShiftDetailsModal({
               </div>
             )}
 
-            {showOverride && (
-              <div className="space-y-2 border-l-2 border-warning pl-3 py-1">
-                <Label htmlFor="reason" className="text-xs font-bold text-warning">Manager Override Reason Required</Label>
+            {pendingStaffId && (
+              <div className="space-y-2 border-l-2 border-orange-500 pl-3 py-1">
+                <div className="flex items-center gap-1 text-[10px] font-bold text-orange-600 uppercase">
+                  <ShieldAlert className="h-3 w-3" />
+                  Override Required
+                </div>
+                <Label htmlFor="reason" className="text-[10px] text-muted-foreground">Reason for compliance override</Label>
                 <Input 
                   id="reason"
                   placeholder="e.g., Critical staffing shortage"
@@ -181,37 +168,39 @@ export function ShiftDetailsModal({
               </div>
             )}
 
-            <div className="max-h-[200px] overflow-y-auto space-y-2 pr-2">
+            <div className="max-h-[250px] overflow-y-auto space-y-2 pr-2">
               {isLoadingStaff ? (
                 <div className="flex justify-center py-4">
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                staffList
-                  .filter((s) => !assignedUserIds.includes(s.id))
-                  .map((staff) => (
-                    <div key={staff.id} className="flex items-center justify-between rounded-md border p-2 hover:bg-slate-50">
+                availableStaff.length > 0 ? (
+                  availableStaff.map((staff) => (
+                    <div key={staff.id} className={`flex items-center justify-between rounded-md border p-2 hover:bg-slate-50 ${pendingStaffId === staff.id ? 'border-orange-200 bg-orange-50/30' : ''}`}>
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium">{staff.firstName} {staff.lastName}</span>
-                        <div className="flex flex-wrap gap-1">
-                          {staff.staffSkills?.map(ss => (
-                            <span key={ss.skill.name} className="text-[9px] uppercase text-muted-foreground bg-slate-100 px-1 rounded">
-                              {ss.skill.name.replace('_', ' ')}
-                            </span>
-                          ))}
+                        <span className="text-sm font-medium">{staff.name}</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {staff.requiresOverride ? (
+                            <Badge variant="outline" className="text-[8px] h-4 border-orange-200 text-orange-700 bg-orange-50">Requires Override</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[8px] h-4 border-green-200 text-green-700 bg-green-50">Fully Compliant</Badge>
+                          )}
                         </div>
                       </div>
                       <Button 
                         size="sm" 
-                        variant="ghost" 
-                        className="h-8 text-primary hover:text-primary hover:bg-primary/10"
-                        disabled={isAssigning || (showOverride && !overrideReason)}
-                        onClick={() => handleAssign(staff.id)}
+                        variant={pendingStaffId === staff.id ? "default" : "ghost"}
+                        className={`h-8 text-xs ${pendingStaffId === staff.id ? 'bg-orange-600 hover:bg-orange-700' : 'text-primary hover:text-primary hover:bg-primary/10'}`}
+                        disabled={isAssigning || (pendingStaffId === staff.id && !overrideReason)}
+                        onClick={() => handleAssign(staff)}
                       >
-                        {isAssigning ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Assign'}
+                        {isAssigning && pendingStaffId === staff.id ? <Loader2 className="h-3 w-3 animate-spin" /> : (pendingStaffId === staff.id ? 'Confirm' : 'Assign')}
                       </Button>
                     </div>
                   ))
+                ) : (
+                  <p className="text-xs text-center py-4 text-muted-foreground">No suggested staff found for this shift.</p>
+                )
               )}
             </div>
           </div>

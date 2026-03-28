@@ -100,6 +100,7 @@ async function main() {
       firstName: 'Alice',
       lastName: 'Admin',
       role: 'Admin',
+      timezone: 'America/New_York',
     },
     {
       id: '33333333-3333-4333-8333-333333333331',
@@ -108,6 +109,7 @@ async function main() {
       firstName: 'Bob',
       lastName: 'Manager',
       role: 'Manager',
+      timezone: 'America/New_York',
     },
     {
       id: '33333333-3333-4333-8333-333333333332',
@@ -116,6 +118,7 @@ async function main() {
       firstName: 'Charlie',
       lastName: 'Staff',
       role: 'Staff',
+      timezone: 'America/New_York',
       desiredWeeklyHours: 35,
     },
     {
@@ -125,6 +128,7 @@ async function main() {
       firstName: 'Dave',
       lastName: 'Staff',
       role: 'Staff',
+      timezone: 'America/Chicago',
       desiredWeeklyHours: 40,
     },
     {
@@ -134,6 +138,7 @@ async function main() {
       firstName: 'Eva',
       lastName: 'Staff',
       role: 'Staff',
+      timezone: 'America/Denver',
       desiredWeeklyHours: 20, // Part-time
     },
     {
@@ -143,6 +148,7 @@ async function main() {
       firstName: 'Frank',
       lastName: 'Staff',
       role: 'Staff',
+      timezone: 'America/Los_Angeles',
       desiredWeeklyHours: 45, // Full-time / Overtime prone
     },
   ]).returning();
@@ -365,14 +371,22 @@ async function main() {
 
   // 7. Seed Availability
   console.log('Seeding staff availability...');
+  const unavailableDays: Record<string, number> = {
+    [charlie.id]: 1, // Charlie: Mon
+    [dave.id]: 2,    // Dave: Tue
+    [eva.id]: 3,     // Eva: Wed
+    [frank.id]: 4,   // Frank: Thu
+  };
+
   for (const user of [charlie, dave, eva, frank]) {
-    // Weekday availability
-    for (let day = 1; day <= 5; day++) {
+    for (let day = 0; day <= 6; day++) {
+      if (user.id !== frank.id && day === unavailableDays[user.id]) continue;
+
       await db.insert(availability).values({
         userId: user.id,
         dayOfWeek: day,
-        startTimeLocal: '08:00',
-        endTimeLocal: '22:00',
+        startTimeLocal: user.id === frank.id ? '00:00:00' : '06:00:00',
+        endTimeLocal: user.id === frank.id ? '23:59:59' : '23:00:00',
         isException: false,
       });
     }

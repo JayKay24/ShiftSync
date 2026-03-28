@@ -1,8 +1,8 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException, forwardRef } from '@nestjs/common';
 import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema, swapRequests, assignments, shifts, NewShift } from '@shiftsync/data-access';
-import { eq, and, or, count } from 'drizzle-orm';
+import { eq, and, or, count, gte, sql } from 'drizzle-orm';
 import { ShiftsService } from './shifts.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
@@ -11,6 +11,7 @@ import { NotificationService } from '../notifications/notification.service';
 export class SwapService {
   constructor(
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
+    @Inject(forwardRef(() => ShiftsService))
     private shiftsService: ShiftsService,
     private auditService: AuditService,
     private notificationService: NotificationService,
@@ -43,17 +44,42 @@ export class SwapService {
       throw new BadRequestException('You cannot have more than 3 pending swap/drop requests');
     }
 
-    // 3. Create the request
+    // 3. Get shift details for expiration calculation
+    const [shift] = await this.db
+      .select()
+      .from(shifts)
+      .where(eq(shifts.id, shiftId))
+      .limit(1);
+
+    if (!shift) throw new NotFoundException('Shift not found');
+
+    // 4. Expiration: Drop requests expire 24 hours before the shift starts (Requirement #3)
+    const shiftStart = new Date(shift.startTime).getTime();
+    const expiresAt = targetUserId 
+      ? new Date(Date.now() + 48 * 60 * 60 * 1000) // Peer swaps can have longer default (e.g. 48h)
+      : new Date(shiftStart - 24 * 60 * 60 * 1000); // Drops expire 24h before start
+
+    if (expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestException('Shift is too close to its start time to initiate a swap/drop (24h cutoff)');
+    }
+
+    // 5. Create the request
     const [request] = await this.db
       .insert(swapRequests)
       .values({
         requestingUserId: userId,
         targetUserId,
         shiftId,
-        status: targetUserId ? 'pending_peer' : 'pending_manager', // Drops go straight to manager
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default 24h expiry
+        status: targetUserId ? 'pending_peer' : 'pending_manager', // Drops go straight to manager (or public pool)
+        expiresAt,
       })
       .returning();
+
+    // 6. Update the original assignment status
+    await this.db
+      .update(assignments)
+      .set({ status: targetUserId ? 'pending_swap' : 'pending_drop' })
+      .where(and(eq(assignments.shiftId, shiftId), eq(assignments.userId, userId)));
 
     // Log the creation
     await this.auditService.logChange(
@@ -121,6 +147,54 @@ export class SwapService {
     return { message: 'Swap accepted, awaiting manager approval' };
   }
 
+  async cancelPendingSwaps(shiftId: string, actorId: string, reason: string) {
+    const pendingRequests = await this.db
+      .select()
+      .from(swapRequests)
+      .where(
+        and(
+          eq(swapRequests.shiftId, shiftId),
+          or(eq(swapRequests.status, 'pending_peer'), eq(swapRequests.status, 'pending_manager'))
+        )
+      );
+
+    for (const request of pendingRequests) {
+      // 1. Cancel the request
+      const [updatedRequest] = await this.db
+        .update(swapRequests)
+        .set({ status: 'cancelled' })
+        .where(eq(swapRequests.id, request.id))
+        .returning();
+
+      // 2. Revert the original assignment to 'confirmed'
+      await this.db
+        .update(assignments)
+        .set({ status: 'confirmed' })
+        .where(and(eq(assignments.shiftId, shiftId), eq(assignments.userId, request.requestingUserId)));
+
+      // 3. Log and Notify
+      await this.auditService.logChange(actorId, 'swap_request', request.id, request, updatedRequest);
+
+      await this.notificationService.createNotification({
+        userId: request.requestingUserId,
+        type: 'swap_request_update',
+        title: 'Swap Request Cancelled',
+        message: `Your swap/drop request was automatically cancelled because the shift was modified. Reason: ${reason}`,
+        payload: { requestId: request.id, shiftId },
+      });
+
+      if (request.targetUserId) {
+        await this.notificationService.createNotification({
+          userId: request.targetUserId,
+          type: 'swap_request_update',
+          title: 'Swap Request Cancelled',
+          message: 'A swap request you were involved in was cancelled due to shift modification.',
+          payload: { requestId: request.id, shiftId },
+        });
+      }
+    }
+  }
+
   async approveSwap(managerId: string, requestId: string, approve: boolean) {
     const [request] = await this.db
       .select()
@@ -166,15 +240,19 @@ export class SwapService {
     }
 
     // IMPORTANT: Re-verify all constraints for the NEW person before finalizing
-    // We reuse the logic from shiftsService.assignStaff
-    await this.shiftsService.assignStaff(request.shiftId, request.targetUserId, managerId);
+    const compliance = await this.shiftsService.complianceService.checkCompliance(request.targetUserId, request.shiftId);
+    if (compliance.hasHardBlock) {
+      throw new BadRequestException(`Hard Block: ${compliance.warnings.join(', ')}`);
+    }
 
-    // If successful, deactivate the old assignment
+    // Deactivate the old assignment
     const [oldAssignment] = await this.db
       .select()
       .from(assignments)
       .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)))
       .limit(1);
+
+    if (!oldAssignment) throw new NotFoundException('Original assignment not found');
 
     const [updatedOldAssignment] = await this.db
       .update(assignments)
@@ -182,13 +260,31 @@ export class SwapService {
       .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)))
       .returning();
 
-    // Log the old assignment update
+    // Create the NEW assignment for the target user
+    const [newAssignment] = await this.db
+      .insert(assignments)
+      .values({
+        shiftId: request.shiftId,
+        userId: request.targetUserId,
+        status: 'confirmed',
+      })
+      .returning();
+
+    // Log the assignment update
     await this.auditService.logChange(
       managerId,
       'assignment',
       oldAssignment.id,
       oldAssignment,
       updatedOldAssignment
+    );
+
+    await this.auditService.logChange(
+      managerId,
+      'assignment',
+      newAssignment.id,
+      null,
+      newAssignment
     );
 
     const [finalRequest] = await this.db
@@ -229,9 +325,13 @@ export class SwapService {
   }
 
   async getSwapRequests(userId: string, role: string) {
+    const now = new Date();
     if (role === 'Admin' || role === 'Manager') {
       return this.db.query.swapRequests.findMany({
-        where: eq(swapRequests.status, 'pending_manager'),
+        where: and(
+          eq(swapRequests.status, 'pending_manager'),
+          or(sql`${swapRequests.expiresAt} IS NULL`, gte(swapRequests.expiresAt, now))
+        ),
         with: {
           shift: {
             with: {

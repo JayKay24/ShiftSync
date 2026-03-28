@@ -4,9 +4,10 @@ import { login, TEST_USERS, seedDatabase } from '../support/test-helpers';
 describe('Analytics & Fairness (Requirement #8)', () => {
   let managerToken: string;
   const loc1Id = '11111111-1111-4111-8111-111111111111';
-  const charlieId = '33333333-3333-4333-8333-333333333332';
-  const daveId = '33333333-3333-4333-8333-333333333333';
+  const charlieId = '33333333-3333-4333-8333-333333333332'; // Unavailable MON
+  const daveId = '33333333-3333-4333-8333-333333333333'; // Unavailable TUE
   const bartenderSkillId = '22222222-2222-4222-8222-222222222221';
+  const lineCookSkillId = '22222222-2222-4222-8222-222222222222';
 
   beforeAll(async () => {
     seedDatabase();
@@ -14,24 +15,23 @@ describe('Analytics & Fairness (Requirement #8)', () => {
   });
 
   it('should return shift distribution and fairness metrics', async () => {
-    // 1. Create a few shifts and assign them
-    // Shift 1: Charlie
+    // Shift 1: Charlie (Bartender, Loc 1) - Use Wednesday June 3 (Available)
     const s1 = await axios.post('/api/shifts', {
       locationId: loc1Id,
       requiredSkillId: bartenderSkillId,
-      startTime: new Date('2026-06-01T12:00:00Z').toISOString(),
-      endTime: new Date('2026-06-01T16:00:00Z').toISOString(),
+      startTime: new Date('2026-06-03T12:00:00Z').toISOString(),
+      endTime: new Date('2026-06-03T16:00:00Z').toISOString(),
       headcountNeeded: 1,
       status: 'published'
     }, { headers: { Authorization: `Bearer ${managerToken}` } });
     await axios.post(`/api/shifts/${s1.data.id}/assign`, { userId: charlieId }, { headers: { Authorization: `Bearer ${managerToken}` } });
 
-    // Shift 2: Dave
+    // Shift 2: Dave (Line Cook, Loc 1) - Use Wednesday June 3 (Available)
     const s2 = await axios.post('/api/shifts', {
       locationId: loc1Id,
-      requiredSkillId: bartenderSkillId,
-      startTime: new Date('2026-06-02T12:00:00Z').toISOString(),
-      endTime: new Date('2026-06-02T16:00:00Z').toISOString(),
+      requiredSkillId: lineCookSkillId,
+      startTime: new Date('2026-06-03T17:00:00Z').toISOString(),
+      endTime: new Date('2026-06-03T20:00:00Z').toISOString(),
       headcountNeeded: 1,
       status: 'published'
     }, { headers: { Authorization: `Bearer ${managerToken}` } });
@@ -49,7 +49,6 @@ describe('Analytics & Fairness (Requirement #8)', () => {
       headers: { Authorization: `Bearer ${managerToken}` }
     });
     expect(fairness.status).toBe(200);
-    // Should have entries for both users who worked
     const userIds = fairness.data.distribution.map((f: any) => f.userId);
     expect(userIds).toContain(charlieId);
     expect(userIds).toContain(daveId);

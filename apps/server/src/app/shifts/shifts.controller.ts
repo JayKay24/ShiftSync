@@ -1,10 +1,10 @@
-import { Controller, Post, Body, Param, UseGuards, Req, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Param, UseGuards, Req, Get, Query, Patch } from '@nestjs/common';
 import { ShiftsService } from './shifts.service';
 import { CreateShiftDto, AssignStaffDto } from './dto/shift.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { Shift, AssignmentResult } from '@shiftsync/data-access';
+import { Shift, AssignmentResult, AvailableStaffResponse, OnDutyStaffResponse, ShiftResponse } from '@shiftsync/data-access';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('shifts')
@@ -31,10 +31,40 @@ export class ShiftsController {
     return this.shiftsService.getStaff();
   }
 
+  @Get('staff/:id/assignments')
+  @Roles('Admin', 'Manager')
+  async getStaffAssignments(@Param('id') id: string) {
+    return this.shiftsService.getUserAssignments(id);
+  }
+
   @Get('stats')
   @Roles('Admin', 'Manager')
   async getStats() {
     return this.shiftsService.getDashboardStats();
+  }
+
+  @Get('on-duty')
+  @Roles('Admin', 'Manager')
+  async getOnDuty(): Promise<OnDutyStaffResponse[]> {
+    const records = await this.shiftsService.getOnDutyStaff();
+    return records.map(r => ({
+      id: r.id,
+      user: r.user,
+      location: r.location,
+      clockIn: r.clockIn,
+    }));
+  }
+
+  @Get(':id/available-staff')
+  @Roles('Admin', 'Manager')
+  async getAvailable(@Param('id') id: string): Promise<AvailableStaffResponse[]> {
+    const staff = await this.shiftsService.findAvailableStaff(id);
+    return staff.map(s => ({
+      id: s.user.id,
+      name: `${s.user.firstName} ${s.user.lastName}`,
+      warnings: s.warnings,
+      requiresOverride: s.requiresOverride,
+    }));
   }
 
   @Get()
@@ -74,11 +104,26 @@ export class ShiftsController {
     @Body() assignStaffDto: AssignStaffDto & { overrideReason?: string },
     @Req() req
   ): Promise<AssignmentResult> {
-    return this.shiftsService.assignStaff(
+    const res = await this.shiftsService.assignStaff(
       id,
       assignStaffDto.userId,
       req.user.userId,
       assignStaffDto.overrideReason
     );
+    return res as AssignmentResult;
+  }
+
+  @Patch(':id')
+  @Roles('Admin', 'Manager')
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: Partial<CreateShiftDto>,
+    @Req() req
+  ): Promise<Shift> {
+    return this.shiftsService.updateShift(id, req.user.userId, {
+      ...updateDto,
+      startTime: updateDto.startTime ? new Date(updateDto.startTime) : undefined,
+      endTime: updateDto.endTime ? new Date(updateDto.endTime) : undefined,
+    } as any);
   }
 }
