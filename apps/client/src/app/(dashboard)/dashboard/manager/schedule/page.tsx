@@ -1,25 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { api, shiftsApi } from '@/lib/api';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { ShiftResponse, Location, Skill } from '@shiftsync/data-access';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ShiftResponse } from '@shiftsync/data-access';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, ChevronLeft, ChevronRight, Filter, Users, MapPin, Clock, ArrowRightLeft } from 'lucide-react';
+import { Loader2, Plus, ChevronLeft, ChevronRight, Filter, Users, Clock, ArrowRightLeft } from 'lucide-react';
 import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
 import { CreateShiftModal } from '@/components/create-shift-modal';
 import { PendingSwapsModal } from '@/components/pending-swaps-modal';
 import { ShiftDetailsModal } from '@/components/shift-details-modal';
+import { useShifts } from '@/hooks/use-shifts';
+import { useMetadata } from '@/hooks/use-metadata';
 
 export default function ManagerSchedule() {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [shifts, setShifts] = useState<ShiftResponse[]>([]);
+  const { locations, skills, fetchMetadata } = useMetadata();
+  const { shifts, isLoading, fetchShifts } = useShifts();
+  
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<ShiftResponse | null>(null);
@@ -35,22 +36,14 @@ export default function ManagerSchedule() {
     [weekStart]
   );
 
-  const fetchShifts = React.useCallback(async () => {
+  const refreshShifts = React.useCallback(() => {
     if (!selectedLocation) return;
-    setIsLoading(true);
-    try {
-      const res = await shiftsApi.getShifts({
-        locationId: selectedLocation,
-        start: weekStart.toISOString(),
-        end: addDays(weekStart, 7).toISOString(),
-      });
-      setShifts(res.data);
-    } catch (error) {
-      console.error('Failed to fetch shifts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedLocation, weekStart]);
+    fetchShifts({
+      locationId: selectedLocation,
+      start: weekStart.toISOString(),
+      end: addDays(weekStart, 7).toISOString(),
+    });
+  }, [selectedLocation, weekStart, fetchShifts]);
 
   const fetchStats = React.useCallback(async () => {
     try {
@@ -62,28 +55,19 @@ export default function ManagerSchedule() {
   }, []);
 
   useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        const [locRes, skillRes] = await Promise.all([
-          api.get('/shifts/locations'),
-          api.get('/shifts/skills'),
-        ]);
-        setLocations(locRes.data);
-        setSkills(skillRes.data);
-        if (locRes.data.length > 0) {
-          setSelectedLocation(locRes.data[0].id);
-        }
-      } catch (error) {
-        console.error('Failed to fetch metadata:', error);
+    const loadMetadata = async () => {
+      const data = await fetchMetadata();
+      if (data.locations.length > 0 && !selectedLocation) {
+        setSelectedLocation(data.locations[0].id);
       }
     };
-    fetchMetadata();
+    loadMetadata();
     fetchStats();
-  }, [fetchStats]);
+  }, [fetchMetadata, fetchStats, selectedLocation]);
 
   useEffect(() => {
-    fetchShifts();
-  }, [fetchShifts]);
+    refreshShifts();
+  }, [refreshShifts]);
 
   const nextWeek = () => setCurrentDate(addDays(currentDate, 7));
   const prevWeek = () => setCurrentDate(addDays(currentDate, -7));
@@ -91,7 +75,7 @@ export default function ManagerSchedule() {
   const getSkillName = (id: string) => skills.find((s) => s.id === id)?.name || 'Unknown';
 
   const onModalSuccess = () => {
-    fetchShifts();
+    refreshShifts();
     fetchStats();
     setSelectedShift(null);
   };

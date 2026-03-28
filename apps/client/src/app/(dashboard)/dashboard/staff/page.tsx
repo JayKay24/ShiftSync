@@ -1,41 +1,40 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
-import { Assignment, ShiftResponse } from '@shiftsync/data-access';
+import { ShiftResponse } from '@shiftsync/data-access';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Calendar, Clock, MapPin, ArrowRightLeft } from 'lucide-react';
 import { format, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useStaff } from '@/hooks/use-staff';
 
-interface ExtendedAssignment extends Assignment {
+interface AssignmentWithShift {
+  id: string;
   shift: ShiftResponse;
 }
 
 export default function StaffDashboard() {
   const { user } = useAuth();
-  const [assignments, setAssignments] = useState<ExtendedAssignment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { fetchMyAssignments, isLoading } = useStaff();
+  const [assignments, setAssignments] = useState<AssignmentWithShift[]>([]);
 
   useEffect(() => {
-    const fetchAssignments = async () => {
+    const loadData = async () => {
       try {
-        const res = await api.get('/shifts/my-assignments');
-        const sorted = res.data.sort((a: ExtendedAssignment, b: ExtendedAssignment) => 
+        const data = await fetchMyAssignments();
+        const sorted = data.sort((a: AssignmentWithShift, b: AssignmentWithShift) => 
           new Date(a.shift.startTime.toString()).getTime() - new Date(b.shift.startTime.toString()).getTime()
         );
         setAssignments(sorted);
       } catch (error) {
-        console.error('Failed to fetch assignments:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Failed to load assignments:', error);
       }
     };
-    fetchAssignments();
-  }, []);
+    loadData();
+  }, [fetchMyAssignments]);
 
   const upcomingShifts = assignments.filter(a => isAfter(parseISO(a.shift.startTime.toString()), new Date()));
   

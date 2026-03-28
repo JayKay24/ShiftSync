@@ -83,6 +83,14 @@ export interface FairnessScoreResponse {
 }
 
 /**
+ * Response for staff management list with nested skills and certifications
+ */
+export interface StaffMemberResponse extends Omit<User, 'passwordHash'> {
+  staffSkills: { skill: Skill }[];
+  staffCertifications: { location: Location }[];
+}
+
+/**
  * Single notification response
  */
 export type NotificationResponse = Notification;

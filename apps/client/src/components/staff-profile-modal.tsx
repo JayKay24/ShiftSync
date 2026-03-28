@@ -22,32 +22,12 @@ import {
 } from 'lucide-react';
 import { shiftsApi, analyticsApi } from '@/lib/api';
 import { format, parseISO, isAfter } from 'date-fns';
-import { AssignmentResult, HourDistributionRecord } from '@shiftsync/data-access';
-
-interface Skill {
-  id: string;
-  name: string;
-}
-
-interface Location {
-  id: string;
-  name: string;
-}
-
-interface StaffMember {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  desiredWeeklyHours: number;
-  staffSkills: { skill: Skill }[];
-  staffCertifications: { location: Location }[];
-}
+import { AssignmentResult, HourDistributionRecord, StaffMemberResponse } from '@shiftsync/data-access';
 
 interface StaffProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  staff: StaffMember | null;
+  staff: StaffMemberResponse | null;
 }
 
 export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalProps) {
@@ -146,12 +126,12 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
                       <TrendingUp className="h-3.5 w-3.5" /> Weekly Hours
                     </div>
                     <div className="text-2xl font-bold">
-                      {distStats?.totalHours.toFixed(1) || '0.0'} / {staff.desiredWeeklyHours}
+                      {distStats?.totalHours.toFixed(1) || '0.0'} / {staff.desiredWeeklyHours || 40}
                     </div>
                     <div className="mt-2 h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
                       <div 
                         className="h-full bg-primary" 
-                        style={{ width: `${Math.min(((distStats?.totalHours || 0) / staff.desiredWeeklyHours) * 100, 100)}%` }}
+                        style={{ width: `${Math.min(((distStats?.totalHours || 0) / (staff.desiredWeeklyHours || 40)) * 100, 100)}%` }}
                       />
                     </div>
                   </div>
