@@ -12,10 +12,46 @@ export interface AuthResponse {
 }
 
 /**
+ * Response for a single shift, potentially with relations
+ */
+export interface ShiftResponse extends Shift {
+  assignments?: Assignment[];
+  location?: any;
+  requiredSkill?: any;
+}
+
+/**
  * Result of a staff assignment, including any non-blocking warnings
  */
 export interface AssignmentResult extends Assignment {
   warnings: string[];
+}
+
+/**
+ * Response for suggested alternative staff
+ */
+export interface AvailableStaffResponse {
+  id: string;
+  name: string;
+  warnings: string[];
+  requiresOverride: boolean;
+}
+
+/**
+ * Response for the "On-Duty Now" dashboard
+ */
+export interface OnDutyStaffResponse {
+  id: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  location: {
+    id: string;
+    name: string;
+  };
+  clockIn: Date;
 }
 
 /**

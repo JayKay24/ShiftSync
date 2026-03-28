@@ -372,8 +372,10 @@ async function main() {
   // 7. Seed Availability
   console.log('Seeding staff availability...');
   for (const user of [charlie, dave, eva, frank]) {
-    // 24/7 availability for testing ease
+    // 24/7 availability for testing ease, EXCEPT Charlie on Wednesdays
     for (let day = 0; day <= 6; day++) {
+      if (user.id === charlie.id && day === 3) continue; // Charlie unavailable on Wednesday (3)
+
       await db.insert(availability).values({
         userId: user.id,
         dayOfWeek: day,

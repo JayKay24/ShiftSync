@@ -1,8 +1,8 @@
 import { Injectable, Inject, BadRequestException, NotFoundException, forwardRef } from '@nestjs/common';
 import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift, locations, skills } from '@shiftsync/data-access';
-import { eq, and, gte, lte, count } from 'drizzle-orm';
+import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift, locations, skills, Shift } from '@shiftsync/data-access';
+import { eq, and, gte, lte, count, sql } from 'drizzle-orm';
 import { ComplianceService } from './compliance.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
@@ -50,6 +50,57 @@ export class ShiftsService {
           }
         }
       }
+    });
+  }
+
+  async findAvailableStaff(shiftId: string) {
+    const [shift] = await this.db
+      .select()
+      .from(shifts)
+      .where(eq(shifts.id, shiftId))
+      .limit(1);
+
+    if (!shift) throw new NotFoundException('Shift not found');
+
+    const qualifiedStaff = await this.db.query.users.findMany({
+      where: eq(schema.users.role, 'Staff'),
+      with: {
+        staffCertifications: true,
+        staffSkills: true,
+      },
+    });
+
+    const results = [];
+    for (const user of qualifiedStaff) {
+      const isCertified = user.staffCertifications.some(c => c.locationId === shift.locationId);
+      const hasSkill = user.staffSkills.some(s => s.skillId === shift.requiredSkillId);
+
+      if (isCertified && hasSkill) {
+        const compliance = await this.complianceService.checkCompliance(user.id, shiftId);
+        if (!compliance.hasHardBlock) {
+          results.push({
+            user,
+            warnings: compliance.warnings,
+            requiresOverride: compliance.requiresOverride,
+          });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  async getOnDutyStaff() {
+    return this.db.query.timeEntries.findMany({
+      where: sql`${schema.timeEntries.clockOut} IS NULL`,
+      with: {
+        user: {
+          columns: { id: true, firstName: true, lastName: true },
+        },
+        location: {
+          columns: { id: true, name: true }
+        },
+      },
     });
   }
 
