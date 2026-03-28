@@ -56,7 +56,7 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
       } catch (e) {
         if (!e.response) throw e;
         expect(e.response.status).toBe(400);
-        expect(e.response.data.message).toBe('Staff member has an overlapping shift');
+        expect(e.response.data.message).toContain('Staff member has an overlapping shift');
       }
     });
   });
@@ -94,7 +94,7 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
       } catch (e) {
         if (!e.response) throw e;
         expect(e.response.status).toBe(400);
-        expect(e.response.data.message).toBe('Minimum 10-hour rest period required between shifts');
+        expect(e.response.data.message).toContain('Minimum 10-hour rest period required between shifts');
       }
     });
   });

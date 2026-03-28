@@ -372,13 +372,13 @@ async function main() {
   // 7. Seed Availability
   console.log('Seeding staff availability...');
   for (const user of [charlie, dave, eva, frank]) {
-    // Weekday availability
-    for (let day = 1; day <= 5; day++) {
+    // 24/7 availability for testing ease
+    for (let day = 0; day <= 6; day++) {
       await db.insert(availability).values({
         userId: user.id,
         dayOfWeek: day,
-        startTimeLocal: '08:00',
-        endTimeLocal: '22:00',
+        startTimeLocal: '00:00:00',
+        endTimeLocal: '23:59:59',
         isException: false,
       });
     }

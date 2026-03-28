@@ -13,7 +13,9 @@ export function seedDatabase() {
 
 export const TEST_USERS = {
   admin: { email: 'admin@coastaleats.com', pass: 'password123' },
-  manager: { email: 'manager@coastaleats.com', pass: 'password123' },
-  charlie: { email: 'staff@coastaleats.com', pass: 'password123' },
-  dave: { email: 'dave@coastaleats.com', pass: 'password123' },
+  manager: { email: 'bob.manager@coastaleats.com', pass: 'password123' },
+  charlie: { email: 'charlie.staff@coastaleats.com', pass: 'password123' },
+  dave: { email: 'dave.staff@coastaleats.com', pass: 'password123' },
+  eva: { email: 'eva.staff@coastaleats.com', pass: 'password123' },
+  frank: { email: 'frank.staff@coastaleats.com', pass: 'password123' },
 };

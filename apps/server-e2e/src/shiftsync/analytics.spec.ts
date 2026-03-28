@@ -7,6 +7,7 @@ describe('Analytics & Fairness (Requirement #8)', () => {
   const charlieId = '33333333-3333-4333-8333-333333333332';
   const daveId = '33333333-3333-4333-8333-333333333333';
   const bartenderSkillId = '22222222-2222-4222-8222-222222222221';
+  const lineCookSkillId = '22222222-2222-4222-8222-222222222222';
 
   beforeAll(async () => {
     seedDatabase();
@@ -29,7 +30,7 @@ describe('Analytics & Fairness (Requirement #8)', () => {
     // Shift 2: Dave
     const s2 = await axios.post('/api/shifts', {
       locationId: loc1Id,
-      requiredSkillId: bartenderSkillId,
+      requiredSkillId: lineCookSkillId,
       startTime: new Date('2026-06-02T12:00:00Z').toISOString(),
       endTime: new Date('2026-06-02T16:00:00Z').toISOString(),
       headcountNeeded: 1,

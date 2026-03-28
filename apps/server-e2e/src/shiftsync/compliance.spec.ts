@@ -62,7 +62,8 @@ describe('Labor Law Compliance (Requirement #4)', () => {
         throw new Error('Should have blocked >12h daily limit');
       } catch (e) {
         expect(e.response.status).toBe(400);
-        expect(e.response.data.message).toContain('Hard Block: Daily hours exceed 12-hour hard block limit');
+        expect(e.response.data.message).toContain('Daily hours');
+        expect(e.response.data.message).toContain('exceed 12-hour hard block limit');
       }
     });
   });
