@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException, forwardRef } from '@nestjs/common';
 import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift, locations, skills } from '@shiftsync/data-access';
@@ -6,14 +6,17 @@ import { eq, and, gte, lte, count } from 'drizzle-orm';
 import { ComplianceService } from './compliance.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
+import { SwapService } from './swap.service';
 
 @Injectable()
 export class ShiftsService {
   constructor(
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
-    private complianceService: ComplianceService,
+    public complianceService: ComplianceService, // Export public so SwapService can use it
     private auditService: AuditService,
     private notificationService: NotificationService,
+    @Inject(forwardRef(() => SwapService))
+    private swapService: SwapService,
   ) {}
 
   async getLocations() {
@@ -32,6 +35,7 @@ export class ShiftsService {
         firstName: true,
         lastName: true,
         email: true,
+        timezone: true,
         desiredWeeklyHours: true,
       },
       with: {
@@ -151,6 +155,35 @@ export class ShiftsService {
       null,
       result
     );
+
+    return result;
+  }
+
+  async updateShift(shiftId: string, updatedBy: string, updates: Partial<NewShift>) {
+    const [oldShift] = await this.db
+      .select()
+      .from(shifts)
+      .where(eq(shifts.id, shiftId))
+      .limit(1);
+
+    if (!oldShift) throw new NotFoundException('Shift not found');
+
+    const [result] = await this.db
+      .update(shifts)
+      .set(updates)
+      .where(eq(shifts.id, shiftId))
+      .returning();
+
+    // Log the change
+    await this.auditService.logChange(updatedBy, 'shift', shiftId, oldShift, result);
+
+    // Requirement #2 & #7: Cancel pending swaps and notify staff if critical fields changed
+    const criticalFields: (keyof NewShift)[] = ['startTime', 'endTime', 'locationId', 'requiredSkillId'];
+    const changed = criticalFields.some(f => updates[f] !== undefined && (oldShift as any)[f] !== undefined && updates[f]!.toString() !== (oldShift as any)[f]!.toString());
+
+    if (changed) {
+      await this.swapService.cancelPendingSwaps(shiftId, updatedBy, 'Shift details (time, location, or skill) were modified by a manager.');
+    }
 
     return result;
   }
