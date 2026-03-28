@@ -167,7 +167,17 @@ export class ShiftsService {
       throw new NotFoundException('Shift not found');
     }
 
-    // 2. Check if user is already assigned to this shift
+    // 2. Check if shift is already full
+    const [assignmentCount] = await this.db
+      .select({ value: count() })
+      .from(assignments)
+      .where(and(eq(assignments.shiftId, shiftId), eq(assignments.status, 'confirmed')));
+
+    if (Number(assignmentCount.value) >= shift.headcountNeeded) {
+      throw new BadRequestException('Shift is already full');
+    }
+
+    // 3. Check if user is already assigned to this shift
     const [existingAssignment] = await this.db
       .select()
       .from(assignments)
@@ -210,38 +220,8 @@ export class ShiftsService {
       throw new BadRequestException('Staff member does not have the required skill for this shift');
     }
 
-    // 5. Get all existing shifts for this user to check temporal constraints
-    const userAssignments = await this.db
-      .select({
-        startTime: shifts.startTime,
-        endTime: shifts.endTime,
-      })
-      .from(assignments)
-      .innerJoin(shifts, eq(assignments.shiftId, shifts.id))
-      .where(and(eq(assignments.userId, userId), eq(assignments.status, 'confirmed')));
-
-    for (const existing of userAssignments) {
-      const existingStart = new Date(existing.startTime).getTime();
-      const existingEnd = new Date(existing.endTime).getTime();
-      const newStart = new Date(shift.startTime).getTime();
-      const newEnd = new Date(shift.endTime).getTime();
-
-      // 6. Constraint: No Double-Booking (Overlapping)
-      if (newStart < existingEnd && newEnd > existingStart) {
-        throw new BadRequestException('Staff member has an overlapping shift');
-      }
-
-      // 7. Constraint: Minimum 10-hour rest
-      const restPeriodMs = 10 * 60 * 60 * 1000;
-      if (existingEnd > newStart - restPeriodMs && existingEnd <= newStart) {
-        throw new BadRequestException('Minimum 10-hour rest period required between shifts');
-      }
-      if (existingStart < newEnd + restPeriodMs && existingStart >= newEnd) {
-        throw new BadRequestException('Minimum 10-hour rest period required between shifts');
-      }
-    }
-
-    // 8. Compliance Checks (Requirement #4)
+    // 5. Compliance Checks (Requirement #2 & #4)
+    // This now covers: Double-booking, 10-hour rest, Availability, Daily/Weekly hours, Consecutive days
     const compliance = await this.complianceService.checkCompliance(userId, shiftId);
 
     if (compliance.hasHardBlock) {
@@ -258,7 +238,7 @@ export class ShiftsService {
       }
     }
 
-    // 9. Create assignment
+    // 6. Create assignment
     const [assignment] = await this.db
       .insert(assignments)
       .values({
