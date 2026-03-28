@@ -99,16 +99,22 @@ export class ComplianceService {
     const dayStart = startOfDay(shiftStart);
     const dayEnd = endOfDay(shiftStart);
 
-    const totalDailyHours = userAssignments
-      .filter(a => new Date(a.startTime) >= dayStart && new Date(a.endTime) <= dayEnd)
-      .reduce((sum, a) => 
-        sum + (new Date(a.endTime).getTime() - new Date(a.startTime).getTime()) / (1000 * 60 * 60), 0
-      ) + shiftDuration;
+    const calculateHoursInRange = (start: Date, end: Date, rangeStart: Date, rangeEnd: Date) => {
+      const actualStart = start > rangeStart ? start : rangeStart;
+      const actualEnd = end < rangeEnd ? end : rangeEnd;
+      const ms = actualEnd.getTime() - actualStart.getTime();
+      return ms > 0 ? ms / (1000 * 60 * 60) : 0;
+    };
 
-    if (totalDailyHours > 12) {
+    let totalDailyHours = shiftDuration;
+    for (const a of userAssignments) {
+      totalDailyHours += calculateHoursInRange(new Date(a.startTime), new Date(a.endTime), dayStart, dayEnd);
+    }
+
+    if (totalDailyHours > 12.01) { // Floating point safety
       result.hasHardBlock = true;
       result.warnings.push(`Daily hours (${totalDailyHours.toFixed(1)}) exceed 12-hour hard block limit`);
-    } else if (totalDailyHours > 8) {
+    } else if (totalDailyHours > 8.01) {
       result.warnings.push(`Daily hours (${totalDailyHours.toFixed(1)}) exceed 8-hour warning threshold`);
     }
 
@@ -116,11 +122,10 @@ export class ComplianceService {
     const weekStart = startOfWeek(shiftStart, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(shiftStart, { weekStartsOn: 1 });
 
-    const totalWeeklyHours = userAssignments
-      .filter(a => new Date(a.startTime) >= weekStart && new Date(a.endTime) <= weekEnd)
-      .reduce((sum, a) => 
-        sum + (new Date(a.endTime).getTime() - new Date(a.startTime).getTime()) / (1000 * 60 * 60), 0
-      ) + shiftDuration;
+    let totalWeeklyHours = shiftDuration;
+    for (const a of userAssignments) {
+      totalWeeklyHours += calculateHoursInRange(new Date(a.startTime), new Date(a.endTime), weekStart, weekEnd);
+    }
 
     if (totalWeeklyHours >= 40) {
       result.warnings.push(`Weekly hours (${totalWeeklyHours.toFixed(1)}) exceed 40-hour high alert`);
@@ -166,8 +171,13 @@ export class ComplianceService {
   private async checkUserAvailability(timezone: string, start: Date, end: Date, avails: any[]): Promise<boolean> {
     if (avails.length === 0) return true;
 
-    // Convert shift UTC times to user's local components
-    const getZonedInfo = (date: Date) => {
+    // We check availability for the entire duration of the shift
+    // Iterate through every hour of the shift to ensure the user is available
+    const checkStepMs = 30 * 60 * 1000; // Check every 30 mins
+    let currentMs = start.getTime();
+    
+    while (currentMs < end.getTime()) {
+      const currentTime = new Date(currentMs);
       const formatter = new Intl.DateTimeFormat('en-US', {
         timeZone: timezone,
         hour12: false,
@@ -178,36 +188,29 @@ export class ComplianceService {
         hour: '2-digit',
         minute: '2-digit',
       });
-      const parts = formatter.formatToParts(date);
+      const parts = formatter.formatToParts(currentTime);
       const map: any = {};
       parts.forEach(p => map[p.type] = p.value);
       
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const dayOfWeek = days.indexOf(map.weekday);
+      const dateStr = `${map.year}-${map.month}-${map.day}`;
+      const timeStr = `${map.hour}:${map.minute}:00`;
 
-      return {
-        dayOfWeek,
-        dateStr: `${map.year}-${map.month}-${map.day}`,
-        timeStr: `${map.hour}:${map.minute}:00`
-      };
-    };
+      // 1. Check Exceptions
+      const exception = avails.find(a => a.isException && a.exceptionDate === dateStr);
+      if (exception) {
+        if (timeStr < exception.startTimeLocal || timeStr > exception.endTimeLocal) return false;
+      } else {
+        // 2. Check Recurring
+        const recurring = avails.find(a => !a.isException && a.dayOfWeek === dayOfWeek);
+        if (!recurring) return false; // No availability defined for this day
+        if (timeStr < recurring.startTimeLocal || timeStr > recurring.endTimeLocal) return false;
+      }
 
-    const startInfo = getZonedInfo(start);
-    const endInfo = getZonedInfo(end);
-
-    // 1. Check Exceptions (one-off dates)
-    const exception = avails.find(a => a.isException && a.exceptionDate === startInfo.dateStr);
-    if (exception) {
-      return startInfo.timeStr >= exception.startTimeLocal && endInfo.timeStr <= exception.endTimeLocal;
+      currentMs += checkStepMs;
     }
 
-    // 2. Check Recurring Weekly
-    const recurring = avails.find(a => !a.isException && a.dayOfWeek === startInfo.dayOfWeek);
-    if (recurring) {
-      // Basic window check. Note: overnight shifts would require checking start/end across days.
-      return startInfo.timeStr >= recurring.startTimeLocal && endInfo.timeStr <= recurring.endTimeLocal;
-    }
-
-    return false;
+    return true;
   }
 }

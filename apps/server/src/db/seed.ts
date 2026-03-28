@@ -371,16 +371,22 @@ async function main() {
 
   // 7. Seed Availability
   console.log('Seeding staff availability...');
+  const unavailableDays: Record<string, number> = {
+    [charlie.id]: 1, // Charlie: Mon
+    [dave.id]: 2,    // Dave: Tue
+    [eva.id]: 3,     // Eva: Wed
+    [frank.id]: 4,   // Frank: Thu
+  };
+
   for (const user of [charlie, dave, eva, frank]) {
-    // 24/7 availability for testing ease, EXCEPT Charlie on Wednesdays
     for (let day = 0; day <= 6; day++) {
-      if (user.id === charlie.id && day === 3) continue; // Charlie unavailable on Wednesday (3)
+      if (user.id !== frank.id && day === unavailableDays[user.id]) continue;
 
       await db.insert(availability).values({
         userId: user.id,
         dayOfWeek: day,
-        startTimeLocal: '00:00:00',
-        endTimeLocal: '23:59:59',
+        startTimeLocal: user.id === frank.id ? '00:00:00' : '06:00:00',
+        endTimeLocal: user.id === frank.id ? '23:59:59' : '23:00:00',
         isException: false,
       });
     }
