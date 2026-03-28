@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name", { length: 30 }).notNull(),
   lastName: varchar("last_name", { length: 30 }).notNull(),
   role: userRoleEnum("role").notNull(),
+  timezone: varchar("timezone", { length: 50 }).default("America/New_York").notNull(),
   desiredWeeklyHours: integer("desired_weekly_hours").default(40).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
