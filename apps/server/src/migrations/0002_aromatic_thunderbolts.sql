@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "timezone" varchar(50) DEFAULT 'America/New_York' NOT NULL;
