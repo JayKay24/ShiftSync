@@ -113,3 +113,29 @@ export interface ApiErrorResponse {
   error: string;
   code?: string; // e.g., 'OVERRIDE_REQUIRED'
 }
+
+/**
+ * Request body for creating a new shift
+ */
+export interface CreateShiftRequest {
+  locationId: string;
+  requiredSkillId: string;
+  startTime: string; // ISO String
+  endTime: string;   // ISO String
+  headcountNeeded: number;
+  status?: 'draft' | 'published' | 'cancelled' | 'completed';
+  isPremium?: boolean;
+}
+
+/**
+ * Request body for updating an existing shift
+ */
+export type UpdateShiftRequest = Partial<CreateShiftRequest>;
+
+/**
+ * Request body for assigning staff to a shift
+ */
+export interface AssignStaffRequest {
+  userId: string;
+  overrideReason?: string;
+}

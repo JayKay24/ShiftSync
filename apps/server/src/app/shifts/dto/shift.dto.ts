@@ -1,7 +1,7 @@
-import { IsUUID, IsDateString, IsInt, Min, IsEnum, IsBoolean, IsOptional } from 'class-validator';
-import { shiftStatusEnum } from '@shiftsync/data-access';
+import { IsUUID, IsDateString, IsInt, Min, IsEnum, IsBoolean, IsOptional, IsString } from 'class-validator';
+import { CreateShiftRequest, AssignStaffRequest } from '@shiftsync/data-access';
 
-export class CreateShiftDto {
+export class CreateShiftDto implements CreateShiftRequest {
   @IsUUID()
   locationId: string;
 
@@ -20,14 +20,18 @@ export class CreateShiftDto {
 
   @IsEnum(['draft', 'published', 'cancelled', 'completed'])
   @IsOptional()
-  status?: string;
+  status?: 'draft' | 'published' | 'cancelled' | 'completed';
 
   @IsBoolean()
   @IsOptional()
   isPremium?: boolean;
 }
 
-export class AssignStaffDto {
+export class AssignStaffDto implements AssignStaffRequest {
   @IsUUID()
   userId: string;
+
+  @IsString()
+  @IsOptional()
+  overrideReason?: string;
 }

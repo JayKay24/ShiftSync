@@ -7,7 +7,10 @@ import {
   OnDutyStaffResponse,
   FairnessScoreResponse,
   HourDistributionRecord,
-  NotificationListResponse
+  NotificationListResponse,
+  CreateShiftRequest,
+  UpdateShiftRequest,
+  AssignStaffRequest
 } from '@shiftsync/data-access';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -52,14 +55,14 @@ export const shiftsApi = {
   getShift: (id: string) => 
     api.get<ShiftResponse>(`/shifts/${id}`),
   
-  createShift: (data: any) => 
+  createShift: (data: CreateShiftRequest) => 
     api.post<ShiftResponse>('/shifts', data),
   
-  updateShift: (id: string, data: any) => 
+  updateShift: (id: string, data: UpdateShiftRequest) => 
     api.patch<ShiftResponse>(`/shifts/${id}`, data),
   
   assignStaff: (shiftId: string, userId: string, overrideReason?: string) => 
-    api.post<AssignmentResult>(`/shifts/${shiftId}/assign`, { userId, overrideReason }),
+    api.post<AssignmentResult>(`/shifts/${shiftId}/assign`, { userId, overrideReason } as AssignStaffRequest),
   
   getAvailableStaff: (shiftId: string) => 
     api.get<AvailableStaffResponse[]>(`/shifts/${shiftId}/available-staff`),
