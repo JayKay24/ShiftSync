@@ -12,8 +12,8 @@ export class ShiftsController {
   constructor(private readonly shiftsService: ShiftsService) {}
 
   @Get('locations')
-  async getLocations() {
-    return this.shiftsService.getLocations();
+  async getLocations(@Req() req) {
+    return this.shiftsService.getLocations(req.user.userId, req.user.role);
   }
 
   @Get('skills')

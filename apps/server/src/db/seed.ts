@@ -17,6 +17,7 @@ import {
   complianceOverrides,
   timeEntries,
   availability,
+  managerLocations,
 } from '@shiftsync/data-access';
 import * as bcrypt from 'bcryptjs';
 import { addDays, setHours, setMinutes, startOfWeek, subDays, addHours } from 'date-fns';
@@ -42,6 +43,7 @@ async function main() {
   await db.delete(availability);
   await db.delete(staffCertifications);
   await db.delete(staffSkills);
+  await db.delete(managerLocations);
   await db.delete(users);
   await db.delete(locations);
   await db.delete(skills);
@@ -158,6 +160,13 @@ async function main() {
   const loc1 = seededLocs[0]; // Downtown
   const loc2 = seededLocs[1]; // Uptown
   
+  // Link Manager (Bob) to Locations
+  console.log('Linking manager to locations...');
+  await db.insert(managerLocations).values([
+    { userId: manager.id, locationId: loc1.id },
+    { userId: manager.id, locationId: loc2.id },
+  ]);
+
   const skillBartender = seededSkills.find(s => s.name === 'bartender')!;
   const skillLineCook = seededSkills.find(s => s.name === 'line_cook')!;
   const skillServer = seededSkills.find(s => s.name === 'server')!;

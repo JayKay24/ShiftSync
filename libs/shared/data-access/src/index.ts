@@ -14,3 +14,4 @@ export * from './lib/entities/notification-setting.entity';
 export * from './lib/entities/audit-log.entity';
 export * from './lib/entities/compliance-override.entity';
 export * from './lib/entities/time-entry.entity';
+export * from './lib/entities/manager-location.entity';

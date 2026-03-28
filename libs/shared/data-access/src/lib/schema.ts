@@ -12,6 +12,7 @@ import { notificationSettings } from "./entities/notification-setting.entity";
 import { auditLogs, auditLogsRelations } from "./entities/audit-log.entity";
 import { complianceOverrides, complianceOverridesRelations, overrideTypeEnum } from "./entities/compliance-override.entity";
 import { timeEntries, timeEntriesRelations } from "./entities/time-entry.entity";
+import { managerLocations, managerLocationsRelations } from "./entities/manager-location.entity";
 
 export const schema = {
   users,
@@ -38,6 +39,8 @@ export const schema = {
   complianceOverridesRelations,
   timeEntries,
   timeEntriesRelations,
+  managerLocations,
+  managerLocationsRelations,
 };
 
 export const enums = {
