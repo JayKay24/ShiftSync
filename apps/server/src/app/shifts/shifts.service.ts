@@ -19,8 +19,20 @@ export class ShiftsService {
     private swapService: SwapService,
   ) {}
 
-  async getLocations() {
-    return this.db.select().from(locations);
+  async getLocations(userId: string, role: string) {
+    if (role === 'Admin') {
+      return this.db.select().from(locations);
+    }
+    
+    // For Managers, filter by assigned locations
+    const assigned = await this.db.query.managerLocations.findMany({
+      where: eq(schema.managerLocations.userId, userId),
+      with: {
+        location: true
+      }
+    });
+
+    return assigned.map(a => a.location);
   }
 
   async getSkills() {
