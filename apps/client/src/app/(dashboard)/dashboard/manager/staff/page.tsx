@@ -7,31 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, User, Mail, ShieldCheck, MapPin, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StaffProfileModal } from '@/components/staff-profile-modal';
-
-interface Skill {
-  id: string;
-  name: string;
-}
-
-interface Location {
-  id: string;
-  name: string;
-}
-
-interface StaffMember {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  desiredWeeklyHours: number;
-  staffSkills: { skill: Skill }[];
-  staffCertifications: { location: Location }[];
-}
+import { StaffMemberResponse } from '@shiftsync/data-access';
 
 export default function StaffManagement() {
-  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [staff, setStaff] = useState<StaffMemberResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<StaffMemberResponse | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
@@ -48,7 +29,7 @@ export default function StaffManagement() {
     fetchStaff();
   }, []);
 
-  const openProfile = (member: StaffMember) => {
+  const openProfile = (member: StaffMemberResponse) => {
     setSelectedStaff(member);
     setIsProfileModalOpen(true);
   };
@@ -65,9 +46,6 @@ export default function StaffManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Staff Management</h1>
-        <Button disabled className="opacity-50 cursor-not-allowed">
-          <User className="mr-2 h-4 w-4" /> Add Staff Member
-        </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
