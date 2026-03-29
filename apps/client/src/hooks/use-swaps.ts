@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { swapsApi } from '@/lib/api';
-import { SwapRequestResponse, CreateSwapRequest } from '@shiftsync/data-access';
+import { SwapRequestResponse, CreateSwapRequest, ApproveSwapRequest } from '@shiftsync/data-access';
 
 export function useSwaps() {
   const [swaps, setSwaps] = useState<SwapRequestResponse[]>([]);
@@ -70,6 +70,16 @@ export function useSwaps() {
     }
   };
 
+  const approveRequest = async (id: string, approve: boolean) => {
+    try {
+      await swapsApi.approveRequest(id, { approve });
+      await fetchSwaps();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to approve/reject swap');
+      throw err;
+    }
+  };
+
   return {
     swaps,
     isLoading,
@@ -78,6 +88,7 @@ export function useSwaps() {
     createRequest,
     acceptRequest,
     rejectRequest,
-    cancelRequest
+    cancelRequest,
+    approveRequest
   };
 }

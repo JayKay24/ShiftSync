@@ -12,7 +12,9 @@ import {
   UpdateShiftRequest,
   AssignStaffRequest,
   SwapRequestResponse,
-  CreateSwapRequest
+  CreateSwapRequest,
+  LoginRequest,
+  ApproveSwapRequest
 } from '@shiftsync/data-access';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -94,6 +96,9 @@ export const swapsApi = {
 
   cancelRequest: (id: string) => 
     api.put<SwapRequestResponse>(`/swaps/cancel/${id}`),
+
+  approveRequest: (id: string, data: ApproveSwapRequest) =>
+    api.put<SwapRequestResponse>(`/swaps/approve/${id}`, data),
 };
 
 /**
@@ -122,6 +127,6 @@ export const notificationsApi = {
  * Auth API
  */
 export const authApi = {
-  login: (credentials: any) => 
+  login: (credentials: LoginRequest) => 
     api.post<AuthResponse>('/auth/login', credentials),
 };

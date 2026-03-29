@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,20 +9,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, X, Clock, MapPin, User } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Loader2, Check, X, MapPin } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-
-interface SwapRequest {
-  id: string;
-  status: string;
-  requestingUser: { firstName: string; lastName: string };
-  targetUser: { firstName: string; lastName: string } | null;
-  shift: {
-    startTime: string;
-    endTime: string;
-    location: { name: string };
-  };
-}
+import { useSwaps } from '@/hooks/use-swaps';
+import { useNotifications } from '@/hooks/use-notifications';
 
 interface PendingSwapsModalProps {
   isOpen: boolean;
@@ -32,31 +22,26 @@ interface PendingSwapsModalProps {
 }
 
 export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsModalProps) {
-  const [swaps, setSwaps] = useState<SwapRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { swaps, isLoading, fetchSwaps, approveRequest } = useSwaps();
+  const { fetchUnreadCount } = useNotifications();
   const [actioningId, setActioningId] = useState<string | null>(null);
 
-  const fetchSwaps = async () => {
-    setIsLoading(true);
-    try {
-      const res = await api.get('/swaps');
-      setSwaps(res.data.filter((s: SwapRequest) => s.status === 'pending_manager'));
-    } catch (error) {
-      console.error('Failed to fetch pending swaps:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (isOpen) fetchSwaps();
-  }, [isOpen]);
+    if (isOpen) {
+      fetchSwaps();
+    }
+  }, [isOpen, fetchSwaps]);
+
+  const pendingSwaps = useMemo(() => 
+    swaps.filter(s => s.status === 'pending_manager'),
+    [swaps]
+  );
 
   const handleAction = async (id: string, approve: boolean) => {
     setActioningId(id);
     try {
-      await api.put(`/swaps/approve/${id}`, { approve });
-      await fetchSwaps();
+      await approveRequest(id, approve);
+      fetchUnreadCount();
       onSuccess();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to process swap');
@@ -72,13 +57,13 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
           <DialogTitle>Pending Swap Approvals</DialogTitle>
         </DialogHeader>
         
-        {isLoading ? (
+        {isLoading && pendingSwaps.length === 0 ? (
           <div className="flex h-32 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : swaps.length > 0 ? (
+        ) : pendingSwaps.length > 0 ? (
           <div className="space-y-4 max-h-[400px] overflow-auto pr-2">
-            {swaps.map((swap) => (
+            {pendingSwaps.map((swap) => (
               <Card key={swap.id} className="p-4 border shadow-none">
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
@@ -87,7 +72,7 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
                         {swap.targetUser ? 'SWAP' : 'DROP'}
                       </Badge>
                       <span className="text-sm font-bold">
-                        {format(parseISO(swap.shift.startTime), 'MMM d, HH:mm')}
+                        {format(parseISO(swap.shift.startTime.toString()), 'MMM d, HH:mm')}
                       </span>
                     </div>
                     
@@ -100,10 +85,16 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
                       )}
                     </div>
 
+                    {swap.reason && (
+                      <div className="text-xs italic text-muted-foreground bg-slate-50 p-2 rounded">
+                        &quot;{swap.reason}&quot;
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
-                        {swap.shift.location.name}
+                        {swap.shift.location?.name || 'Unknown Location'}
                       </span>
                     </div>
                   </div>
@@ -142,6 +133,3 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
     </Dialog>
   );
 }
-
-// Minimal Card for internal use since we didn't export a sub-component Card
-import { Card } from '@/components/ui/card';

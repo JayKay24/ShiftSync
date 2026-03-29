@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, Req, Param, Put, Get } from '@nestjs/common';
 import { SwapService } from './swap.service';
-import { CreateSwapRequestDto, RespondToSwapDto } from './dto/swap.dto';
+import { CreateSwapRequest, ApproveSwapRequest } from '@shiftsync/data-access';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -17,7 +17,7 @@ export class SwapController {
 
   @Post('request')
   @Roles('Staff')
-  async request(@Body() dto: CreateSwapRequestDto & { reason: string }, @Req() req) {
+  async request(@Body() dto: CreateSwapRequest, @Req() req) {
     return this.swapService.requestSwap(req.user.userId, dto.shiftId, dto.reason, dto.targetUserId);
   }
 
@@ -41,7 +41,7 @@ export class SwapController {
 
   @Put('approve/:id')
   @Roles('Manager', 'Admin')
-  async approve(@Param('id') id: string, @Body() body: { approve: boolean }, @Req() req) {
+  async approve(@Param('id') id: string, @Body() body: ApproveSwapRequest, @Req() req) {
     return this.swapService.approveSwap(req.user.userId, id, body.approve);
   }
 }

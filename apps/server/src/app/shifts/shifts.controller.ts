@@ -1,10 +1,17 @@
 import { Controller, Post, Body, Param, UseGuards, Req, Get, Query, Patch } from '@nestjs/common';
 import { ShiftsService } from './shifts.service';
-import { CreateShiftDto, AssignStaffDto } from './dto/shift.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { Shift, AssignmentResult, AvailableStaffResponse, OnDutyStaffResponse, ShiftResponse } from '@shiftsync/data-access';
+import {
+  Shift,
+  AssignmentResult,
+  AvailableStaffResponse,
+  OnDutyStaffResponse,
+  CreateShiftRequest,
+  UpdateShiftRequest,
+  AssignStaffRequest,
+} from '@shiftsync/data-access';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('shifts')
@@ -87,7 +94,7 @@ export class ShiftsController {
 
   @Post()
   @Roles('Admin', 'Manager')
-  async create(@Body() createShiftDto: CreateShiftDto, @Req() req): Promise<Shift> {
+  async create(@Body() createShiftDto: CreateShiftRequest, @Req() req): Promise<Shift> {
     return this.shiftsService.createShift({
       ...createShiftDto,
       startTime: new Date(createShiftDto.startTime),
@@ -101,7 +108,7 @@ export class ShiftsController {
   @Roles('Admin', 'Manager')
   async assign(
     @Param('id') id: string,
-    @Body() assignStaffDto: AssignStaffDto & { overrideReason?: string },
+    @Body() assignStaffDto: AssignStaffRequest,
     @Req() req
   ): Promise<AssignmentResult> {
     const res = await this.shiftsService.assignStaff(
@@ -117,7 +124,7 @@ export class ShiftsController {
   @Roles('Admin', 'Manager')
   async update(
     @Param('id') id: string,
-    @Body() updateDto: Partial<CreateShiftDto>,
+    @Body() updateDto: UpdateShiftRequest,
     @Req() req
   ): Promise<Shift> {
     return this.shiftsService.updateShift(id, req.user.userId, req.user.role, {
