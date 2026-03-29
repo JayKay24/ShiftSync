@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Bell, Check, Clock, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useNotifications } from '@/hooks/use-notifications';
 
 interface Notification {
   id: string;
@@ -21,6 +22,7 @@ interface Notification {
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { fetchUnreadCount } = useNotifications();
 
   const fetchNotifications = async () => {
     try {
@@ -43,6 +45,7 @@ export default function NotificationsPage() {
       setNotifications(notifications.map(n => 
         n.id === id ? { ...n, isRead: true } : n
       ));
+      fetchUnreadCount();
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
@@ -56,6 +59,7 @@ export default function NotificationsPage() {
       // Let's assume for now we just mark them one by one if needed, or just refresh.
       await Promise.all(notifications.filter(n => !n.isRead).map(n => api.post(`/notifications/${n.id}/read`)));
       fetchNotifications();
+      fetchUnreadCount();
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }

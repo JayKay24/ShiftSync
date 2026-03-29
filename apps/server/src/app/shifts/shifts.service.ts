@@ -39,9 +39,49 @@ export class ShiftsService {
     return this.db.select().from(skills);
   }
 
-  async getStaff() {
+  async getStaff(userId: string, role: string) {
+    if (role === 'Admin') {
+      return this.db.query.users.findMany({
+        where: eq(schema.users.role, 'Staff'),
+        columns: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          timezone: true,
+          desiredWeeklyHours: true,
+        },
+        with: {
+          staffCertifications: {
+            with: {
+              location: true,
+            }
+          },
+          staffSkills: {
+            with: {
+              skill: true,
+            }
+          }
+        }
+      });
+    }
+
+    // For Managers, filter staff who have certifications at their assigned locations
+    const assignedLocations = await this.db.query.managerLocations.findMany({
+      where: eq(schema.managerLocations.userId, userId),
+    });
+
+    const locationIds = assignedLocations.map(al => al.locationId);
+
+    if (locationIds.length === 0) return [];
+
     return this.db.query.users.findMany({
-      where: eq(schema.users.role, 'Staff'),
+      where: and(
+        eq(schema.users.role, 'Staff'),
+        // Subquery or filter logic to only include users with at least one certification in these locations
+        // Drizzle can do this via exists or by fetching and filtering in JS if the set is small.
+        // Given Coastal Eats scale, we should prefer a join or exists.
+      ),
       columns: {
         id: true,
         firstName: true,
@@ -52,6 +92,7 @@ export class ShiftsService {
       },
       with: {
         staffCertifications: {
+          where: sql`${schema.staffCertifications.locationId} IN (${sql.join(locationIds.map(id => sql`${id}`), sql`, `)})`,
           with: {
             location: true,
           }
@@ -62,7 +103,7 @@ export class ShiftsService {
           }
         }
       }
-    });
+    }).then(users => users.filter(u => u.staffCertifications.length > 0));
   }
 
   async findAvailableStaff(shiftId: string) {
@@ -116,21 +157,61 @@ export class ShiftsService {
     });
   }
 
-  async getDashboardStats() {
+  async getDashboardStats(userId: string, role: string) {
+    let staffCountWhere = eq(schema.users.role, 'Staff');
+    let swapsWhere = eq(schema.swapRequests.status, 'pending_manager');
+    let shiftsWhere = gte(schema.shifts.startTime, new Date());
+
+    if (role === 'Manager') {
+      const assignedLocations = await this.db.query.managerLocations.findMany({
+        where: eq(schema.managerLocations.userId, userId),
+      });
+      const locationIds = assignedLocations.map(al => al.locationId);
+
+      if (locationIds.length === 0) {
+        return { totalStaff: 0, pendingSwaps: 0, upcomingShifts: 0 };
+      }
+
+      const locIdsSql = sql.join(locationIds.map(id => sql`${id}`), sql`, `);
+
+      staffCountWhere = and(
+        staffCountWhere,
+        sql`EXISTS (
+          SELECT 1 FROM ${schema.staffCertifications} sc 
+          WHERE sc.user_id = ${schema.users.id} 
+          AND sc.location_id IN (${locIdsSql})
+        )`
+      ) as any;
+
+      swapsWhere = and(
+        swapsWhere,
+        sql`EXISTS (
+          SELECT 1 FROM ${schema.shifts} s 
+          WHERE s.id = ${schema.swapRequests.shiftId} 
+          AND s.location_id IN (${locIdsSql})
+        )`
+      ) as any;
+
+      shiftsWhere = and(
+        shiftsWhere,
+        sql`${schema.shifts.locationId} IN (${locIdsSql})`
+      ) as any;
+    }
+
     const [staffCount] = await this.db
       .select({ value: count() })
       .from(schema.users)
-      .where(eq(schema.users.role, 'Staff'));
+      .where(staffCountWhere);
 
     const [pendingSwapsCount] = await this.db
       .select({ value: count() })
       .from(schema.swapRequests)
-      .where(eq(schema.swapRequests.status, 'pending_manager'));
+      .where(swapsWhere);
 
     const [upcomingShiftsCount] = await this.db
       .select({ value: count() })
       .from(schema.shifts)
-      .where(gte(schema.shifts.startTime, new Date()));
+      .where(shiftsWhere);
 
     return {
       totalStaff: Number(staffCount.value),

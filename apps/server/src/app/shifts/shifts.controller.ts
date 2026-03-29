@@ -27,8 +27,8 @@ export class ShiftsController {
   }
 
   @Get('staff')
-  async getStaff() {
-    return this.shiftsService.getStaff();
+  async getStaff(@Req() req) {
+    return this.shiftsService.getStaff(req.user.userId, req.user.role);
   }
 
   @Get('staff/:id/assignments')
@@ -39,8 +39,8 @@ export class ShiftsController {
 
   @Get('stats')
   @Roles('Admin', 'Manager')
-  async getStats() {
-    return this.shiftsService.getDashboardStats();
+  async getStats(@Req() req) {
+    return this.shiftsService.getDashboardStats(req.user.userId, req.user.role);
   }
 
   @Get('on-duty')
