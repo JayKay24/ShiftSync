@@ -16,16 +16,17 @@ The platform addresses critical pain points in hospitality management:
 
 Based on the requirements for Coastal Eats, the following technical and domain assumptions were made during development:
 
-- **Single Organization:** The platform is scoped to a single organization (Coastal Eats). Multi-tenancy is handled via `locationId` rather than a top-level `organizationId`.
+- **Single Organization:** The platform is scoped to a single organization (Coastal Eats). Multi-tenancy is handled via `locationId`.
+- **Manager Data Isolation:** Managers are strictly restricted to seeing staff, schedules, and analytics for locations they are assigned to manage. Corporate Admins maintain global visibility.
 - **Shift Skills:** A single shift requires exactly **one primary skill** (e.g., "Bartender"). Shifts needing multiple distinct skills are modeled as separate parallel shift records.
 - **Group Assignments:** A single shift record can accommodate multiple staff members (`headcountNeeded` > 1) to prevent duplicating identical shift definitions.
-- **Compliance Timezones:** The "10-hour rest period" and "maximum consecutive days" compliance calculations are evaluated against the specific **location's local timezone**, not UTC or the user's browser timezone.
+- **Compliance Timezones:** All compliance calculations (10-hour rest, availability) are evaluated against the specific **location's local timezone**, ensuring accuracy for staff working across state lines.
+- **48-Hour Schedule Lock:** To ensure operational stability, the system prevents Managers from editing or unpublishing shifts within 48 hours of their start time. Admins can bypass this lock for emergency adjustments.
 - **Unified Swap/Drop Model:** A shift "drop" (putting a shift up for grabs) is modeled as a `swapRequest` with a `null` target user. 
-- **Manager Approvals:** Any user with a `Manager` role (or `Admin`) can approve shift swaps and overrides; approval is not strictly restricted to the original creator of the shift.
-- **Auditability:** Compliance overrides (like the 6th/7th consecutive workday) are recorded in a dedicated `complianceOverrides` table to maintain a strict audit trail, rather than an inline flag on the shift.
-- **Regret Swap Logic:** If a manager modifies a shift's critical details (time, location, or skill), the system automatically cancels any associated pending swap or drop requests to prevent staff from inheriting an altered schedule without consent.
-- **Marketplace Guardrails:** To maintain schedule stability and prevent spam, staff members are limited to **three active pending requests** (swaps or drops) at any given time.
-- **Unified Contract Architecture:** The platform uses a dedicated `@shiftsync/data-access` library as the single source of truth for both database schema and API request/response interfaces, ensuring full-stack type safety.
+- **Peer Rejection & Withdrawal:** Staff members can decline incoming swap requests, and requesters can withdraw pending requests, automatically reverting shift assignments to their original state.
+- **Regret Swap Logic:** If a manager modifies a shift's critical details (time, location, or skill), the system automatically cancels any associated pending swap or drop requests.
+- **Marketplace Guardrails:** Staff members are limited to **three active pending requests** (swaps or drops) to prevent schedule churn.
+- **Shared Type Safety:** The platform uses a unified `@shiftsync/data-access` library containing `class-validator` decorated DTOs, serving as the single source of truth for both API contracts and database schema.
 
 ## DB Schema
 ![DB Schema](./docs/ShiftSync_db_schema.drawio.png)
@@ -40,7 +41,7 @@ Based on the requirements for Coastal Eats, the following technical and domain a
 ### 🔄 Shift Swapping & Coverage
 - **Peer-to-Peer Swaps:** Staff can request swaps or offer shifts for "grabs."
 - **Manager Approval Workflow:** Maintains schedule integrity through a multi-step approval process.
-- **Real-Time Updates:** Instant notifications for all parties involved in a swap.
+- **Real-Time Updates:** Instant notifications for all parties involved in a swap via WebSockets.
 
 ### ⚖️ Compliance & Analytics
 - **Labor Law Alerts:** Automated warnings for weekly (40h) and daily (8h/12h) limits.
@@ -49,7 +50,7 @@ Based on the requirements for Coastal Eats, the following technical and domain a
 
 ### ⚡ Real-Time & Audit
 - **Live Dashboards:** "On-duty now" view showing active staff across all locations.
-- **Instant Notifications:** Real-time alerts for schedule changes via WebSockets.
+- **Shared Notification State:** A unified unread counter that stays synced across all browser tabs in real-time.
 - **Full Audit Trail:** Comprehensive logs of every schedule modification for accountability.
 
 ## 🛠 Tech Stack
@@ -58,7 +59,7 @@ Based on the requirements for Coastal Eats, the following technical and domain a
 - **Frontend:** Next.js (TypeScript, Tailwind CSS, Lucide React)
 - **Backend:** NestJS (TypeScript, WebSockets/Socket.io)
 - **Database:** PostgreSQL with [Drizzle ORM](https://orm.drizzle.team/)
-- **Testing:** Jest (Integration)
+- **Testing:** Jest (Server), Playwright (Client)
 
 ## 📖 Getting Started
 
@@ -76,9 +77,11 @@ npm install
 The easiest way to run the entire stack (Frontend, Backend, and Database) is using Docker Compose.
 
 1. **Configure Environment:**
-   Create a `.env` file in the root directory (or ensure these variables are set in your shell):
+   Create a `.env` file in the root directory:
    ```env
    POSTGRES_PASSWORD=your_secure_password
+   DATABASE_URL=postgresql://postgres:your_secure_password@localhost:5432/shiftsync?sslmode=disable
+   JWT_SECRET=your_secret_key
    ```
 
 2. **Launch the Stack:**
@@ -89,47 +92,42 @@ The easiest way to run the entire stack (Frontend, Backend, and Database) is usi
 3. **Access the Applications:**
    - **Frontend:** [http://localhost:3000](http://localhost:3000)
    - **Backend API:** [http://localhost:3001/api](http://localhost:3001/api)
-   - **Database:** `localhost:5432`
-
-4. **Seed the Database:**
-   Once the database is running, seed it with test data (locations, users, shifts):
-   ```sh
-   # Ensure DATABASE_URL is set in your .env or shell
-   DATABASE_URL=postgresql://postgres:your_secure_password@localhost:5432/shiftsync?sslmode=disable npm run db:seed
-   ```
 
 ## 🧪 Testing
 
 ### Server Integration Tests
-The backend integration suite verifies complex business logic, labor law compliance, and database state. These tests are executed against a real database instance using the specialized `server-e2e` project.
-
+Verifies complex business logic, labor law compliance, and database state.
 ```sh
-# Run all server integration tests
-npx nx run server-e2e:e2e
+npx nx e2e server-e2e
 ```
-*Note: The suite handles automated seeding and environment setup for each test run.*
+
+### Client E2E Tests (Playwright)
+Simulates end-to-end user journeys (Manager assignment, Staff swapping, Real-time notifications).
+```sh
+npx nx e2e client-e2e
+```
+*Note: The client suite uses a single worker and handles automated database seeding via a global setup.*
 
 ## 🧪 Seeding & Test Accounts
-
-The project includes a comprehensive seeding script to populate the database with realistic data for testing compliance rules, shift swaps, and multi-location scenarios.
 
 ### Running the Seed
 ```sh
 npm run db:seed
 ```
-*Note: This will clear existing data and recreate the core entities.*
 
-### Available Test Accounts
-All accounts use the password: `password123`
+### Available Test Accounts (Password: `password123`)
 
-| Role | Email | Name |
+| Role | Email | Scope / Details |
 | :--- | :--- | :--- |
-| **Admin** | `admin@coastaleats.com` | Alice Admin |
-| **Manager** | `bob.manager@coastaleats.com` | Bob Manager |
-| **Staff** | `charlie.staff@coastaleats.com` | Charlie Staff |
-| **Staff** | `dave.staff@coastaleats.com` | Dave Staff |
-| **Staff** | `eva.staff@coastaleats.com` | Eva Staff |
-| **Staff** | `frank.staff@coastaleats.com` | Frank Staff |
+| **Admin** | `admin@coastaleats.com` | Global visibility & 48h lock bypass |
+| **Manager** | `bob.manager@coastaleats.com` | Manages Downtown & Uptown (NY) |
+| **Manager** | `diana.manager@coastaleats.com` | Manages Beach Grill (LA) |
+| **Staff** | `charlie.staff@coastaleats.com` | NY certified (Unavailable Mondays) |
+| **Staff** | `dave.staff@coastaleats.com` | NY certified (Unavailable Tuesdays) |
+| **Staff** | `eva.staff@coastaleats.com` | Uptown certified (Unavailable Wednesdays) |
+| **Staff** | `frank.staff@coastaleats.com` | NY & Uptown certified (24/7 available) |
+| **Staff** | `grace.staff@coastaleats.com` | Beach Grill certified |
+| **Staff** | `heidi.staff@coastaleats.com` | Beach Grill certified |
 
 ## 🛠 Local Development (Manual)
 ```sh
@@ -139,11 +137,9 @@ npm run db:push
 # Seed Data
 npm run db:seed
 
-# Start Server
+# Start Backend
 npx nx serve server
-```
 
-### 3. Frontend
-```sh
-npx nx run client:start
+# Start Frontend
+npx nx serve client
 ```

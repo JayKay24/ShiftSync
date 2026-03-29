@@ -5,7 +5,96 @@ import { Notification } from './entities/notification.entity';
 import { Location } from './entities/location.entity';
 import { Skill } from './entities/skill.entity';
 import { SwapRequest } from './entities/swap-request.entity';
-import { IsString, IsEmail, IsOptional, IsInt, Min, Max, Length, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  Length,
+  IsUUID,
+  IsDateString,
+  IsEnum,
+  IsBoolean,
+  IsNotEmpty,
+  MinLength,
+} from 'class-validator';
+
+/**
+ * Request body for creating a new shift
+ */
+export class CreateShiftRequest {
+  @IsUUID()
+  locationId!: string;
+
+  @IsUUID()
+  requiredSkillId!: string;
+
+  @IsDateString()
+  startTime!: string; // ISO String
+
+  @IsDateString()
+  endTime!: string; // ISO String
+
+  @IsInt()
+  @Min(1)
+  headcountNeeded!: number;
+
+  @IsOptional()
+  @IsEnum(['draft', 'published', 'cancelled', 'completed'])
+  status?: 'draft' | 'published' | 'cancelled' | 'completed';
+
+  @IsOptional()
+  @IsBoolean()
+  isPremium?: boolean;
+}
+
+/**
+ * Request body for updating an existing shift
+ */
+export class UpdateShiftRequest {
+  @IsOptional()
+  @IsUUID()
+  locationId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  requiredSkillId?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startTime?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endTime?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  headcountNeeded?: number;
+
+  @IsOptional()
+  @IsEnum(['draft', 'published', 'cancelled', 'completed'])
+  status?: 'draft' | 'published' | 'cancelled' | 'completed';
+
+  @IsOptional()
+  @IsBoolean()
+  isPremium?: boolean;
+}
+
+/**
+ * Request body for assigning staff to a shift
+ */
+export class AssignStaffRequest {
+  @IsUUID()
+  userId!: string;
+
+  @IsOptional()
+  @IsString()
+  overrideReason?: string;
+}
 
 /**
  * Request body for creating a swap request
@@ -24,12 +113,24 @@ export class CreateSwapRequest {
 }
 
 /**
- * Response for a swap request with relations
+ * Request body for responding to a swap request
  */
-export interface SwapRequestResponse extends SwapRequest {
-  requestingUser: SafeUser;
-  targetUser?: SafeUser | null;
-  shift: ShiftResponse;
+export class RespondToSwapRequest {
+  @IsUUID()
+  requestId!: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 200)
+  reason?: string;
+}
+
+/**
+ * Request body for approving/rejecting a swap request (Manager)
+ */
+export class ApproveSwapRequest {
+  @IsBoolean()
+  approve!: boolean;
 }
 
 /**
@@ -58,6 +159,19 @@ export class UpdateProfileRequest {
 }
 
 /**
+ * Request body for login
+ */
+export class LoginRequest {
+  @IsEmail()
+  @IsNotEmpty()
+  email!: string;
+
+  @IsNotEmpty()
+  @MinLength(6)
+  pass!: string;
+}
+
+/**
  * Safe version of User entity without sensitive fields
  */
 export type SafeUser = Omit<User, 'passwordHash'>;
@@ -68,6 +182,15 @@ export type SafeUser = Omit<User, 'passwordHash'>;
 export interface AuthResponse {
   access_token: string;
   user: SafeUser;
+}
+
+/**
+ * Response for a swap request with relations
+ */
+export interface SwapRequestResponse extends SwapRequest {
+  requestingUser: SafeUser;
+  targetUser?: SafeUser | null;
+  shift: ShiftResponse;
 }
 
 /**
@@ -159,7 +282,7 @@ export type NotificationListResponse = Notification[];
 /**
  * WebSocket Event Payloads
  */
-export interface WsNotificationPayload extends Notification {}
+export type WsNotificationPayload = Notification;
 
 export interface WsNotificationReadPayload {
   id: string;
@@ -178,30 +301,4 @@ export interface ApiErrorResponse {
   message: string | string[];
   error: string;
   code?: string; // e.g., 'OVERRIDE_REQUIRED'
-}
-
-/**
- * Request body for creating a new shift
- */
-export interface CreateShiftRequest {
-  locationId: string;
-  requiredSkillId: string;
-  startTime: string; // ISO String
-  endTime: string;   // ISO String
-  headcountNeeded: number;
-  status?: 'draft' | 'published' | 'cancelled' | 'completed';
-  isPremium?: boolean;
-}
-
-/**
- * Request body for updating an existing shift
- */
-export type UpdateShiftRequest = Partial<CreateShiftRequest>;
-
-/**
- * Request body for assigning staff to a shift
- */
-export interface AssignStaffRequest {
-  userId: string;
-  overrideReason?: string;
 }

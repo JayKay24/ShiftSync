@@ -3,6 +3,7 @@ import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema, swapRequests, assignments, shifts, NewShift } from '@shiftsync/data-access';
 import { eq, and, or, count, gte, sql } from 'drizzle-orm';
+import { addHours, subHours, isBefore } from 'date-fns';
 import { ShiftsService } from './shifts.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
@@ -54,12 +55,13 @@ export class SwapService {
     if (!shift) throw new NotFoundException('Shift not found');
 
     // 4. Expiration: Drop requests expire 24 hours before the shift starts (Requirement #3)
-    const shiftStart = new Date(shift.startTime).getTime();
+    const now = new Date();
+    const shiftStart = new Date(shift.startTime);
     const expiresAt = targetUserId 
-      ? new Date(Date.now() + 48 * 60 * 60 * 1000) // Peer swaps can have longer default (e.g. 48h)
-      : new Date(shiftStart - 24 * 60 * 60 * 1000); // Drops expire 24h before start
+      ? addHours(now, 48) // Peer swaps can have longer default (e.g. 48h)
+      : subHours(shiftStart, 24); // Drops expire 24h before start
 
-    if (expiresAt.getTime() <= Date.now()) {
+    if (isBefore(expiresAt, now)) {
       throw new BadRequestException('Shift is too close to its start time to initiate a swap/drop (24h cutoff)');
     }
 

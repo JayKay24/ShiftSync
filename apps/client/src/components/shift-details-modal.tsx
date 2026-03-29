@@ -15,6 +15,7 @@ import { Loader2, UserPlus, Users, Clock, AlertTriangle, ShieldAlert } from 'luc
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/use-auth';
 
 interface ShiftDetailsModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function ShiftDetailsModal({
   shift,
   onSuccess,
 }: ShiftDetailsModalProps) {
+  const { user } = useAuth();
   const [availableStaff, setAvailableStaff] = useState<AvailableStaffResponse[]>([]);
   const [isLoadingStaff, setIsLoadingStaff] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
@@ -131,7 +133,7 @@ export function ShiftDetailsModal({
               <Clock className="h-4 w-4 shrink-0" />
               <span>This shift has already passed. Staff assignments cannot be modified.</span>
             </div>
-          ) : isWithinCutoff && (
+          ) : (isWithinCutoff && user?.role !== 'Admin') && (
             <div className="rounded-md bg-amber-50 p-3 text-xs text-amber-700 flex items-start gap-2 border border-amber-100">
               <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
               <span>This shift is within the 48-hour schedule lock. Edits are restricted.</span>

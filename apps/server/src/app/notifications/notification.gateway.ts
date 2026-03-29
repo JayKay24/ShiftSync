@@ -36,8 +36,8 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
       }
 
       const payload = this.jwtService.verify(token);
-      this.userSockets.set(payload.userId, client.id);
-      console.log(`User connected: ${payload.userId} with socket: ${client.id}`);
+      this.userSockets.set(payload.sub, client.id);
+      console.log(`User connected: ${payload.sub} with socket: ${client.id}`);
     } catch (e) {
       client.disconnect();
     }
