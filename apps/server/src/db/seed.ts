@@ -342,8 +342,8 @@ async function main() {
   const swapShift = await db.insert(shifts).values({
     locationId: loc1.id,
     requiredSkillId: skillBartender.id,
-    startTime: setHours(setMinutes(addDays(today, 5), 0), 16),
-    endTime: setHours(setMinutes(addDays(today, 5), 0), 22),
+    startTime: setHours(setMinutes(addDays(today, 1), 0), 16),
+    endTime: setHours(setMinutes(addDays(today, 1), 0), 22),
     headcountNeeded: 1,
     status: 'published',
     createdBy: bob.id,

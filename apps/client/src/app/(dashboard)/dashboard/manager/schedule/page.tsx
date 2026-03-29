@@ -106,7 +106,7 @@ export default function ManagerSchedule() {
             </Button>
           )}
 
-          <Button className="ml-4" onClick={() => setIsCreateModalOpen(true)}>
+          <Button className="ml-4" onClick={() => setIsCreateModalOpen(true)} data-testid="create-shift-button">
             <Plus className="mr-2 h-4 w-4" /> New Shift
           </Button>
         </div>
@@ -164,6 +164,8 @@ export default function ManagerSchedule() {
                         shift.isPremium ? "border-orange-200 bg-orange-50/30" : "bg-white"
                       )}
                       onClick={() => setSelectedShift(shift)}
+                      data-testid="shift-card"
+                      data-status={shift.status}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between mb-2">
