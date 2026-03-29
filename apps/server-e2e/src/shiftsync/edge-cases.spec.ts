@@ -94,14 +94,14 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
           // Charlie now has 2, then 3 pending
           await axios.post('/api/swaps/request', {
             shiftId: s.data.id,
-            reason: 'Busy'
+            reason: 'Busy with family'
           }, { headers: { Authorization: `Bearer ${charlieToken}` } });
         } else {
           // This would be the 4th pending request (1 from seed + 2 from loop + 1 current)
           try {
             await axios.post('/api/swaps/request', {
               shiftId: s.data.id,
-              reason: 'Too busy'
+              reason: 'Too busy with work'
             }, { headers: { Authorization: `Bearer ${charlieToken}` } });
             throw new Error('Should have blocked 4th request');
           } catch (err) {
