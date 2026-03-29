@@ -282,7 +282,7 @@ export type NotificationListResponse = Notification[];
 /**
  * WebSocket Event Payloads
  */
-export interface WsNotificationPayload extends Notification {}
+export type WsNotificationPayload = Notification;
 
 export interface WsNotificationReadPayload {
   id: string;
