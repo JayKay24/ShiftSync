@@ -120,7 +120,7 @@ export class ShiftsController {
     @Body() updateDto: Partial<CreateShiftDto>,
     @Req() req
   ): Promise<Shift> {
-    return this.shiftsService.updateShift(id, req.user.userId, {
+    return this.shiftsService.updateShift(id, req.user.userId, req.user.role, {
       ...updateDto,
       startTime: updateDto.startTime ? new Date(updateDto.startTime) : undefined,
       endTime: updateDto.endTime ? new Date(updateDto.endTime) : undefined,
