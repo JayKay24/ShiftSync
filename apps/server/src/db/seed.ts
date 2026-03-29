@@ -359,6 +359,7 @@ async function main() {
     requestingUserId: charlie.id,
     targetUserId: null,
     shiftId: swapShift.id,
+    reason: 'Family event',
     status: 'pending_peer',
   });
 

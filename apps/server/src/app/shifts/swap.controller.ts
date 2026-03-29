@@ -17,14 +17,26 @@ export class SwapController {
 
   @Post('request')
   @Roles('Staff')
-  async request(@Body() dto: CreateSwapRequestDto, @Req() req) {
-    return this.swapService.requestSwap(req.user.userId, dto.shiftId, dto.targetUserId);
+  async request(@Body() dto: CreateSwapRequestDto & { reason: string }, @Req() req) {
+    return this.swapService.requestSwap(req.user.userId, dto.shiftId, dto.reason, dto.targetUserId);
   }
 
   @Put('accept/:id')
   @Roles('Staff')
   async accept(@Param('id') id: string, @Req() req) {
     return this.swapService.acceptSwap(req.user.userId, id);
+  }
+
+  @Put('reject/:id')
+  @Roles('Staff')
+  async reject(@Param('id') id: string, @Req() req) {
+    return this.swapService.declineSwap(req.user.userId, id);
+  }
+
+  @Put('cancel/:id')
+  @Roles('Staff')
+  async cancel(@Param('id') id: string, @Req() req) {
+    return this.swapService.cancelSwap(req.user.userId, id);
   }
 
   @Put('approve/:id')

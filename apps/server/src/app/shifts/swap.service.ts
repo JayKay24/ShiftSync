@@ -17,7 +17,7 @@ export class SwapService {
     private notificationService: NotificationService,
   ) {}
 
-  async requestSwap(userId: string, shiftId: string, targetUserId?: string) {
+  async requestSwap(userId: string, shiftId: string, reason: string, targetUserId?: string) {
     // 1. Verify user is assigned to this shift
     const [assignment] = await this.db
       .select()
@@ -70,6 +70,7 @@ export class SwapService {
         requestingUserId: userId,
         targetUserId,
         shiftId,
+        reason,
         status: targetUserId ? 'pending_peer' : 'pending_manager', // Drops go straight to manager (or public pool)
         expiresAt,
       })
@@ -145,6 +146,88 @@ export class SwapService {
     });
 
     return { message: 'Swap accepted, awaiting manager approval' };
+  }
+
+  async declineSwap(userId: string, requestId: string) {
+    const [request] = await this.db
+      .select()
+      .from(swapRequests)
+      .where(eq(swapRequests.id, requestId))
+      .limit(1);
+
+    if (!request || request.targetUserId !== userId) {
+      throw new ForbiddenException('Invalid swap request');
+    }
+
+    if (request.status !== 'pending_peer') {
+      throw new BadRequestException('Request is no longer pending peer acceptance');
+    }
+
+    const [updatedRequest] = await this.db
+      .update(swapRequests)
+      .set({ status: 'rejected' })
+      .where(eq(swapRequests.id, requestId))
+      .returning();
+
+    // Revert original assignment to confirmed
+    await this.db
+      .update(assignments)
+      .set({ status: 'confirmed' })
+      .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)));
+
+    await this.auditService.logChange(userId, 'swap_request', requestId, request, updatedRequest);
+
+    await this.notificationService.createNotification({
+      userId: request.requestingUserId,
+      type: 'swap_request_update',
+      title: 'Swap Request Declined',
+      message: 'Your swap request was declined by your colleague.',
+      payload: { requestId },
+    });
+
+    return { message: 'Swap request declined' };
+  }
+
+  async cancelSwap(userId: string, requestId: string) {
+    const [request] = await this.db
+      .select()
+      .from(swapRequests)
+      .where(eq(swapRequests.id, requestId))
+      .limit(1);
+
+    if (!request || request.requestingUserId !== userId) {
+      throw new ForbiddenException('Invalid swap request');
+    }
+
+    if (request.status !== 'pending_peer' && request.status !== 'pending_manager') {
+      throw new BadRequestException('Only pending requests can be cancelled');
+    }
+
+    const [updatedRequest] = await this.db
+      .update(swapRequests)
+      .set({ status: 'cancelled' })
+      .where(eq(swapRequests.id, requestId))
+      .returning();
+
+    // Revert assignment
+    await this.db
+      .update(assignments)
+      .set({ status: 'confirmed' })
+      .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, userId)));
+
+    await this.auditService.logChange(userId, 'swap_request', requestId, request, updatedRequest);
+
+    if (request.targetUserId) {
+      await this.notificationService.createNotification({
+        userId: request.targetUserId,
+        type: 'swap_request_update',
+        title: 'Swap Request Withdrawn',
+        message: 'A colleague has withdrawn their swap request.',
+        payload: { requestId },
+      });
+    }
+
+    return { message: 'Swap request cancelled' };
   }
 
   async cancelPendingSwaps(shiftId: string, actorId: string, reason: string) {

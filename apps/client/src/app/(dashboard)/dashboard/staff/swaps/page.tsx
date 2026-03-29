@@ -1,84 +1,51 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
-import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
-import { ShiftResponse } from '@shiftsync/data-access';
+import { useSwaps } from '@/hooks/use-swaps';
+import { useStaff } from '@/hooks/use-staff';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ArrowRightLeft, Clock, MapPin, User, AlertCircle, Info } from 'lucide-react';
+import { Loader2, ArrowRightLeft, Clock, MapPin, User, AlertCircle, Info, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-interface UserInfo {
-  id: string;
-  firstName: string;
-  lastName: string;
-}
-
-interface SwapRequest {
-  id: string;
-  requestingUserId: string;
-  targetUserId: string | null;
-  shiftId: string;
-  status: string;
-  reason: string;
-  createdAt: string;
-  requestingUser: UserInfo;
-  targetUser: UserInfo | null;
-  shift: {
-    startTime: string;
-    endTime: string;
-    location: {
-      name: string;
-    };
-  };
-}
-
-interface Assignment {
-  id: string;
-  shift: ShiftResponse;
-}
-
 function SwapMarketplaceContent() {
   const { user } = useAuth();
+  const { 
+    swaps, 
+    isLoading: isSwapsLoading, 
+    error: swapError,
+    fetchSwaps, 
+    createRequest, 
+    acceptRequest, 
+    rejectRequest, 
+    cancelRequest 
+  } = useSwaps();
+  
+  const { staffList, fetchStaff, fetchMyAssignments } = useStaff();
   const searchParams = useSearchParams();
   const initialShiftId = searchParams.get('shiftId');
 
-  const [swaps, setSwaps] = useState<SwapRequest[]>([]);
-  const [myAssignments, setMyAssignments] = useState<Assignment[]>([]);
-  const [staff, setStaff] = useState<UserInfo[]>([]);
-  
+  const [myAssignments, setMyAssignments] = useState<any[]>([]);
   const [selectedShift, setSelectedShift] = useState(initialShiftId || '');
   const [selectedTarget, setSelectedTarget] = useState('');
   const [reason, setReason] = useState('');
-  
-  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [swapRes, asgnRes, staffRes] = await Promise.all([
-          api.get('/swaps'),
-          api.get('/shifts/my-assignments'),
-          api.get('/shifts/staff'),
-        ]);
-        setSwaps(swapRes.data);
-        setMyAssignments(asgnRes.data);
-        setStaff(staffRes.data.filter((s: UserInfo) => s.id !== user?.id));
-      } catch (error) {
-        console.error('Failed to fetch marketplace data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, [user?.id]);
+    fetchSwaps();
+    fetchStaff();
+    fetchMyAssignments().then(setMyAssignments);
+  }, [fetchSwaps, fetchStaff, fetchMyAssignments]);
+
+  const otherStaff = useMemo(() => 
+    staffList.filter(s => s.id !== user?.id),
+    [staffList, user?.id]
+  );
 
   const myRequests = useMemo(() => 
     swaps.filter(s => s.requestingUserId === user?.id), 
@@ -98,36 +65,21 @@ function SwapMarketplaceContent() {
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedShift || !reason) return;
-    setError(null);
 
     setIsSubmitting(true);
     try {
-      await api.post('/swaps/request', {
+      await createRequest({
         shiftId: selectedShift,
         targetUserId: selectedTarget || undefined,
         reason
       });
-      const res = await api.get('/swaps');
-      setSwaps(res.data);
       setSelectedShift('');
       setSelectedTarget('');
       setReason('');
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Failed to create request');
+    } catch (error) {
+      // Error handled by hook
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleRespond = async (id: string, accept: boolean) => {
-    try {
-      if (accept) {
-        await api.put(`/swaps/accept/${id}`);
-      }
-      const res = await api.get('/swaps');
-      setSwaps(res.data);
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Action failed');
     }
   };
 
@@ -154,7 +106,7 @@ function SwapMarketplaceContent() {
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <div>
                     <p className="font-bold">Request Limit Reached</p>
-                    <p className="mt-1">You have {pendingRequestsCount} pending requests. Requirement #5 limits you to a maximum of 3 pending requests at a time.</p>
+                    <p className="mt-1">You have {pendingRequestsCount} pending requests. Requirement #3 limits you to a maximum of 3 pending requests at a time.</p>
                   </div>
                 </div>
               ) : (
@@ -194,7 +146,7 @@ function SwapMarketplaceContent() {
                     disabled={isLimitReached}
                   >
                     <option value="">-- Anyone (Public Drop) --</option>
-                    {staff.map((s) => (
+                    {otherStaff.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.firstName} {s.lastName}
                       </option>
@@ -214,8 +166,8 @@ function SwapMarketplaceContent() {
                   />
                 </div>
 
-                {error && (
-                  <p className="text-xs font-medium text-destructive">{error}</p>
+                {swapError && (
+                  <p className="text-xs font-medium text-destructive">{swapError}</p>
                 )}
 
                 <Button className="w-full" disabled={isSubmitting || !selectedShift || isLimitReached}>
@@ -248,7 +200,7 @@ function SwapMarketplaceContent() {
                         <div className="flex flex-col gap-1 mt-1 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3.5 w-3.5" />
-                            {format(parseISO(swap.shift.startTime), 'EEEE, MMM d @ HH:mm')}
+                            {format(parseISO(swap.shift.startTime.toString()), 'EEEE, MMM d @ HH:mm')}
                           </span>
                           <span className="flex items-center gap-1 italic">
                             &quot;{swap.reason}&quot;
@@ -257,10 +209,10 @@ function SwapMarketplaceContent() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleRespond(swap.id, true)}>
+                      <Button size="sm" onClick={() => acceptRequest(swap.id)}>
                         Accept
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => handleRespond(swap.id, false)}>
+                      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => rejectRequest(swap.id)}>
                         Ignore
                       </Button>
                     </div>
@@ -272,7 +224,7 @@ function SwapMarketplaceContent() {
 
           <div className="space-y-4">
             <h2 className="text-xl font-bold">My Requests</h2>
-            {isLoading ? (
+            {isSwapsLoading && swaps.length === 0 ? (
               <div className="flex h-32 items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
@@ -284,7 +236,7 @@ function SwapMarketplaceContent() {
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold">
-                            {format(parseISO(swap.shift.startTime), 'MMM d, HH:mm')}
+                            {format(parseISO(swap.shift.startTime.toString()), 'MMM d, HH:mm')}
                           </span>
                           <Badge 
                             variant="outline"
@@ -301,15 +253,28 @@ function SwapMarketplaceContent() {
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span>Target: {swap.targetUser ? `${swap.targetUser.firstName} ${swap.targetUser.lastName}` : 'Public Drop'}</span>
                           <span>•</span>
-                          <span>Sent {format(parseISO(swap.createdAt), 'MMM d')}</span>
+                          <span>Sent {format(parseISO(swap.createdAt.toString()), 'MMM d')}</span>
                         </div>
                         {swap.status === 'cancelled' && (
                           <p className="text-[10px] text-orange-600 font-medium">Auto-cancelled due to schedule update</p>
                         )}
                       </div>
-                      <div className="text-right">
-                         <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Reason</span>
-                         <p className="text-xs italic text-slate-500 max-w-[150px] truncate">{swap.reason}</p>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Reason</span>
+                           <p className="text-xs italic text-slate-500 max-w-[150px] truncate">{swap.reason}</p>
+                        </div>
+                        {(swap.status === 'pending_peer' || swap.status === 'pending_manager') && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => cancelRequest(swap.id)}
+                            title="Cancel Request"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

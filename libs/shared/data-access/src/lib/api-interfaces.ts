@@ -4,7 +4,33 @@ import { Assignment } from './entities/assignment.entity';
 import { Notification } from './entities/notification.entity';
 import { Location } from './entities/location.entity';
 import { Skill } from './entities/skill.entity';
-import { IsString, IsEmail, IsOptional, IsInt, Min, Max, Length } from 'class-validator';
+import { SwapRequest } from './entities/swap-request.entity';
+import { IsString, IsEmail, IsOptional, IsInt, Min, Max, Length, IsUUID } from 'class-validator';
+
+/**
+ * Request body for creating a swap request
+ */
+export class CreateSwapRequest {
+  @IsUUID()
+  shiftId!: string;
+
+  @IsOptional()
+  @IsUUID()
+  targetUserId?: string;
+
+  @IsString()
+  @Length(5, 500)
+  reason!: string;
+}
+
+/**
+ * Response for a swap request with relations
+ */
+export interface SwapRequestResponse extends SwapRequest {
+  requestingUser: SafeUser;
+  targetUser?: SafeUser | null;
+  shift: ShiftResponse;
+}
 
 /**
  * Request body for updating user profile
