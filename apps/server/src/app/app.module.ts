@@ -8,6 +8,7 @@ import { ShiftsModule } from "./shifts/shifts.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { AuditModule } from "./audit/audit.module";
 import { NotificationModule } from "./notifications/notification.module";
+import { UsersModule } from "./users/users.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { NotificationModule } from "./notifications/notification.module";
     AnalyticsModule,
     AuditModule,
     NotificationModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

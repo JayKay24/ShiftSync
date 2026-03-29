@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { useUser } from '@/hooks/use-user';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,7 @@ import { Loader2, User, Bell, Shield, Mail } from 'lucide-react';
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { updateProfile, isLoading, error } = useUser();
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -22,9 +23,12 @@ export default function SettingsPage() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Profile update logic would go here
-    setTimeout(() => setIsLoading(false), 1000);
+    try {
+      await updateProfile(formData);
+      alert('Profile updated successfully');
+    } catch (err) {
+      // Error handled by hook
+    }
   };
 
   return (
@@ -44,6 +48,11 @@ export default function SettingsPage() {
             <CardDescription>Update your personal details and work targets.</CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

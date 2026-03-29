@@ -4,13 +4,44 @@ import { Assignment } from './entities/assignment.entity';
 import { Notification } from './entities/notification.entity';
 import { Location } from './entities/location.entity';
 import { Skill } from './entities/skill.entity';
+import { IsString, IsEmail, IsOptional, IsInt, Min, Max, Length } from 'class-validator';
+
+/**
+ * Request body for updating user profile
+ */
+export class UpdateProfileRequest {
+  @IsOptional()
+  @IsString()
+  @Length(2, 30)
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 30)
+  lastName?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(168)
+  desiredWeeklyHours?: number;
+}
+
+/**
+ * Safe version of User entity without sensitive fields
+ */
+export type SafeUser = Omit<User, 'passwordHash'>;
 
 /**
  * Response returned after a successful login
  */
 export interface AuthResponse {
   access_token: string;
-  user: Omit<User, 'passwordHash'>;
+  user: SafeUser;
 }
 
 /**

@@ -2,20 +2,21 @@
 
 import React, { createContext, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { AuthResponse } from '@shiftsync/data-access';
+import { AuthResponse, SafeUser } from '@shiftsync/data-access';
 
 export interface AuthContextType {
-  user: AuthResponse['user'] | null;
+  user: SafeUser | null;
   token: string | null;
   isLoading: boolean;
   login: (authData: AuthResponse) => void;
   logout: () => void;
+  setUser: (user: SafeUser | null) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthResponse['user'] | null>(null);
+  const [user, setUser] = useState<SafeUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -68,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token, isLoading, pathname, router]);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );
