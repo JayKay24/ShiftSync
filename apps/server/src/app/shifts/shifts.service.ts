@@ -3,6 +3,7 @@ import { DRIZZLE } from '../database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift, locations, skills, Shift } from '@shiftsync/data-access';
 import { eq, and, gte, lte, count, sql } from 'drizzle-orm';
+import { addHours, isBefore } from 'date-fns';
 import { ComplianceService } from './compliance.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
@@ -120,11 +121,17 @@ export class ShiftsService {
       with: {
         staffCertifications: true,
         staffSkills: true,
+        assignments: {
+          where: eq(assignments.shiftId, shiftId),
+        },
       },
     });
 
     const results = [];
     for (const user of qualifiedStaff) {
+      // Finding 4: Don't suggest staff already assigned to this shift
+      if (user.assignments && user.assignments.length > 0) continue;
+
       const isCertified = user.staffCertifications.some(c => c.locationId === shift.locationId);
       const hasSkill = user.staffSkills.some(s => s.skillId === shift.requiredSkillId);
 
@@ -316,11 +323,19 @@ export class ShiftsService {
     // Managers cannot edit or unpublish shifts within 48 hours of the start time.
     // Allow Admins to bypass this for emergency fixes.
     const SCHEDULE_EDIT_CUTOFF_HOURS = 48;
-    const cutoffTime = new Date();
-    cutoffTime.setHours(cutoffTime.getHours() + SCHEDULE_EDIT_CUTOFF_HOURS);
+    const now = new Date();
+    const cutoffTime = addHours(now, SCHEDULE_EDIT_CUTOFF_HOURS);
 
-    if (role !== 'Admin' && new Date(oldShift.startTime) < cutoffTime) {
-      throw new BadRequestException(`Shifts cannot be edited or unpublished within ${SCHEDULE_EDIT_CUTOFF_HOURS} hours of their start time.`);
+    const shiftStartTime = new Date(oldShift.startTime);
+
+    if (role !== 'Admin') {
+      if (isBefore(now, shiftStartTime) && isBefore(shiftStartTime, cutoffTime)) {
+        throw new BadRequestException(`Shifts cannot be edited or unpublished within ${SCHEDULE_EDIT_CUTOFF_HOURS} hours of their start time.`);
+      }
+      
+      if (!isBefore(now, shiftStartTime)) {
+        throw new BadRequestException('Past shifts cannot be edited.');
+      }
     }
 
     const [result] = await this.db
@@ -356,7 +371,7 @@ export class ShiftsService {
     }
 
     // New Requirement: Cannot assign staff to shifts that happened in the past
-    if (new Date(shift.startTime) < new Date()) {
+    if (isBefore(new Date(shift.startTime), new Date())) {
       throw new BadRequestException('Cannot assign staff to a shift that has already started or passed');
     }
 
