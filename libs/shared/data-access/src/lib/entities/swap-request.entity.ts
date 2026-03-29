@@ -1,4 +1,4 @@
-import { pgTable, uuid, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, uuid, timestamp, pgEnum, text } from "drizzle-orm/pg-core";
 import { users } from "./user.entity";
 import { shifts } from "./shift.entity";
 import { relations } from 'drizzle-orm';
@@ -22,6 +22,7 @@ export const swapRequests = pgTable("swap_requests", {
     .references(() => shifts.id)
     .notNull(),
   status: swapStatusEnum("status").default("pending_peer").notNull(),
+  reason: text("reason").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -42,3 +43,6 @@ export const swapRequestsRelations = relations(swapRequests, ({ one }) => ({
     references: [shifts.id],
   }),
 }));
+
+export type SwapRequest = typeof swapRequests.$inferSelect;
+export type NewSwapRequest = typeof swapRequests.$inferInsert;

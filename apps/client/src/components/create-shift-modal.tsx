@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { shiftsApi } from '@/lib/api';
 import { Location, Skill } from '@shiftsync/data-access';
 import {
@@ -35,14 +35,24 @@ export function CreateShiftModal({
 }: CreateShiftModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    locationId: locations[0]?.id || '',
-    requiredSkillId: skills[0]?.id || '',
+    locationId: '',
+    requiredSkillId: '',
     date: format(initialDate || new Date(), 'yyyy-MM-dd'),
     startTime: '09:00',
     endTime: '17:00',
     headcountNeeded: 1,
     isPremium: false,
   });
+
+  // Update default selections once metadata loads
+  useEffect(() => {
+    if (!formData.locationId && locations.length > 0) {
+      setFormData(prev => ({ ...prev, locationId: locations[0].id }));
+    }
+    if (!formData.requiredSkillId && skills.length > 0) {
+      setFormData(prev => ({ ...prev, requiredSkillId: skills[0].id }));
+    }
+  }, [locations, skills, formData.locationId, formData.requiredSkillId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

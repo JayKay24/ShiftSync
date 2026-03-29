@@ -1,0 +1,1 @@
+ALTER TABLE "swap_requests" ADD COLUMN "reason" text NOT NULL;

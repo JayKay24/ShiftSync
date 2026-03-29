@@ -58,6 +58,13 @@ export function ShiftDetailsModal({
 
   if (!shift) return null;
 
+  const isPast = new Date(shift.startTime) < new Date();
+  
+  const SCHEDULE_EDIT_CUTOFF_HOURS = 48;
+  const cutoffTime = new Date();
+  cutoffTime.setHours(cutoffTime.getHours() + SCHEDULE_EDIT_CUTOFF_HOURS);
+  const isWithinCutoff = new Date(shift.startTime) < cutoffTime;
+
   const handleAssign = async (staff: AvailableStaffResponse) => {
     if (staff.requiresOverride && pendingStaffId !== staff.id) {
       setPendingStaffId(staff.id);
@@ -119,6 +126,18 @@ export function ShiftDetailsModal({
             </div>
           </div>
 
+          {isPast ? (
+            <div className="rounded-md bg-blue-50 p-3 text-xs text-blue-700 flex items-start gap-2 border border-blue-100">
+              <Clock className="h-4 w-4 shrink-0" />
+              <span>This shift has already passed. Staff assignments cannot be modified.</span>
+            </div>
+          ) : isWithinCutoff && (
+            <div className="rounded-md bg-amber-50 p-3 text-xs text-amber-700 flex items-start gap-2 border border-amber-100">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+              <span>This shift is within the 48-hour schedule lock. Edits are restricted.</span>
+            </div>
+          )}
+
           <div className="space-y-3">
             <h3 className="text-sm font-bold flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -138,72 +157,74 @@ export function ShiftDetailsModal({
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              Suggested Staff
-            </h3>
-            
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {pendingStaffId && (
-              <div className="space-y-2 border-l-2 border-orange-500 pl-3 py-1">
-                <div className="flex items-center gap-1 text-[10px] font-bold text-orange-600 uppercase">
-                  <ShieldAlert className="h-3 w-3" />
-                  Override Required
+          {!isPast && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                Suggested Staff
+              </h3>
+              
+              {error && (
+                <div className="rounded-md bg-destructive/10 p-3 text-xs text-destructive flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>{error}</span>
                 </div>
-                <Label htmlFor="reason" className="text-[10px] text-muted-foreground">Reason for compliance override</Label>
-                <Input 
-                  id="reason"
-                  placeholder="e.g., Critical staffing shortage"
-                  className="h-8 text-xs"
-                  value={overrideReason}
-                  onChange={(e) => setOverrideReason(e.target.value)}
-                />
-              </div>
-            )}
-
-            <div className="max-h-[250px] overflow-y-auto space-y-2 pr-2">
-              {isLoadingStaff ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                availableStaff.length > 0 ? (
-                  availableStaff.map((staff) => (
-                    <div key={staff.id} className={`flex items-center justify-between rounded-md border p-2 hover:bg-slate-50 ${pendingStaffId === staff.id ? 'border-orange-200 bg-orange-50/30' : ''}`}>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{staff.name}</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {staff.requiresOverride ? (
-                            <Badge variant="outline" className="text-[8px] h-4 border-orange-200 text-orange-700 bg-orange-50">Requires Override</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-[8px] h-4 border-green-200 text-green-700 bg-green-50">Fully Compliant</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant={pendingStaffId === staff.id ? "default" : "ghost"}
-                        className={`h-8 text-xs ${pendingStaffId === staff.id ? 'bg-orange-600 hover:bg-orange-700' : 'text-primary hover:text-primary hover:bg-primary/10'}`}
-                        disabled={isAssigning || (pendingStaffId === staff.id && !overrideReason)}
-                        onClick={() => handleAssign(staff)}
-                      >
-                        {isAssigning && pendingStaffId === staff.id ? <Loader2 className="h-3 w-3 animate-spin" /> : (pendingStaffId === staff.id ? 'Confirm' : 'Assign')}
-                      </Button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-center py-4 text-muted-foreground">No suggested staff found for this shift.</p>
-                )
               )}
+
+              {pendingStaffId && (
+                <div className="space-y-2 border-l-2 border-orange-500 pl-3 py-1">
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-orange-600 uppercase">
+                    <ShieldAlert className="h-3 w-3" />
+                    Override Required
+                  </div>
+                  <Label htmlFor="reason" className="text-[10px] text-muted-foreground">Reason for compliance override</Label>
+                  <Input 
+                    id="reason"
+                    placeholder="e.g., Critical staffing shortage"
+                    className="h-8 text-xs"
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="max-h-[250px] overflow-y-auto space-y-2 pr-2">
+                {isLoadingStaff ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  availableStaff.length > 0 ? (
+                    availableStaff.map((staff) => (
+                      <div key={staff.id} className={`flex items-center justify-between rounded-md border p-2 hover:bg-slate-50 ${pendingStaffId === staff.id ? 'border-orange-200 bg-orange-50/30' : ''}`}>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{staff.name}</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {staff.requiresOverride ? (
+                              <Badge variant="outline" className="text-[8px] h-4 border-orange-200 text-orange-700 bg-orange-50">Requires Override</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[8px] h-4 border-green-200 text-green-700 bg-green-50">Fully Compliant</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant={pendingStaffId === staff.id ? "default" : "ghost"}
+                          className={`h-8 text-xs ${pendingStaffId === staff.id ? 'bg-orange-600 hover:bg-orange-700' : 'text-primary hover:text-primary hover:bg-primary/10'}`}
+                          disabled={isAssigning || (pendingStaffId === staff.id && !overrideReason)}
+                          onClick={() => handleAssign(staff)}
+                        >
+                          {isAssigning && pendingStaffId === staff.id ? <Loader2 className="h-3 w-3 animate-spin" /> : (pendingStaffId === staff.id ? 'Confirm' : 'Assign')}
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-center py-4 text-muted-foreground">No suggested staff found for this shift.</p>
+                  )
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

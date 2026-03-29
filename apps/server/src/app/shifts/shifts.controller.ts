@@ -27,8 +27,8 @@ export class ShiftsController {
   }
 
   @Get('staff')
-  async getStaff() {
-    return this.shiftsService.getStaff();
+  async getStaff(@Req() req) {
+    return this.shiftsService.getStaff(req.user.userId, req.user.role);
   }
 
   @Get('staff/:id/assignments')
@@ -39,8 +39,8 @@ export class ShiftsController {
 
   @Get('stats')
   @Roles('Admin', 'Manager')
-  async getStats() {
-    return this.shiftsService.getDashboardStats();
+  async getStats(@Req() req) {
+    return this.shiftsService.getDashboardStats(req.user.userId, req.user.role);
   }
 
   @Get('on-duty')
@@ -120,7 +120,7 @@ export class ShiftsController {
     @Body() updateDto: Partial<CreateShiftDto>,
     @Req() req
   ): Promise<Shift> {
-    return this.shiftsService.updateShift(id, req.user.userId, {
+    return this.shiftsService.updateShift(id, req.user.userId, req.user.role, {
       ...updateDto,
       startTime: updateDto.startTime ? new Date(updateDto.startTime) : undefined,
       endTime: updateDto.endTime ? new Date(updateDto.endTime) : undefined,

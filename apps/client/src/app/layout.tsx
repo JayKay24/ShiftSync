@@ -1,5 +1,6 @@
 import './global.css';
 import { AuthProvider } from '../context/auth-context';
+import { NotificationProvider } from '../context/notification-context';
 
 export const metadata = {
   title: 'ShiftSync',
@@ -12,10 +13,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <AuthProvider>
-          {children}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
         </AuthProvider>
       </body>
     </html>

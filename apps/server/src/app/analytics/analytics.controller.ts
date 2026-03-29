@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -13,24 +13,26 @@ export class AnalyticsController {
   @Get('distribution')
   @Roles('Admin', 'Manager')
   async getHoursDistribution(
+    @Req() req,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<HourDistributionRecord[]> {
     const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const end = endDate ? new Date(endDate) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
     
-    return this.analyticsService.getHoursDistribution(start, end);
+    return this.analyticsService.getHoursDistribution(start, end, req.user.userId, req.user.role);
   }
 
   @Get('fairness')
   @Roles('Admin', 'Manager')
   async getFairnessScore(
+    @Req() req,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<FairnessScoreResponse> {
     const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const end = endDate ? new Date(endDate) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
 
-    return this.analyticsService.getFairnessScore(start, end);
+    return this.analyticsService.getFairnessScore(start, end, req.user.userId, req.user.role);
   }
 }

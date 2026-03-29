@@ -114,6 +114,15 @@ async function main() {
       timezone: 'America/New_York',
     },
     {
+      id: '33333333-3333-4333-8333-333333333336',
+      email: 'diana.manager@coastaleats.com',
+      passwordHash,
+      firstName: 'Diana',
+      lastName: 'Manager',
+      role: 'Manager',
+      timezone: 'America/Los_Angeles',
+    },
+    {
       id: '33333333-3333-4333-8333-333333333332',
       email: 'charlie.staff@coastaleats.com',
       passwordHash,
@@ -153,23 +162,53 @@ async function main() {
       timezone: 'America/Los_Angeles',
       desiredWeeklyHours: 45, // Full-time / Overtime prone
     },
+    {
+      id: '33333333-3333-4333-8333-333333333337',
+      email: 'grace.staff@coastaleats.com',
+      passwordHash,
+      firstName: 'Grace',
+      lastName: 'Staff',
+      role: 'Staff',
+      timezone: 'America/Los_Angeles',
+      desiredWeeklyHours: 30,
+    },
+    {
+      id: '33333333-3333-4333-8333-333333333338',
+      email: 'heidi.staff@coastaleats.com',
+      passwordHash,
+      firstName: 'Heidi',
+      lastName: 'Staff',
+      role: 'Staff',
+      timezone: 'America/Los_Angeles',
+      desiredWeeklyHours: 40,
+    },
   ]).returning();
 
-  const [admin, manager, charlie, dave, eva, frank] = seededUsers;
+  const bob = seededUsers.find(u => u.email === 'bob.manager@coastaleats.com')!;
+  const diana = seededUsers.find(u => u.email === 'diana.manager@coastaleats.com')!;
+  const charlie = seededUsers.find(u => u.email === 'charlie.staff@coastaleats.com')!;
+  const dave = seededUsers.find(u => u.email === 'dave.staff@coastaleats.com')!;
+  const eva = seededUsers.find(u => u.email === 'eva.staff@coastaleats.com')!;
+  const frank = seededUsers.find(u => u.email === 'frank.staff@coastaleats.com')!;
+  const grace = seededUsers.find(u => u.email === 'grace.staff@coastaleats.com')!;
+  const heidi = seededUsers.find(u => u.email === 'heidi.staff@coastaleats.com')!;
 
   const loc1 = seededLocs[0]; // Downtown
   const loc2 = seededLocs[1]; // Uptown
+  const loc3 = seededLocs[2]; // Beach Grill
   
-  // Link Manager (Bob) to Locations
-  console.log('Linking manager to locations...');
+  // Link Managers to Locations
+  console.log('Linking managers to locations...');
   await db.insert(managerLocations).values([
-    { userId: manager.id, locationId: loc1.id },
-    { userId: manager.id, locationId: loc2.id },
+    { userId: bob.id, locationId: loc1.id },
+    { userId: bob.id, locationId: loc2.id },
+    { userId: diana.id, locationId: loc3.id },
   ]);
 
   const skillBartender = seededSkills.find(s => s.name === 'bartender')!;
   const skillLineCook = seededSkills.find(s => s.name === 'line_cook')!;
   const skillServer = seededSkills.find(s => s.name === 'server')!;
+  const skillHost = seededSkills.find(s => s.name === 'host')!;
 
   // 4. Link Staff to Skills and Locations
   console.log('Linking staff to skills and certifications...');
@@ -202,13 +241,24 @@ async function main() {
     { userId: frank.id, locationId: loc2.id }
   ]);
 
+  // Grace: Host, Server (Loc 3)
+  await db.insert(staffSkills).values([
+    { userId: grace.id, skillId: skillHost.id },
+    { userId: grace.id, skillId: skillServer.id }
+  ]);
+  await db.insert(staffCertifications).values({ userId: grace.id, locationId: loc3.id });
+
+  // Heidi: Bartender (Loc 3)
+  await db.insert(staffSkills).values({ userId: heidi.id, skillId: skillBartender.id });
+  await db.insert(staffCertifications).values({ userId: heidi.id, locationId: loc3.id });
+
   // 5. Seed Shifts & Assignments (Diverse scenarios)
   console.log('Seeding shifts and assignments...');
   
   const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 });
 
-  // A. Normal Past Shift
+  // A. Normal Past Shift (Bob)
   const pastShift = await db.insert(shifts).values({
     locationId: loc1.id,
     requiredSkillId: skillBartender.id,
@@ -216,7 +266,7 @@ async function main() {
     endTime: setHours(setMinutes(subDays(today, 2), 0), 18),
     headcountNeeded: 1,
     status: 'completed',
-    createdBy: manager.id,
+    createdBy: bob.id,
   }).returning().then(r => r[0]);
 
   await db.insert(assignments).values({
@@ -225,28 +275,24 @@ async function main() {
     status: 'confirmed'
   });
 
-  // B. Premium Shift (Fri/Sat after 18:00 UTC)
-  // Let's pick this Friday at 19:00 UTC
-  const friday = addDays(weekStart, 4); 
-  const premiumShift = await db.insert(shifts).values({
-    locationId: loc1.id,
-    requiredSkillId: skillBartender.id,
-    startTime: setHours(setMinutes(friday, 0), 19),
-    endTime: setHours(setMinutes(friday, 0), 23),
-    headcountNeeded: 2,
+  // B. Diana's shifts at Beach Grill
+  const beachShift = await db.insert(shifts).values({
+    locationId: loc3.id,
+    requiredSkillId: skillHost.id,
+    startTime: setHours(setMinutes(addDays(weekStart, 2), 0), 17),
+    endTime: setHours(setMinutes(addDays(weekStart, 2), 0), 22),
+    headcountNeeded: 1,
     status: 'published',
-    isPremium: true,
-    createdBy: manager.id,
+    createdBy: diana.id,
   }).returning().then(r => r[0]);
 
   await db.insert(assignments).values({
-    shiftId: premiumShift.id,
-    userId: frank.id,
+    shiftId: beachShift.id,
+    userId: grace.id,
     status: 'confirmed'
   });
 
-  // C. Compliance Violation Scenario: 7th Consecutive Day
-  // Give Frank 6 days of work leading up to next Monday
+  // C. Compliance Violation Scenario: 7th Consecutive Day (Frank - loc1)
   for (let i = 0; i < 6; i++) {
     const day = addDays(weekStart, i);
     const s = await db.insert(shifts).values({
@@ -256,7 +302,7 @@ async function main() {
       endTime: setHours(setMinutes(day, 0), 16),
       headcountNeeded: 1,
       status: 'published',
-      createdBy: manager.id,
+      createdBy: bob.id,
     }).returning().then(r => r[0]);
 
     await db.insert(assignments).values({
@@ -266,7 +312,6 @@ async function main() {
     });
   }
 
-  // Monday Shift for Frank - The 7th Day (Requires Override)
   const monday7th = addDays(weekStart, 6);
   const shift7thDay = await db.insert(shifts).values({
     locationId: loc1.id,
@@ -275,7 +320,7 @@ async function main() {
     endTime: setHours(setMinutes(monday7th, 0), 16),
     headcountNeeded: 1,
     status: 'published',
-    createdBy: manager.id,
+    createdBy: bob.id,
   }).returning().then(r => r[0]);
 
   const assignment7th = await db.insert(assignments).values({
@@ -286,27 +331,14 @@ async function main() {
 
   await db.insert(complianceOverrides).values({
     assignmentId: assignment7th.id,
-    managerId: manager.id,
+    managerId: bob.id,
     overrideType: '7th_consecutive_day',
     overrideReason: 'Critical shortage of line cooks for the holiday event.',
     createdAt: new Date(),
   });
 
-  // D. Unfilled Future Shift
-  await db.insert(shifts).values({
-    locationId: loc2.id,
-    requiredSkillId: skillServer.id,
-    startTime: setHours(setMinutes(addDays(today, 3), 0), 12),
-    endTime: setHours(setMinutes(addDays(today, 3), 0), 20),
-    headcountNeeded: 3,
-    status: 'published',
-    createdBy: manager.id,
-  });
-
-  // 6. Seed Swap Requests
+  // D. Swap Requests (preserved logic)
   console.log('Seeding swap requests...');
-
-  // Charlie wants to swap his shift with anyone (Public Drop)
   const swapShift = await db.insert(shifts).values({
     locationId: loc1.id,
     requiredSkillId: skillBartender.id,
@@ -314,7 +346,7 @@ async function main() {
     endTime: setHours(setMinutes(addDays(today, 5), 0), 22),
     headcountNeeded: 1,
     status: 'published',
-    createdBy: manager.id,
+    createdBy: bob.id,
   }).returning().then(r => r[0]);
 
   await db.insert(assignments).values({
@@ -325,71 +357,25 @@ async function main() {
 
   await db.insert(swapRequests).values({
     requestingUserId: charlie.id,
-    targetUserId: null, // Open to all
+    targetUserId: null,
     shiftId: swapShift.id,
+    reason: 'Family event',
     status: 'pending_peer',
-  });
-
-  // Eva wants to swap specifically with Frank
-  const targetSwapShift = await db.insert(shifts).values({
-    locationId: loc2.id,
-    requiredSkillId: skillServer.id,
-    startTime: setHours(setMinutes(addDays(today, 6), 30), 17),
-    endTime: setHours(setMinutes(addDays(today, 6), 30), 23),
-    headcountNeeded: 1,
-    status: 'published',
-    createdBy: manager.id,
-  }).returning().then(r => r[0]);
-
-  await db.insert(assignments).values({
-    shiftId: targetSwapShift.id,
-    userId: eva.id,
-    status: 'pending_swap'
-  });
-
-  await db.insert(swapRequests).values({
-    requestingUserId: eva.id,
-    targetUserId: frank.id,
-    shiftId: targetSwapShift.id,
-    status: 'pending_peer',
-  });
-
-  // A swap that is already accepted and waiting for manager approval
-  const managerApprovalShift = await db.insert(shifts).values({
-    locationId: loc1.id,
-    requiredSkillId: skillLineCook.id,
-    startTime: setHours(setMinutes(addDays(today, 7), 0), 9),
-    endTime: setHours(setMinutes(addDays(today, 7), 0), 15),
-    headcountNeeded: 1,
-    status: 'published',
-    createdBy: manager.id,
-  }).returning().then(r => r[0]);
-
-  await db.insert(assignments).values({
-    shiftId: managerApprovalShift.id,
-    userId: dave.id,
-    status: 'pending_swap'
-  });
-
-  await db.insert(swapRequests).values({
-    requestingUserId: dave.id,
-    targetUserId: frank.id,
-    shiftId: managerApprovalShift.id,
-    status: 'pending_manager',
   });
 
   // 7. Seed Availability
   console.log('Seeding staff availability...');
+  const allStaff = [charlie, dave, eva, frank, grace, heidi];
   const unavailableDays: Record<string, number> = {
-    [charlie.id]: 1, // Charlie: Mon
-    [dave.id]: 2,    // Dave: Tue
-    [eva.id]: 3,     // Eva: Wed
-    [frank.id]: 4,   // Frank: Thu
+    [charlie.id]: 1,
+    [dave.id]: 2,
+    [eva.id]: 3,
+    [frank.id]: 4,
   };
 
-  for (const user of [charlie, dave, eva, frank]) {
+  for (const user of allStaff) {
     for (let day = 0; day <= 6; day++) {
-      if (user.id !== frank.id && day === unavailableDays[user.id]) continue;
+      if (unavailableDays[user.id] === day && user.id !== frank.id) continue;
 
       await db.insert(availability).values({
         userId: user.id,
@@ -401,24 +387,13 @@ async function main() {
     }
   }
 
-  // Frank has an exception (Doctor appointment next Tuesday)
-  await db.insert(availability).values({
-    userId: frank.id,
-    dayOfWeek: 2,
-    startTimeLocal: '10:00',
-    endTimeLocal: '12:00',
-    isException: true,
-    exceptionDate: format(addDays(weekStart, 8), 'yyyy-MM-dd'),
-  });
-
   console.log('--- Seeding Completed Successfully ---');
   console.log('=========================================');
   console.log(`Admin (Alice): admin@coastaleats.com`);
-  console.log(`Manager (Bob): bob.manager@coastaleats.com`);
+  console.log(`Manager (Bob - NY): bob.manager@coastaleats.com`);
+  console.log(`Manager (Diana - LA): diana.manager@coastaleats.com`);
   console.log(`Staff (Charlie): charlie.staff@coastaleats.com`);
-  console.log(`Staff (Dave): dave.staff@coastaleats.com`);
-  console.log(`Staff (Eva): eva.staff@coastaleats.com`);
-  console.log(`Staff (Frank): frank.staff@coastaleats.com`);
+  console.log(`Staff (Grace - Beach Grill): grace.staff@coastaleats.com`);
   console.log('Password for all: password123');
   console.log('=========================================');
   
@@ -426,7 +401,6 @@ async function main() {
 }
 
 function format(date: Date, fmt: string) {
-  // Simple ISO date format for seed
   return date.toISOString().split('T')[0];
 }
 
