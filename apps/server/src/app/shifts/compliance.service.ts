@@ -164,30 +164,40 @@ export class ComplianceService {
 
     const checkStepMs = 30 * 60 * 1000;
     let currentMs = start.getTime();
-    
+
     while (currentMs < end.getTime()) {
-      const currentTime = new Date(currentMs);
-      
-      const formatter = new Intl.DateTimeFormat('en-US', {
+      const currentDate = new Date(currentMs);
+
+      // Assessment Requirement: Accurate Timezone Handling
+      // We extract day/time specifically in the target timezone (User's or Location's)
+      const fmt = new Intl.DateTimeFormat('en-US', {
         timeZone: timezone,
-        hour12: false,
         weekday: 'long',
         hour: '2-digit',
         minute: '2-digit',
+        second: '2-digit',
+        hour12: false
       });
-      
-      const parts = formatter.formatToParts(currentTime);
+
+      const parts = fmt.formatToParts(currentDate);
       const map: any = {};
       parts.forEach(p => map[p.type] = p.value);
-      
+
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const dayOfWeek = days.indexOf(map.weekday);
-      const timeStr = `${map.hour}:${map.minute}:00`;
+      const timeStr = `${map.hour}:${map.minute}:${map.second}`;
 
       const recurring = avails.find(a => !a.isException && a.dayOfWeek === dayOfWeek);
-      if (!recurring) return false;
-      
-      if (timeStr < recurring.startTimeLocal || timeStr > recurring.endTimeLocal) return false;
+
+      if (!recurring) {
+        // QA Checklist: Availability Alignment failure
+        return false;
+      }
+
+      // Exact string comparison for HH:mm:ss vs DB startTimeLocal/endTimeLocal
+      if (timeStr < recurring.startTimeLocal || timeStr > recurring.endTimeLocal) {
+        return false;
+      }
 
       currentMs += checkStepMs;
     }

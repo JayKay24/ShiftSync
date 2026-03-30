@@ -137,6 +137,7 @@ export class ShiftsService {
 
       if (isCertified && hasSkill) {
         const compliance = await this.complianceService.checkCompliance(user.id, shiftId);
+        
         if (!compliance.hasHardBlock) {
           results.push({
             user,
