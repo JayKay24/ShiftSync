@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { login, TEST_USERS, seedDatabase } from '../support/test-helpers';
+import { login, TEST_USERS, clearDynamicData, getNextWednesday, getFutureDate } from '../support/test-helpers';
+import { setHours, addHours } from 'date-fns';
 
 describe('Shift Swap Workflow (Requirement #5)', () => {
   let managerToken: string;
@@ -12,7 +13,7 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
   const bartenderSkillId = '22222222-2222-4222-8222-222222222221';
 
   beforeAll(async () => {
-    seedDatabase();
+    await clearDynamicData();
     managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
     charlieToken = await login(TEST_USERS.charlie.email, TEST_USERS.charlie.pass);
     frankToken = await login(TEST_USERS.frank.email, TEST_USERS.frank.pass);
@@ -28,13 +29,16 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
   }
 
   it('should complete a full swap: Request -> Accept -> Approve', async () => {
+    await clearDynamicData();
     // 1. Manager creates and assigns a shift to Charlie
-    // Use a Wednesday (Charlie is available)
+    // Use a Wednesday in the future
+    const baseDate = getFutureDate(40);
+    const futureDate = getNextWednesday(baseDate);
     const shift = await axios.post('/api/shifts', {
       locationId: loc1Id,
       requiredSkillId: bartenderSkillId,
-      startTime: new Date('2026-04-01T12:00:00Z').toISOString(),
-      endTime: new Date('2026-04-01T16:00:00Z').toISOString(),
+      startTime: setHours(futureDate, 14).toISOString(),
+      endTime: setHours(futureDate, 16).toISOString(),
       headcountNeeded: 1,
       status: 'published'
     }, { headers: { Authorization: `Bearer ${managerToken}` } });

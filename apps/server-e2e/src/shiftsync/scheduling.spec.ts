@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { login, TEST_USERS, seedDatabase } from '../support/test-helpers';
+import { login, TEST_USERS, clearDynamicData, getNextWednesday, getFutureDate } from '../support/test-helpers';
+import { addHours, setHours } from 'date-fns';
 
 describe('Shift Scheduling & Constraints (Requirement #2)', () => {
   let managerToken: string;
@@ -8,7 +9,7 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
   const bartenderSkillId = '22222222-2222-4222-8222-222222222221';
 
   beforeAll(async () => {
-    seedDatabase();
+    await clearDynamicData();
     managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
   });
 
@@ -24,23 +25,29 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
 
   describe('Constraint: No Double-Booking (Overlapping)', () => {
     it('should block a manager from assigning a staff member to an overlapping shift', async () => {
-      // Use 2026-04-01 (Wednesday) - Charlie is available
+      await clearDynamicData();
+      // Use Wednesday in the future to avoid seed and cutoff
+      const baseDate = getFutureDate(10);
+      const startTime = setHours(getNextWednesday(baseDate), 14);
+      const endTime = addHours(startTime, 4);
+
       const shiftA = await safePost('/api/shifts', {
         locationId: loc1Id,
         requiredSkillId: bartenderSkillId,
-        startTime: new Date('2026-04-01T12:00:00Z').toISOString(),
-        endTime: new Date('2026-04-01T16:00:00Z').toISOString(),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
         headcountNeeded: 1,
         status: 'published'
       }, managerToken);
 
       await safePost(`/api/shifts/${shiftA.data.id}/assign`, { userId: staffId }, managerToken);
 
+      // Overlapping shift (Shift B starts 2h after Shift A)
       const shiftB = await safePost('/api/shifts', {
         locationId: loc1Id,
         requiredSkillId: bartenderSkillId,
-        startTime: new Date('2026-04-01T14:00:00Z').toISOString(),
-        endTime: new Date('2026-04-01T18:00:00Z').toISOString(),
+        startTime: addHours(startTime, 2).toISOString(),
+        endTime: addHours(startTime, 6).toISOString(),
         headcountNeeded: 1,
         status: 'published'
       }, managerToken);
@@ -59,24 +66,29 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
 
   describe('Constraint: Minimum 10-Hour Rest', () => {
     it('should block an assignment that violates the 10-hour rest gap', async () => {
-      // Shift C ends at 20:00 UTC (4 PM Local for NYC)
+      await clearDynamicData();
+      // Use different day from overlap test (e.g. Wednesday + 1 day = Thursday)
+      const baseDate = getFutureDate(11);
+      const startTime = setHours(getNextWednesday(baseDate), 14);
+      const endTime = addHours(startTime, 4);
+
       const shiftC = await safePost('/api/shifts', {
         locationId: loc1Id,
         requiredSkillId: bartenderSkillId,
-        startTime: new Date('2026-04-02T16:00:00Z').toISOString(),
-        endTime: new Date('2026-04-02T20:00:00Z').toISOString(),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
         headcountNeeded: 1,
         status: 'published'
       }, managerToken);
 
       await safePost(`/api/shifts/${shiftC.data.id}/assign`, { userId: staffId }, managerToken);
 
-      // Shift D starts at 04:00 next day - only 8 hours rest
+      // Only 8 hours rest
       const shiftD = await safePost('/api/shifts', {
         locationId: loc1Id,
         requiredSkillId: bartenderSkillId,
-        startTime: new Date('2026-04-03T04:00:00Z').toISOString(),
-        endTime: new Date('2026-04-03T08:00:00Z').toISOString(),
+        startTime: addHours(endTime, 8).toISOString(),
+        endTime: addHours(endTime, 12).toISOString(),
         headcountNeeded: 1,
         status: 'published'
       }, managerToken);

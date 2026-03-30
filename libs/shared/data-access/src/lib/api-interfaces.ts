@@ -253,6 +253,24 @@ export interface FairnessScoreResponse {
   }>;
   periodStart: Date;
   periodEnd: Date;
+  overallScore: number;
+}
+
+/**
+ * Response for a single audit log entry
+ */
+export interface AuditLogResponse {
+  id: string;
+  actorId: string;
+  actor: {
+    firstName: string;
+    lastName: string;
+  };
+  entityType: string;
+  entityId: string;
+  oldState: any;
+  newState: any;
+  changedAt: Date | string;
 }
 
 /**

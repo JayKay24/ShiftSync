@@ -16,7 +16,8 @@ import {
   LoginRequest,
   ApproveSwapRequest,
   UpdateProfileRequest,
-  SafeUser
+  SafeUser,
+  AuditLogResponse
 } from '@shiftsync/data-access';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -107,11 +108,22 @@ export const swapsApi = {
  * Analytics API
  */
 export const analyticsApi = {
-  getFairness: () => 
-    api.get<FairnessScoreResponse>('/analytics/fairness'),
+  getFairness: (params?: { startDate?: string; endDate?: string }) => 
+    api.get<FairnessScoreResponse>('/analytics/fairness', { params }),
   
-  getDistribution: () => 
-    api.get<HourDistributionRecord[]>('/analytics/distribution'),
+  getDistribution: (params?: { startDate?: string; endDate?: string }) => 
+    api.get<HourDistributionRecord[]>('/analytics/distribution', { params }),
+};
+
+/**
+ * Audit API
+ */
+export const auditApi = {
+  getLogs: (params?: { startDate?: string; endDate?: string }) => 
+    api.get<AuditLogResponse[]>('/audit', { params }),
+  
+  getLogsByEntity: (type: string, id: string) => 
+    api.get<AuditLogResponse[]>(`/audit/entity/${type}/${id}`),
 };
 
 /**

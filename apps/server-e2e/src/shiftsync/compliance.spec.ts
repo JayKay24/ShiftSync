@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { login, TEST_USERS, seedDatabase } from '../support/test-helpers';
+import { login, TEST_USERS, clearDynamicData, getFutureDate } from '../support/test-helpers';
+import { addDays, addHours, setHours } from 'date-fns';
 
 describe('Labor Law Compliance (Requirement #4)', () => {
   let managerToken: string;
@@ -9,7 +10,7 @@ describe('Labor Law Compliance (Requirement #4)', () => {
   const frankId = '33333333-3333-4333-8333-333333333335'; // Frank (24/7 available)
 
   beforeAll(async () => {
-    seedDatabase();
+    await clearDynamicData();
     managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
   });
 
@@ -25,11 +26,13 @@ describe('Labor Law Compliance (Requirement #4)', () => {
 
   describe('Scenario: The Overtime Trap (12-hour Hard Block)', () => {
     it('should block a 13th hour in a single day', async () => {
+      await clearDynamicData();
+      const futureDate = getFutureDate(20);
       const shift13h = await safePost('/api/shifts', {
         locationId: loc1Id,
         requiredSkillId: lineCookSkillId,
-        startTime: new Date('2026-04-01T06:00:00Z').toISOString(),
-        endTime: new Date('2026-04-01T19:00:00Z').toISOString(),
+        startTime: setHours(futureDate, 6).toISOString(),
+        endTime: setHours(futureDate, 19).toISOString(),
         headcountNeeded: 1,
         status: 'published'
       }, managerToken);
@@ -49,14 +52,17 @@ describe('Labor Law Compliance (Requirement #4)', () => {
 
   describe('Scenario: 7th Consecutive Day Override', () => {
       it('should require a reason to override 7th day assignment', async () => {
-          // Assign shifts for 6 days (Wed Apr 1st - Mon Apr 6th)
-          for (let i = 1; i <= 6; i++) {
-            const dateStr = `2026-04-0${i}`;
+          await clearDynamicData();
+          // Assign shifts for 6 days starting 21 days in the future
+          const baseDate = getFutureDate(21);
+
+          for (let i = 0; i < 6; i++) {
+            const currentDay = addDays(baseDate, i);
             const s = await safePost('/api/shifts', {
                 locationId: loc1Id,
                 requiredSkillId: lineCookSkillId,
-                startTime: new Date(`${dateStr}T12:00:00Z`).toISOString(),
-                endTime: new Date(`${dateStr}T16:00:00Z`).toISOString(),
+                startTime: setHours(currentDay, 12).toISOString(),
+                endTime: setHours(currentDay, 16).toISOString(),
                 headcountNeeded: 1,
                 status: 'published'
               }, managerToken);
@@ -64,12 +70,13 @@ describe('Labor Law Compliance (Requirement #4)', () => {
               await safePost(`/api/shifts/${s.data.id}/assign`, { userId: frankId }, managerToken);
           }
 
-          // 7th Day: Tue Apr 7th
+          // 7th Day
+          const day7Date = addDays(baseDate, 6);
           const day7 = await safePost('/api/shifts', {
             locationId: loc1Id,
             requiredSkillId: lineCookSkillId,
-            startTime: new Date('2026-04-07T12:00:00Z').toISOString(),
-            endTime: new Date('2026-04-07T16:00:00Z').toISOString(),
+            startTime: setHours(day7Date, 12).toISOString(),
+            endTime: setHours(day7Date, 16).toISOString(),
             headcountNeeded: 1,
             status: 'published'
           }, managerToken);

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { login, TEST_USERS, seedDatabase } from '../support/test-helpers';
+import { login, TEST_USERS, clearDynamicData } from '../support/test-helpers';
 
 describe('Manager Location-Based Access Control', () => {
   let bobToken: string;   // Manager for NY
@@ -10,7 +10,7 @@ describe('Manager Location-Based Access Control', () => {
   const locLA = '11111111-1111-4111-8111-111111111113'; // Beach Grill (Diana only)
 
   beforeAll(async () => {
-    seedDatabase();
+    await clearDynamicData();
     bobToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
     // Diana is in seed.ts but not in TEST_USERS constant
   });
@@ -20,6 +20,7 @@ describe('Manager Location-Based Access Control', () => {
   }
 
   it('should restrict managers to only see their assigned locations', async () => {
+    await clearDynamicData();
     const bobLocations = await axios.get('/api/shifts/locations', { headers: { Authorization: `Bearer ${bobToken}` } });
     const bobLocIds = bobLocations.data.map((l: any) => l.id);
     expect(bobLocIds).toContain(locNY);
@@ -35,6 +36,7 @@ describe('Manager Location-Based Access Control', () => {
   });
 
   it('should restrict managers to only see staff certified for their locations', async () => {
+    await clearDynamicData();
     // Charlie is certified for NY.
     // Let's assume some staff is only LA. (Grace is LA in seed.ts)
     const bobStaff = await axios.get('/api/shifts/staff', { headers: { Authorization: `Bearer ${bobToken}` } });
@@ -50,6 +52,7 @@ describe('Manager Location-Based Access Control', () => {
   });
 
   it('should filter analytics based on manager locations', async () => {
+    await clearDynamicData();
     // In seed.ts, Bob manages NY, Diana manages LA.
     // Charlie is NY. Grace is LA.
     
@@ -67,6 +70,7 @@ describe('Manager Location-Based Access Control', () => {
   });
 
   it('should filter dashboard stats based on manager locations', async () => {
+    await clearDynamicData();
     // Bob: NY/Uptown. Diana: Beach Grill.
     const bobStats = await axios.get('/api/shifts/stats', { headers: { Authorization: `Bearer ${bobToken}` } });
     // Based on seed.ts:

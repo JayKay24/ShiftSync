@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { login, TEST_USERS, seedDatabase } from '../support/test-helpers';
+import { login, TEST_USERS, clearDynamicData, getPastDate, getSafeFutureDate } from '../support/test-helpers';
 
 describe('Shift Cutoff & Past Assignment Constraints', () => {
   let managerToken: string;
@@ -9,7 +9,7 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
   const bartenderSkillId = '22222222-2222-4222-8222-222222222221';
 
   beforeAll(async () => {
-    seedDatabase();
+    await clearDynamicData();
     managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
     adminToken = await login(TEST_USERS.admin.email, TEST_USERS.admin.pass);
   });
@@ -24,8 +24,8 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
 
   describe('Constraint: No Past Shift Assignment', () => {
     it('should block a manager from assigning a staff member to a past shift', async () => {
-      const pastDate = new Date();
-      pastDate.setHours(pastDate.getHours() - 24);
+      await clearDynamicData();
+      const pastDate = getPastDate(2); // 48h ago
 
       // Create a past shift using Admin (who can bypass constraints if needed)
       const pastShift = await safePost('/api/shifts', {
@@ -49,8 +49,8 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
 
   describe('Constraint: 48h Schedule Edit Cutoff', () => {
     it('should block a manager from editing a shift within 48h of start time', async () => {
-      const nearFutureDate = new Date();
-      nearFutureDate.setHours(nearFutureDate.getHours() + 24); // 24h from now < 48h
+      await clearDynamicData();
+      const nearFutureDate = getSafeFutureDate(1); // 24h from now < 48h
 
       const nearShift = await safePost('/api/shifts', {
         locationId: loc1Id,
@@ -71,14 +71,14 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
     });
 
     it('should allow an admin to bypass the 48h edit cutoff', async () => {
-      const nearFutureDate = new Date();
-      nearFutureDate.setHours(nearFutureDate.getHours() + 12); // 12h from now
+      await clearDynamicData();
+      const veryNearDate = getSafeFutureDate(0.5); // 12h from now
 
       const nearShift = await safePost('/api/shifts', {
         locationId: loc1Id,
         requiredSkillId: bartenderSkillId,
-        startTime: nearFutureDate.toISOString(),
-        endTime: new Date(nearFutureDate.getTime() + 4 * 3600000).toISOString(),
+        startTime: veryNearDate.toISOString(),
+        endTime: new Date(veryNearDate.getTime() + 4 * 3600000).toISOString(),
         headcountNeeded: 1,
         status: 'published'
       }, adminToken);
@@ -89,8 +89,8 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
     });
 
     it('should allow a manager to edit a shift more than 48h in the future', async () => {
-      const farFutureDate = new Date();
-      farFutureDate.setHours(farFutureDate.getHours() + 72); // 72h from now > 48h
+      await clearDynamicData();
+      const farFutureDate = getSafeFutureDate(4); // 96h from now > 48h
 
       const farShift = await safePost('/api/shifts', {
         locationId: loc1Id,

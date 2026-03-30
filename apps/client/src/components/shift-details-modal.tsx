@@ -11,11 +11,12 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, UserPlus, Users, Clock, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Loader2, UserPlus, Users, Clock, AlertTriangle, ShieldAlert, History } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
+import { AuditTrailModal } from './audit-trail-modal';
 
 interface ShiftDetailsModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export function ShiftDetailsModal({
   const [overrideReason, setOverrideReason] = useState('');
   const [pendingStaffId, setPendingStaffId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAuditOpen, setIsAuditOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && shift) {
@@ -101,10 +103,22 @@ export function ShiftDetailsModal({
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pr-6">
           <DialogTitle>Shift Details</DialogTitle>
+          {(user?.role === 'Admin' || user?.role === 'Manager') && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 mt-[-4px]" 
+              onClick={() => setIsAuditOpen(true)}
+              title="View History"
+            >
+              <History className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          )}
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -230,5 +244,14 @@ export function ShiftDetailsModal({
         </div>
       </DialogContent>
     </Dialog>
+
+    <AuditTrailModal 
+      isOpen={isAuditOpen}
+      onClose={() => setIsAuditOpen(false)}
+      entityType="shift"
+      entityId={shift.id}
+      title={`Shift History - ${format(parseISO(shift.startTime.toString()), 'MMM d')}`}
+    />
+    </>
   );
 }
