@@ -41,7 +41,7 @@ export class ShiftsService {
   }
 
   async getStaff(userId: string, role: string) {
-    if (role === 'Admin') {
+    if (role === 'Admin' || role === 'Staff') {
       return this.db.query.users.findMany({
         where: eq(schema.users.role, 'Staff'),
         columns: {
@@ -137,6 +137,7 @@ export class ShiftsService {
 
       if (isCertified && hasSkill) {
         const compliance = await this.complianceService.checkCompliance(user.id, shiftId);
+        
         if (!compliance.hasHardBlock) {
           results.push({
             user,
@@ -155,11 +156,9 @@ export class ShiftsService {
       where: sql`${schema.timeEntries.clockOut} IS NULL`,
       with: {
         user: {
-          columns: { id: true, firstName: true, lastName: true },
+          columns: { passwordHash: false },
         },
-        location: {
-          columns: { id: true, name: true }
-        },
+        location: true,
       },
     });
   }

@@ -27,28 +27,38 @@ export class AuditService {
   }
 
   async getLogsByEntity(entityType: string, entityId: string) {
-    return this.db
-      .select()
-      .from(auditLogs)
-      .where(
-        and(
-          eq(auditLogs.entityType, entityType),
-          eq(auditLogs.entityId, entityId)
-        )
-      )
-      .orderBy(auditLogs.changedAt);
+    return this.db.query.auditLogs.findMany({
+      where: and(
+        eq(auditLogs.entityType, entityType),
+        eq(auditLogs.entityId, entityId)
+      ),
+      with: {
+        actor: {
+          columns: {
+            firstName: true,
+            lastName: true,
+          }
+        }
+      },
+      orderBy: (auditLogs, { asc }) => [asc(auditLogs.changedAt)],
+    });
   }
 
   async getLogsInRange(startDate: Date, endDate: Date) {
-    return this.db
-      .select()
-      .from(auditLogs)
-      .where(
-        and(
-          gte(auditLogs.changedAt, startDate),
-          lte(auditLogs.changedAt, endDate)
-        )
-      )
-      .orderBy(auditLogs.changedAt);
+    return this.db.query.auditLogs.findMany({
+      where: and(
+        gte(auditLogs.changedAt, startDate),
+        lte(auditLogs.changedAt, endDate)
+      ),
+      with: {
+        actor: {
+          columns: {
+            firstName: true,
+            lastName: true,
+          }
+        }
+      },
+      orderBy: (auditLogs, { desc }) => [desc(auditLogs.changedAt)],
+    });
   }
 }

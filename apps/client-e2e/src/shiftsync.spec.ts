@@ -55,15 +55,25 @@ test.describe('ShiftSync Client E2E - Manual Test Scenarios', () => {
       await page.click('text=Coastal Eats - Downtown');
 
       await page.getByTestId('create-shift-button').click();
+      
+      // Set date to tomorrow to ensure it's in future but within 48h
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dateStr = tomorrow.toISOString().split('T')[0];
+      await page.fill('input[type="date"]', dateStr);
+      await page.fill('input[id="startTime"]', '11:00');
+      await page.fill('input[id="headcount"]', '99');
+
       await page.getByTestId('submit-shift-button').click();
 
       await expect(page.getByTestId('submit-shift-button')).not.toBeVisible();
       
-      const publishedShift = page.locator('[data-testid="shift-card"][data-status="published"]').first();
+      // Select the shift by the unique headcount
+      const publishedShift = page.locator('[data-testid="shift-card"][data-status="published"][data-headcount="99"]').first();
       await expect(publishedShift).toBeVisible({ timeout: 15000 });
       await publishedShift.click();
 
-      await expect(page.locator('text=This shift is within the 48-hour schedule lock')).toBeVisible();
+      await expect(page.getByTestId('cutoff-warning-banner')).toBeVisible();
     });
   });
 
@@ -79,7 +89,103 @@ test.describe('ShiftSync Client E2E - Manual Test Scenarios', () => {
       await expect(shift).toBeVisible({ timeout: 15000 });
       await shift.click();
 
-      await expect(page.locator('text=This shift is within the 48-hour schedule lock')).not.toBeVisible();
+      await expect(page.getByTestId('cutoff-warning-banner')).not.toBeVisible();
+    });
+  });
+
+  test.describe('Scenario 7: Audit Trail & Transparency', () => {
+    test('Admin should be able to view shift history via Audit Trail', async ({ page }) => {
+      await login(page, TEST_USERS.admin.email, TEST_USERS.admin.pass);
+      await page.click('text=Schedule Manager');
+      await page.click('text=Coastal Eats - Downtown');
+
+      // Create a NEW shift to ensure it has a "Created" log entry
+      await page.getByTestId('create-shift-button').click();
+      
+      const future = new Date();
+      future.setDate(future.getDate() + 5);
+      const dateStr = future.toISOString().split('T')[0];
+      await page.fill('input[type="date"]', dateStr);
+      await page.fill('input[id="startTime"]', '10:00');
+      await page.fill('input[id="headcount"]', '77'); // Unique headcount for selection
+
+      await page.getByTestId('submit-shift-button').click();
+      await expect(page.getByTestId('submit-shift-button')).not.toBeVisible();
+
+      // Click the newly created shift
+      const newShift = page.locator('[data-testid="shift-card"][data-headcount="77"]').first();
+      await expect(newShift).toBeVisible({ timeout: 15000 });
+      await newShift.click();
+
+      // Click the History (Clock/History icon) button
+      const historyBtn = page.locator('button[title="View History"]');
+      await expect(historyBtn).toBeVisible();
+      await historyBtn.click();
+
+      // Verify the Audit Trail modal appears
+      await expect(page.locator('text=Shift History')).toBeVisible();
+      
+      // Wait for logs to load and find "Created" text
+      const createdLog = page.locator('text=Created').first();
+      await expect(createdLog).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('text=Alice Admin')).toBeVisible();
+    });
+  });
+
+  test.describe('Scenario 8: Fairness & Analytics', () => {
+    test('Manager should be able to view Fairness Index and Premium distribution', async ({ page }) => {
+      await login(page, TEST_USERS.manager.email, TEST_USERS.manager.pass);
+      
+      await page.click('text=Fairness & Premium Metrics');
+      await page.waitForURL(/\/dashboard\/manager\/analytics/);
+
+      await expect(page.locator('text=Overall Fairness Index')).toBeVisible();
+      const score = page.getByTestId('overall-fairness-score');
+      await expect(score).toBeVisible();
+      
+      // Should show a percentage (e.g. 100% or less)
+      const scoreText = await score.innerText();
+      expect(scoreText).toContain('%');
+      
+      await expect(page.locator('h3:has-text("Premium Shift Distribution")')).toBeVisible();
+    });
+  });
+
+  test.describe('Scenario 9: Shift Swapping (Staff Flow)', () => {
+    test('Charlie should be able to initiate a swap request', async ({ page }) => {
+      await login(page, TEST_USERS.charlie.email, TEST_USERS.charlie.pass);
+      
+      const staffPromise = page.waitForResponse(r => r.url().includes('/staff') && r.status() === 200);
+      const asgnPromise = page.waitForResponse(r => r.url().includes('/my-assignments') && r.status() === 200);
+      
+      await page.click('text=Request Swap');
+      await page.waitForURL(/\/dashboard\/staff\/swaps/);
+      
+      await Promise.all([staffPromise, asgnPromise]);
+
+      // Wait a bit more for React to render the options
+      await page.waitForTimeout(1000);
+
+      // Select the first available shift from the dropdown (seeded)
+      await page.selectOption('select#shift', { index: 1 });
+      
+      // Select a target peer (Dave)
+      const targetSelect = page.locator('select#target');
+      await expect(targetSelect).toBeVisible();
+      
+      // Dave's ID from base.ts seed: 33333333-3333-4333-8333-333333333333
+      await page.selectOption('select#target', { value: '33333333-3333-4333-8333-333333333333' });
+      
+      // Enter reason
+      await page.fill('input#reason', 'Family event swap');
+      
+      // Submit
+      await page.click('button:has-text("Submit Request")');
+
+      // Verify it appears in "My Requests"
+      await expect(page.locator('h2:has-text("My Requests")')).toBeVisible();
+      await expect(page.locator('text=Family event swap')).toBeVisible();
+      await expect(page.locator('text=pending peer').first()).toBeVisible();
     });
   });
 

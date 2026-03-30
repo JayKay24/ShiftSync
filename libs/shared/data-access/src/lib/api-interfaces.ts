@@ -225,15 +225,8 @@ export interface AvailableStaffResponse {
  */
 export interface OnDutyStaffResponse {
   id: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
-  location: {
-    id: string;
-    name: string;
-  };
+  user: SafeUser;
+  location: Location;
   clockIn: Date;
 }
 
@@ -260,6 +253,24 @@ export interface FairnessScoreResponse {
   }>;
   periodStart: Date;
   periodEnd: Date;
+  overallScore: number;
+}
+
+/**
+ * Response for a single audit log entry
+ */
+export interface AuditLogResponse {
+  id: string;
+  actorId: string;
+  actor: {
+    firstName: string;
+    lastName: string;
+  };
+  entityType: string;
+  entityId: string;
+  oldState: any;
+  newState: any;
+  changedAt: Date | string;
 }
 
 /**

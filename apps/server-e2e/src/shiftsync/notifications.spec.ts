@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { login, TEST_USERS, seedDatabase } from '../support/test-helpers';
+import { login, TEST_USERS, clearDynamicData, getFutureDate } from '../support/test-helpers';
+import { setHours } from 'date-fns';
 
 describe('Notifications & Persistence (Requirement #7)', () => {
   let charlieToken: string;
@@ -12,19 +13,22 @@ describe('Notifications & Persistence (Requirement #7)', () => {
   const bartenderSkillId = '22222222-2222-4222-8222-222222222221';
 
   beforeAll(async () => {
-    seedDatabase();
+    await clearDynamicData();
     charlieToken = await login(TEST_USERS.charlie.email, TEST_USERS.charlie.pass);
     daveToken = await login(TEST_USERS.dave.email, TEST_USERS.dave.pass);
     managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
   });
 
   it('should generate and persist a notification for a swap request', async () => {
+    await clearDynamicData();
     // 1. Manager creates and assigns a shift to Charlie
+    const baseDate = getFutureDate(50);
+    const futureDate = setHours(baseDate, 14);
     const shift = await axios.post('/api/shifts', {
       locationId: loc1Id,
       requiredSkillId: bartenderSkillId,
-      startTime: new Date('2026-07-01T12:00:00Z').toISOString(),
-      endTime: new Date('2026-07-01T16:00:00Z').toISOString(),
+      startTime: futureDate.toISOString(),
+      endTime: setHours(baseDate, 18).toISOString(),
       headcountNeeded: 1,
       status: 'published'
     }, { headers: { Authorization: `Bearer ${managerToken}` } });

@@ -23,7 +23,7 @@ interface PendingSwapsModalProps {
 
 export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsModalProps) {
   const { swaps, isLoading, fetchSwaps, approveRequest } = useSwaps();
-  const { fetchUnreadCount } = useNotifications();
+  const { fetchNotifications } = useNotifications();
   const [actioningId, setActioningId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
     setActioningId(id);
     try {
       await approveRequest(id, approve);
-      fetchUnreadCount();
+      fetchNotifications();
       onSuccess();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to process swap');

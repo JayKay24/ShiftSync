@@ -21,7 +21,6 @@ export class AnalyticsService {
 
       if (locationIds.length === 0) return [];
 
-      // Filter staff who have certifications in these locations
       whereClause = and(
         whereClause,
         sql`EXISTS (
@@ -32,7 +31,6 @@ export class AnalyticsService {
       ) as any;
     }
 
-    // Get total hours per staff member in the range
     const results = await this.db
       .select({
         userId: users.id,
@@ -43,7 +41,12 @@ export class AnalyticsService {
       })
       .from(users)
       .leftJoin(assignments, eq(assignments.userId, users.id))
-      .leftJoin(shifts, and(eq(assignments.shiftId, shifts.id), eq(assignments.status, 'confirmed'), gte(shifts.startTime, startDate), lte(shifts.endTime, endDate)))
+      .leftJoin(shifts, and(
+        eq(assignments.shiftId, shifts.id), 
+        eq(assignments.status, 'confirmed'), 
+        gte(shifts.startTime, startDate), 
+        lte(shifts.endTime, endDate)
+      ))
       .where(whereClause)
       .groupBy(users.id)
       .orderBy(users.lastName);
@@ -60,7 +63,7 @@ export class AnalyticsService {
       });
       const locationIds = assignedLocations.map(al => al.locationId);
 
-      if (locationIds.length === 0) return { distribution: [], periodStart: startDate, periodEnd: endDate };
+      if (locationIds.length === 0) return { distribution: [], periodStart: startDate, periodEnd: endDate, overallScore: 100 };
 
       whereClause = and(
         whereClause,
@@ -72,25 +75,59 @@ export class AnalyticsService {
       ) as any;
     }
 
-    // Get distribution of premium shifts per staff
     const distribution = await this.db
       .select({
         userId: users.id,
         firstName: users.firstName,
         lastName: users.lastName,
-        premiumShiftCount: sql<number>`CAST(COUNT(${shifts.id}) AS INTEGER)`,
+        premiumShiftCount: sql<number>`CAST(COUNT(CASE WHEN ${shifts.isPremium} = true THEN 1 END) AS INTEGER)`,
       })
       .from(users)
       .leftJoin(assignments, eq(assignments.userId, users.id))
-      .leftJoin(shifts, and(eq(assignments.shiftId, shifts.id), eq(assignments.status, 'confirmed'), eq(shifts.isPremium, true), gte(shifts.startTime, startDate), lte(shifts.endTime, endDate)))
+      .leftJoin(shifts, and(
+        eq(assignments.shiftId, shifts.id), 
+        eq(assignments.status, 'confirmed'), 
+        gte(shifts.startTime, startDate), 
+        lte(shifts.endTime, endDate)
+      ))
       .where(whereClause)
       .groupBy(users.id)
       .orderBy(users.lastName);
 
+    const counts = distribution.map(d => Number(d.premiumShiftCount));
+    const overallScore = this.calculateFairnessIndex(counts);
+
     return {
-      distribution: distribution as FairnessScoreResponse['distribution'],
+      distribution: distribution.map(d => ({
+        ...d,
+        premiumShiftCount: Number(d.premiumShiftCount)
+      })),
       periodStart: startDate,
       periodEnd: endDate,
+      overallScore: Math.round(overallScore * 100)
     };
+  }
+
+  /**
+   * Calculates a fairness index from 0 to 1 based on Coefficient of Variation.
+   * 1.0 = Perfect fairness (equal distribution)
+   * 0.0 = High inequality
+   */
+  private calculateFairnessIndex(counts: number[]): number {
+    if (counts.length <= 1) return 1.0;
+    
+    const sum = counts.reduce((a, b) => a + b, 0);
+    if (sum === 0) return 1.0; // Everyone has 0, perfectly fair.
+
+    const mean = sum / counts.length;
+    const variance = counts.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / counts.length;
+    const stdDev = Math.sqrt(variance);
+
+    // Coefficient of Variation (CV) = stdDev / mean
+    // A CV of 0 means perfect equality.
+    // We normalize this to a score where 1 is perfect.
+    // We cap CV at 1 for the score calculation to avoid negative results in extreme cases.
+    const cv = stdDev / mean;
+    return Math.max(0, 1 - cv);
   }
 }

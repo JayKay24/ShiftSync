@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { api } from '@/lib/api';
-import { UpdateProfileRequest, SafeUser } from '@shiftsync/data-access';
+import { usersApi } from '@/lib/api';
+import { UpdateProfileRequest } from '@shiftsync/data-access';
 import { useAuth } from './use-auth';
 
 export function useUser() {
@@ -14,7 +14,7 @@ export function useUser() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await api.patch<SafeUser>('/users/profile', data);
+      const res = await usersApi.updateProfile(data);
       const updatedUser = res.data;
       
       // Update global auth state
