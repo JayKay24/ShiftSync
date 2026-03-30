@@ -147,6 +147,26 @@ export async function seedBase(db: NodePgDatabase<typeof schema>) {
       timezone: 'America/Los_Angeles',
       desiredWeeklyHours: 40,
     },
+    {
+      id: '33333333-3333-4333-8333-333333333339',
+      email: 'ivan.staff@coastaleats.com',
+      passwordHash,
+      firstName: 'Ivan',
+      lastName: 'Staff',
+      role: 'Staff',
+      timezone: 'America/Los_Angeles',
+      desiredWeeklyHours: 35,
+    },
+    {
+      id: '33333333-3333-4333-8333-333333333340',
+      email: 'judy.staff@coastaleats.com',
+      passwordHash,
+      firstName: 'Judy',
+      lastName: 'Staff',
+      role: 'Staff',
+      timezone: 'America/Los_Angeles',
+      desiredWeeklyHours: 35,
+    },
   ])
   .onConflictDoNothing()
   .returning();
@@ -169,6 +189,8 @@ export async function seedBase(db: NodePgDatabase<typeof schema>) {
   const frankId = '33333333-3333-4333-8333-333333333335';
   const graceId = '33333333-3333-4333-8333-333333333337';
   const heidiId = '33333333-3333-4333-8333-333333333338';
+  const ivanId = '33333333-3333-4333-8333-333333333339';
+  const judyId = '33333333-3333-4333-8333-333333333340';
 
   // 4. Link Managers to Locations
   await db.insert(managerLocations).values([
@@ -188,6 +210,10 @@ export async function seedBase(db: NodePgDatabase<typeof schema>) {
     { userId: graceId, skillId: skillHostId },
     { userId: graceId, skillId: skillServerId },
     { userId: heidiId, skillId: skillBartenderId },
+    { userId: ivanId, skillId: skillBartenderId },
+    { userId: ivanId, skillId: skillServerId },
+    { userId: judyId, skillId: skillServerId },
+    { userId: judyId, skillId: skillHostId },
   ]).onConflictDoNothing();
 
   await db.insert(staffCertifications).values([
@@ -199,10 +225,12 @@ export async function seedBase(db: NodePgDatabase<typeof schema>) {
     { userId: frankId, locationId: loc2Id },
     { userId: graceId, locationId: loc3Id },
     { userId: heidiId, locationId: loc3Id },
+    { userId: ivanId, locationId: loc3Id },
+    { userId: judyId, locationId: loc3Id },
   ]).onConflictDoNothing();
 
   // 6. Seed Availability
-  const allStaffIds = [charlieId, daveId, evaId, frankId, graceId, heidiId];
+  const allStaffIds = [charlieId, daveId, evaId, frankId, graceId, heidiId, ivanId, judyId];
   const unavailableDays: Record<string, number> = {
     [charlieId]: 1, // Mon
     [daveId]: 2, // Tue
