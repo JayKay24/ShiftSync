@@ -185,16 +185,16 @@ export class ComplianceService {
 
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const dayOfWeek = days.indexOf(map.weekday);
-      const timeStr = `${map.hour}:${map.minute}:${map.second}`;
+      
+      const hour = map.hour === '24' ? '00' : map.hour;
+      const timeStr = `${hour}:${map.minute}:${map.second}`;
 
       const recurring = avails.find(a => !a.isException && a.dayOfWeek === dayOfWeek);
-
+      
       if (!recurring) {
-        // QA Checklist: Availability Alignment failure
         return false;
       }
 
-      // Exact string comparison for HH:mm:ss vs DB startTimeLocal/endTimeLocal
       if (timeStr < recurring.startTimeLocal || timeStr > recurring.endTimeLocal) {
         return false;
       }
