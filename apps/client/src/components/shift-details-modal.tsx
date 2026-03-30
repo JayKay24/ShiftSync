@@ -148,7 +148,10 @@ export function ShiftDetailsModal({
               <span>This shift has already passed. Staff assignments cannot be modified.</span>
             </div>
           ) : (isWithinCutoff && user?.role !== 'Admin') && (
-            <div className="rounded-md bg-amber-50 p-3 text-xs text-amber-700 flex items-start gap-2 border border-amber-100">
+            <div 
+              data-testid="cutoff-warning-banner"
+              className="rounded-md bg-amber-50 p-3 text-xs text-amber-700 flex items-start gap-2 border border-amber-100"
+            >
               <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
               <span>This shift is within the 48-hour schedule lock. Edits are restricted.</span>
             </div>

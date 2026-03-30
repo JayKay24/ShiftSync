@@ -41,7 +41,7 @@ export class ShiftsService {
   }
 
   async getStaff(userId: string, role: string) {
-    if (role === 'Admin') {
+    if (role === 'Admin' || role === 'Staff') {
       return this.db.query.users.findMany({
         where: eq(schema.users.role, 'Staff'),
         columns: {

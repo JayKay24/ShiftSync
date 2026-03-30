@@ -166,6 +166,7 @@ export default function ManagerSchedule() {
                       onClick={() => setSelectedShift(shift)}
                       data-testid="shift-card"
                       data-status={shift.status}
+                      data-headcount={shift.headcountNeeded}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between mb-2">
