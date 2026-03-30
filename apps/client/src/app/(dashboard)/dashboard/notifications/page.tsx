@@ -1,23 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { notificationsApi } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Bell, Check, Clock, Trash2 } from 'lucide-react';
+import { Loader2, Bell, Check, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/use-notifications';
 
-interface Notification {
-  id: string;
-  type: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-}
+import { Notification } from '@shiftsync/data-access';
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -26,7 +18,7 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await api.get('/notifications');
+      const res = await notificationsApi.getNotifications();
       setNotifications(res.data);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
@@ -41,7 +33,7 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      await api.post(`/notifications/${id}/read`);
+      await notificationsApi.markRead(id);
       setNotifications(notifications.map(n => 
         n.id === id ? { ...n, isRead: true } : n
       ));
@@ -52,12 +44,8 @@ export default function NotificationsPage() {
   };
 
   const markAllAsRead = async () => {
-    // Assuming there's a bulk endpoint, but if not we can do it individually or just wait for next refresh
-    // For now, let's just mark the ones we have in state as read if we had an endpoint
     try {
-      // If no bulk endpoint exists, we'd need to loop or add one.
-      // Let's assume for now we just mark them one by one if needed, or just refresh.
-      await Promise.all(notifications.filter(n => !n.isRead).map(n => api.post(`/notifications/${n.id}/read`)));
+      await Promise.all(notifications.filter(n => !n.isRead).map(n => notificationsApi.markRead(n.id)));
       fetchNotifications();
       fetchUnreadCount();
     } catch (error) {
@@ -114,7 +102,7 @@ export default function NotificationsPage() {
                     </h3>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(parseISO(notification.createdAt), 'MMM d, HH:mm')}
+                      {format(typeof notification.createdAt === 'string' ? parseISO(notification.createdAt) : notification.createdAt, 'MMM d, HH:mm')}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
