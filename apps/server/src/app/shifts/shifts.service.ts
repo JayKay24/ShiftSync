@@ -155,11 +155,9 @@ export class ShiftsService {
       where: sql`${schema.timeEntries.clockOut} IS NULL`,
       with: {
         user: {
-          columns: { id: true, firstName: true, lastName: true },
+          columns: { passwordHash: false },
         },
-        location: {
-          columns: { id: true, name: true }
-        },
+        location: true,
       },
     });
   }

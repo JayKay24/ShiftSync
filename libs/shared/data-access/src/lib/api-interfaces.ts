@@ -225,15 +225,8 @@ export interface AvailableStaffResponse {
  */
 export interface OnDutyStaffResponse {
   id: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
-  location: {
-    id: string;
-    name: string;
-  };
+  user: SafeUser;
+  location: Location;
   clockIn: Date;
 }
 
