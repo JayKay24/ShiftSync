@@ -18,9 +18,10 @@ Based on the requirements for Coastal Eats, the following technical and domain a
 
 - **Single Organization:** The platform is scoped to a single organization (Coastal Eats). Multi-tenancy is handled via `locationId`.
 - **Manager Data Isolation:** Managers are strictly restricted to seeing staff, schedules, and analytics for locations they are assigned to manage. Corporate Admins maintain global visibility.
+- **Staff Swap Visibility:** Staff members can see all other staff in the organization when requesting a swap to facilitate cross-location coverage. However, the system only allows selection of "qualified" peers (those with the required skill and location certification).
 - **Shift Skills:** A single shift requires exactly **one primary skill** (e.g., "Bartender"). Shifts needing multiple distinct skills are modeled as separate parallel shift records.
 - **Group Assignments:** A single shift record can accommodate multiple staff members (`headcountNeeded` > 1) to prevent duplicating identical shift definitions.
-- **Compliance Timezones:** All compliance calculations (10-hour rest, availability) are evaluated against the specific **location's local timezone**, ensuring accuracy for staff working across state lines.
+- **Timezone Robustness:** All compliance calculations (10-hour rest, availability) utilize `Intl.DateTimeFormat` with explicit timezone support (e.g., `America/Los_Angeles`). This ensures that a manager in Nairobi (EAT) can accurately schedule a staff member in California (PDT) without "off-by-one-day" errors.
 - **48-Hour Schedule Lock:** To ensure operational stability, the system prevents Managers from editing or unpublishing shifts within 48 hours of their start time. Admins can bypass this lock for emergency adjustments.
 - **Unified Swap/Drop Model:** A shift "drop" (putting a shift up for grabs) is modeled as a `swapRequest` with a `null` target user. 
 - **Peer Rejection & Withdrawal:** Staff members can decline incoming swap requests, and requesters can withdraw pending requests, automatically reverting shift assignments to their original state.
@@ -46,12 +47,12 @@ Based on the requirements for Coastal Eats, the following technical and domain a
 ### ⚖️ Compliance & Analytics
 - **Labor Law Alerts:** Automated warnings for weekly (40h) and daily (8h/12h) limits.
 - **Consecutive Day Tracking:** Tracks 6th and 7th consecutive workdays with mandatory manager overrides.
-- **Fairness Score:** Analytical reports on shift distribution and "desirable" shift equity.
+- **Fairness Score Index:** Analytical reports on shift distribution and "premium" shift equity, normalized from 0-100.
 
 ### ⚡ Real-Time & Audit
 - **Live Dashboards:** "On-duty now" view showing active staff across all locations.
 - **Shared Notification State:** A unified unread counter that stays synced across all browser tabs in real-time.
-- **Full Audit Trail:** Comprehensive logs of every schedule modification for accountability.
+- **Full Audit Trail:** Comprehensive logs of every schedule modification (Who, When, Before/After) for accountability.
 
 ## 🛠 Tech Stack
 
@@ -95,14 +96,14 @@ The easiest way to run the entire stack (Frontend, Backend, and Database) is usi
 
 ## 🧪 Testing
 
-### Server Integration Tests
+### Server Integration Tests (21 Tests)
 Verifies complex business logic, labor law compliance, and database state.
 ```sh
 npx nx e2e server-e2e
 ```
 
-### Client E2E Tests (Playwright)
-Simulates end-to-end user journeys (Manager assignment, Staff swapping, Real-time notifications).
+### Client E2E Tests (10 Scenarios)
+Simulates end-to-end user journeys including Audit Trails, Fairness UI, and Staff Swap flows.
 ```sh
 npx nx e2e client-e2e
 ```
@@ -128,6 +129,8 @@ npm run db:seed
 | **Staff** | `frank.staff@coastaleats.com` | NY & Uptown certified (24/7 available) |
 | **Staff** | `grace.staff@coastaleats.com` | Beach Grill certified |
 | **Staff** | `heidi.staff@coastaleats.com` | Beach Grill certified |
+| **Staff** | `ivan.staff@coastaleats.com` | Beach Grill certified (Available for swaps) |
+| **Staff** | `judy.staff@coastaleats.com` | Beach Grill certified (Available for swaps) |
 
 ## 🛠 Local Development (Manual)
 ```sh
