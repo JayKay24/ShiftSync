@@ -120,7 +120,7 @@ export const notificationsApi = {
     api.get<NotificationListResponse>('/notifications'),
   
   markRead: (id: string) => 
-    api.patch(`/notifications/${id}/read`),
+    api.post(`/notifications/${id}/read`),
 };
 
 /**

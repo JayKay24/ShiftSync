@@ -1,64 +1,31 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { notificationsApi } from '@/lib/api';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bell, Check, Clock } from 'lucide-react';
+import { Loader2, Bell, Check, Clock, RefreshCw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/use-notifications';
 
-import { Notification } from '@shiftsync/data-access';
-
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { fetchUnreadCount } = useNotifications();
-
-  const fetchNotifications = async () => {
-    try {
-      const res = await notificationsApi.getNotifications();
-      setNotifications(res.data);
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-
-  const markAsRead = async (id: string) => {
-    try {
-      await notificationsApi.markRead(id);
-      setNotifications(notifications.map(n => 
-        n.id === id ? { ...n, isRead: true } : n
-      ));
-      fetchUnreadCount();
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      await Promise.all(notifications.filter(n => !n.isRead).map(n => notificationsApi.markRead(n.id)));
-      fetchNotifications();
-      fetchUnreadCount();
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
-    }
-  };
+  const { 
+    notifications, 
+    isLoading, 
+    markAsRead, 
+    markAllAsRead, 
+    fetchNotifications 
+  } = useNotifications();
 
   const getIcon = (type: string) => {
     switch (type) {
       case 'shift_assigned': return '📅';
-      case 'swap_request': return '🔄';
-      case 'swap_approved': return '✅';
-      case 'swap_rejected': return '❌';
+      case 'swap_request_update': return '🔄';
+      case 'swap_pending_approval': return '⏳';
+      case 'shift_modified': return '📝';
+      case 'shift_cancelled': return '🚫';
+      case 'schedule_published': return '📢';
+      case 'overtime_warning': return '⚠️';
       default: return '🔔';
     }
   };
@@ -70,14 +37,25 @@ export default function NotificationsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
           <p className="text-muted-foreground">Stay updated on your schedule and swap requests.</p>
         </div>
-        {notifications.some(n => !n.isRead) && (
-          <Button variant="outline" size="sm" onClick={markAllAsRead}>
-            Mark all as read
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={fetchNotifications} 
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn("mr-2 h-4 w-4", isLoading && "animate-spin")} />
+            Refresh
           </Button>
-        )}
+          {notifications.some(n => !n.isRead) && (
+            <Button variant="outline" size="sm" onClick={markAllAsRead}>
+              Mark all as read
+            </Button>
+          )}
+        </div>
       </div>
 
-      {isLoading ? (
+      {isLoading && notifications.length === 0 ? (
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>

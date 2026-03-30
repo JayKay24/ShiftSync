@@ -3,13 +3,18 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/use-auth';
-import { api } from '@/lib/api';
+import { notificationsApi } from '@/lib/api';
+import { Notification } from '@shiftsync/data-access';
 
 const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api').replace('/api', '');
 
 interface NotificationContextType {
+  notifications: Notification[];
   unreadCount: number;
-  fetchUnreadCount: () => Promise<void>;
+  isLoading: boolean;
+  fetchNotifications: () => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
   socket: Socket | null;
 }
 
@@ -18,28 +23,58 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const fetchUnreadCount = useCallback(async () => {
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const fetchNotifications = useCallback(async () => {
     if (!user) return;
+    setIsLoading(true);
     try {
-      const res = await api.get('/notifications');
-      const unread = res.data.filter((n: any) => !n.isRead).length;
-      setUnreadCount(unread);
+      const res = await notificationsApi.getNotifications();
+      setNotifications(res.data);
     } catch (error) {
-      console.error('Failed to fetch unread notifications:', error);
+      console.error('Failed to fetch notifications:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [user]);
 
+  const markAsRead = async (id: string) => {
+    try {
+      await notificationsApi.markRead(id);
+      setNotifications(prev => prev.map(n => 
+        n.id === id ? { ...n, isRead: true } : n
+      ));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
+      if (unreadIds.length === 0) return;
+      
+      await Promise.all(unreadIds.map(id => notificationsApi.markRead(id)));
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
-      setUnreadCount(0);
+      setNotifications([]);
       if (socket) {
         socket.disconnect();
         setSocket(null);
       }
       return;
     }
+
+    fetchNotifications();
 
     const newSocket = io(SOCKET_URL, {
       auth: {
@@ -49,19 +84,21 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     newSocket.on('connect', () => {
       console.log('Connected to notification gateway');
-      fetchUnreadCount();
     });
 
-    newSocket.on('notification', () => {
-      setUnreadCount((prev) => prev + 1);
+    newSocket.on('notification', (notification: Notification) => {
+      setNotifications(prev => [notification, ...prev]);
     });
 
-    newSocket.on('notification_read', () => {
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+    newSocket.on('notification_read', (data: { id: string }) => {
+      setNotifications(prev => prev.map(n => 
+        n.id === data.id ? { ...n, isRead: true } : n
+      ));
     });
 
     newSocket.on('schedule_update', (data) => {
       console.log('Schedule update broadcast received:', data);
+      // We could trigger a fresh fetch of shifts here if we had a useShifts hook that listened to this
     });
 
     setSocket(newSocket);
@@ -69,10 +106,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     return () => {
       newSocket.disconnect();
     };
-  }, [user, fetchUnreadCount]);
+  }, [user, fetchNotifications]);
 
   return (
-    <NotificationContext.Provider value={{ unreadCount, fetchUnreadCount, socket }}>
+    <NotificationContext.Provider value={{ 
+      notifications, 
+      unreadCount, 
+      isLoading, 
+      fetchNotifications, 
+      markAsRead, 
+      markAllAsRead, 
+      socket 
+    }}>
       {children}
     </NotificationContext.Provider>
   );
