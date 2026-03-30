@@ -14,7 +14,9 @@ import {
   SwapRequestResponse,
   CreateSwapRequest,
   LoginRequest,
-  ApproveSwapRequest
+  ApproveSwapRequest,
+  UpdateProfileRequest,
+  SafeUser
 } from '@shiftsync/data-access';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -121,6 +123,14 @@ export const notificationsApi = {
   
   markRead: (id: string) => 
     api.post(`/notifications/${id}/read`),
+};
+
+/**
+ * Users API
+ */
+export const usersApi = {
+  updateProfile: (data: UpdateProfileRequest) => 
+    api.patch<SafeUser>('/users/profile', data),
 };
 
 /**
