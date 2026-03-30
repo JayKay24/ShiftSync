@@ -16,6 +16,7 @@ import {
   User as UserIcon,
   BarChart3,
   Repeat,
+  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -66,6 +67,12 @@ const navItems: NavItem[] = [
     href: '/dashboard/manager/analytics',
     icon: BarChart3,
     roles: ['Admin', 'Manager'],
+  },
+  {
+    title: 'Audit Trail',
+    href: '/dashboard/admin/audit',
+    icon: History,
+    roles: ['Admin'],
   },
   {
     title: 'Staffing',

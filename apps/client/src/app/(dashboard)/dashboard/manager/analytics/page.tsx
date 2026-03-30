@@ -64,7 +64,8 @@ export default function AnalyticsPage() {
             <div className="text-2xl font-bold text-blue-700" data-testid="overall-fairness-score">
               {fairness?.overallScore}%
             </div>
-            <p className="text-xs text-muted-foreground">Premium shift equality measure</p>
+            <p className="text-[10px] uppercase font-bold text-blue-400 mt-1">Overall Fairness Index</p>
+            <p className="text-xs text-muted-foreground mt-1">Premium shift equality measure</p>
             <div className="mt-4 h-2 w-full rounded-full bg-slate-100">
               <div 
                 className="h-full rounded-full bg-blue-600 transition-all duration-1000" 

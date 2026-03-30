@@ -215,5 +215,31 @@ test.describe('ShiftSync Client E2E - Manual Test Scenarios', () => {
         }
       }
     });
+
+    test('Scenario 11: Global Audit Trail (Corporate Oversight)', async ({ page }) => {
+      // Login as Admin
+      await page.goto('/login');
+      await page.fill('input[type="email"]', 'admin@coastaleats.com');
+      await page.fill('input[type="password"]', 'password123');
+      await page.click('button[type="submit"]');
+
+      // Navigate to Audit Trail
+      await page.click('text=Audit Trail');
+      await page.waitForURL(/\/dashboard\/admin\/audit/);
+
+      // Verify page content
+      await expect(page.locator('h1')).toContainText('Audit Trail');
+      
+      // Should find entries (from seeding or previous tests)
+      const logs = page.locator('div.divide-y > div');
+      await expect(logs.first()).toBeVisible();
+      
+      // Expand the first log
+      await logs.first().click();
+      
+      // Verify states are visible
+      await expect(page.locator('text=Previous State')).toBeVisible();
+      await expect(page.locator('text=Resulting State')).toBeVisible();
+    });
   });
 });
