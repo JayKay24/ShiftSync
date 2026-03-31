@@ -1,8 +1,14 @@
 import { Injectable, Inject, BadRequestException, NotFoundException, forwardRef } from '@nestjs/common';
-import { DRIZZLE } from '../database.module';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema, shifts, assignments, staffSkills, staffCertifications, complianceOverrides, NewShift, locations, skills, Shift } from '@shiftsync/data-access';
-import { eq, and, gte, lte, count, sql } from 'drizzle-orm';
+import {
+  ShiftRepository,
+  UserRepository,
+  LocationRepository,
+  SkillRepository,
+  TimeEntryRepository,
+  AssignmentRepository,
+  DashboardRepository,
+} from '@shiftsync/data-access';
+import { NewShift } from '@shiftsync/data-access';
 import { addHours, isBefore } from 'date-fns';
 import { ComplianceService } from './compliance.service';
 import { AuditService } from '../audit/audit.service';
@@ -12,7 +18,13 @@ import { SwapService } from './swap.service';
 @Injectable()
 export class ShiftsService {
   constructor(
-    @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
+    private shiftRepo: ShiftRepository,
+    private userRepo: UserRepository,
+    private locationRepo: LocationRepository,
+    private skillRepo: SkillRepository,
+    private timeEntryRepo: TimeEntryRepository,
+    private assignmentRepo: AssignmentRepository,
+    private dashboardRepo: DashboardRepository,
     public complianceService: ComplianceService, // Export public so SwapService can use it
     private auditService: AuditService,
     private notificationService: NotificationService,
@@ -22,118 +34,43 @@ export class ShiftsService {
 
   async getLocations(userId: string, role: string) {
     if (role === 'Admin') {
-      return this.db.select().from(locations);
+      return this.locationRepo.findAll();
     }
     
     // For Managers, filter by assigned locations
-    const assigned = await this.db.query.managerLocations.findMany({
-      where: eq(schema.managerLocations.userId, userId),
-      with: {
-        location: true
-      }
-    });
-
-    return assigned.map(a => a.location);
+    return this.locationRepo.findAssignedToManager(userId);
   }
 
   async getSkills() {
-    return this.db.select().from(skills);
+    return this.skillRepo.findAll();
   }
 
   async getStaff(userId: string, role: string) {
     if (role === 'Admin' || role === 'Staff') {
-      return this.db.query.users.findMany({
-        where: eq(schema.users.role, 'Staff'),
-        columns: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          timezone: true,
-          desiredWeeklyHours: true,
-        },
-        with: {
-          staffCertifications: {
-            with: {
-              location: true,
-            }
-          },
-          staffSkills: {
-            with: {
-              skill: true,
-            }
-          }
-        }
-      });
+      return this.userRepo.findStaff();
     }
 
     // For Managers, filter staff who have certifications at their assigned locations
-    const assignedLocations = await this.db.query.managerLocations.findMany({
-      where: eq(schema.managerLocations.userId, userId),
-    });
+    const assignedLocations = await this.locationRepo.findAssignedToManager(userId);
+    const locationIds = assignedLocations.map(al => al.id);
 
-    const locationIds = assignedLocations.map(al => al.locationId);
-
-    if (locationIds.length === 0) return [];
-
-    return this.db.query.users.findMany({
-      where: and(
-        eq(schema.users.role, 'Staff'),
-        // Subquery or filter logic to only include users with at least one certification in these locations
-        // Drizzle can do this via exists or by fetching and filtering in JS if the set is small.
-        // Given Coastal Eats scale, we should prefer a join or exists.
-      ),
-      columns: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        timezone: true,
-        desiredWeeklyHours: true,
-      },
-      with: {
-        staffCertifications: {
-          where: sql`${schema.staffCertifications.locationId} IN (${sql.join(locationIds.map(id => sql`${id}`), sql`, `)})`,
-          with: {
-            location: true,
-          }
-        },
-        staffSkills: {
-          with: {
-            skill: true,
-          }
-        }
-      }
-    }).then(users => users.filter(u => u.staffCertifications.length > 0));
+    return this.userRepo.findStaffByLocations(locationIds);
   }
 
   async findAvailableStaff(shiftId: string) {
-    const [shift] = await this.db
-      .select()
-      .from(shifts)
-      .where(eq(shifts.id, shiftId))
-      .limit(1);
+    const shift = await this.shiftRepo.findById(shiftId);
 
     if (!shift) throw new NotFoundException('Shift not found');
 
-    const qualifiedStaff = await this.db.query.users.findMany({
-      where: eq(schema.users.role, 'Staff'),
-      with: {
-        staffCertifications: true,
-        staffSkills: true,
-        assignments: {
-          where: eq(assignments.shiftId, shiftId),
-        },
-      },
-    });
+    const qualifiedStaff = await this.userRepo.findQualifiedStaffWithAssignments(shiftId);
 
     const results = [];
     for (const user of qualifiedStaff) {
       // Finding 4: Don't suggest staff already assigned to this shift
       if (user.assignments && user.assignments.length > 0) continue;
 
-      const isCertified = user.staffCertifications.some(c => c.locationId === shift.locationId);
-      const hasSkill = user.staffSkills.some(s => s.skillId === shift.requiredSkillId);
+      const isCertified = user.staffCertifications.some((c: any) => c.locationId === shift.locationId);
+      const hasSkill = user.staffSkills.some((s: any) => s.skillId === shift.requiredSkillId);
 
       if (isCertified && hasSkill) {
         const compliance = await this.complianceService.checkCompliance(user.id, shiftId);
@@ -152,126 +89,28 @@ export class ShiftsService {
   }
 
   async getOnDutyStaff() {
-    return this.db.query.timeEntries.findMany({
-      where: sql`${schema.timeEntries.clockOut} IS NULL`,
-      with: {
-        user: {
-          columns: { passwordHash: false },
-        },
-        location: true,
-      },
-    });
+    return this.timeEntryRepo.findOnDutyStaff();
   }
 
   async getDashboardStats(userId: string, role: string) {
-    let staffCountWhere = eq(schema.users.role, 'Staff');
-    let swapsWhere = eq(schema.swapRequests.status, 'pending_manager');
-    let shiftsWhere = gte(schema.shifts.startTime, new Date());
-
     if (role === 'Manager') {
-      const assignedLocations = await this.db.query.managerLocations.findMany({
-        where: eq(schema.managerLocations.userId, userId),
-      });
-      const locationIds = assignedLocations.map(al => al.locationId);
-
-      if (locationIds.length === 0) {
-        return { totalStaff: 0, pendingSwaps: 0, upcomingShifts: 0 };
-      }
-
-      const locIdsSql = sql.join(locationIds.map(id => sql`${id}`), sql`, `);
-
-      staffCountWhere = and(
-        staffCountWhere,
-        sql`EXISTS (
-          SELECT 1 FROM ${schema.staffCertifications} sc 
-          WHERE sc.user_id = ${schema.users.id} 
-          AND sc.location_id IN (${locIdsSql})
-        )`
-      ) as any;
-
-      swapsWhere = and(
-        swapsWhere,
-        sql`EXISTS (
-          SELECT 1 FROM ${schema.shifts} s 
-          WHERE s.id = ${schema.swapRequests.shiftId} 
-          AND s.location_id IN (${locIdsSql})
-        )`
-      ) as any;
-
-      shiftsWhere = and(
-        shiftsWhere,
-        sql`${schema.shifts.locationId} IN (${locIdsSql})`
-      ) as any;
+      const assignedLocations = await this.locationRepo.findAssignedToManager(userId);
+      const locationIds = assignedLocations.map(al => al.id);
+      return this.dashboardRepo.getManagerStats(locationIds);
     }
-
-    const [staffCount] = await this.db
-      .select({ value: count() })
-      .from(schema.users)
-      .where(staffCountWhere);
-
-    const [pendingSwapsCount] = await this.db
-      .select({ value: count() })
-      .from(schema.swapRequests)
-      .where(swapsWhere);
-
-    const [upcomingShiftsCount] = await this.db
-      .select({ value: count() })
-      .from(schema.shifts)
-      .where(shiftsWhere);
-
-    return {
-      totalStaff: Number(staffCount.value),
-      pendingSwaps: Number(pendingSwapsCount.value),
-      upcomingShifts: Number(upcomingShiftsCount.value),
-    };
+    return this.dashboardRepo.getAdminStats();
   }
 
   async getUserAssignments(userId: string) {
-    return this.db.query.assignments.findMany({
-      where: and(
-        eq(assignments.userId, userId),
-        eq(assignments.status, 'confirmed')
-      ),
-      with: {
-        shift: {
-          with: {
-            location: true,
-          }
-        },
-      },
-      orderBy: (assignments, { asc }) => [asc(assignments.id)], // Temporary sort, shift time would be better if possible via relations
-    });
+    return this.assignmentRepo.getUserConfirmedAssignments(userId);
   }
 
   async getShifts(filters: { startDate?: Date; endDate?: Date; locationId?: string }) {
-    const whereClauses = [];
-    if (filters.startDate) whereClauses.push(gte(shifts.startTime, filters.startDate));
-    if (filters.endDate) whereClauses.push(lte(shifts.endTime, filters.endDate));
-    if (filters.locationId) whereClauses.push(eq(shifts.locationId, filters.locationId));
-
-    return this.db.query.shifts.findMany({
-      where: and(...whereClauses),
-      with: {
-        assignments: {
-          where: eq(assignments.status, 'confirmed'),
-          with: {
-            user: true,
-          },
-        },
-      },
-      orderBy: [shifts.startTime],
-    });
+    return this.shiftRepo.findShiftsByFilters(filters);
   }
 
   async getShiftById(id: string) {
-    const shift = await this.db.query.shifts.findFirst({
-      where: eq(shifts.id, id),
-      with: {
-        assignments: {
-          where: eq(assignments.status, 'confirmed'),
-        },
-      },
-    });
+    const shift = await this.shiftRepo.findByIdWithAssignments(id);
 
     if (!shift) {
       throw new NotFoundException('Shift not found');
@@ -289,13 +128,10 @@ export class ShiftsService {
     
     const isPremium = (day === 5 || day === 6) && hours >= 18;
 
-    const [result] = await this.db
-      .insert(shifts)
-      .values({
-        ...newShift,
-        isPremium: newShift.isPremium || isPremium,
-      })
-      .returning();
+    const result = await this.shiftRepo.createShift({
+      ...newShift,
+      isPremium: newShift.isPremium || isPremium,
+    });
 
     // Log the creation
     await this.auditService.logChange(
@@ -310,11 +146,7 @@ export class ShiftsService {
   }
 
   async updateShift(shiftId: string, userId: string, role: string, updates: Partial<NewShift>) {
-    const [oldShift] = await this.db
-      .select()
-      .from(shifts)
-      .where(eq(shifts.id, shiftId))
-      .limit(1);
+    const oldShift = await this.shiftRepo.findById(shiftId);
 
     if (!oldShift) throw new NotFoundException('Shift not found');
 
@@ -337,11 +169,7 @@ export class ShiftsService {
       }
     }
 
-    const [result] = await this.db
-      .update(shifts)
-      .set(updates)
-      .where(eq(shifts.id, shiftId))
-      .returning();
+    const result = await this.shiftRepo.updateShift(shiftId, updates);
 
     // Log the change
     await this.auditService.logChange(userId, 'shift', shiftId, oldShift, result);
@@ -359,11 +187,7 @@ export class ShiftsService {
 
   async assignStaff(shiftId: string, userId: string, managerId?: string, overrideReason?: string) {
     // 1. Check if shift exists
-    const [shift] = await this.db
-      .select()
-      .from(shifts)
-      .where(eq(shifts.id, shiftId))
-      .limit(1);
+    const shift = await this.shiftRepo.findById(shiftId);
 
     if (!shift) {
       throw new NotFoundException('Shift not found');
@@ -375,53 +199,28 @@ export class ShiftsService {
     }
 
     // 2. Check if shift is already full
-    const [assignmentCount] = await this.db
-      .select({ value: count() })
-      .from(assignments)
-      .where(and(eq(assignments.shiftId, shiftId), eq(assignments.status, 'confirmed')));
+    const assignmentCount = await this.assignmentRepo.countConfirmedByShift(shiftId);
 
-    if (Number(assignmentCount.value) >= shift.headcountNeeded) {
+    if (assignmentCount >= shift.headcountNeeded) {
       throw new BadRequestException('Shift is already full');
     }
 
     // 3. Check if user is already assigned to this shift
-    const [existingAssignment] = await this.db
-      .select()
-      .from(assignments)
-      .where(and(eq(assignments.shiftId, shiftId), eq(assignments.userId, userId)))
-      .limit(1);
+    const existingAssignment = await this.assignmentRepo.findByUserAndShift(userId, shiftId);
 
     if (existingAssignment) {
       throw new BadRequestException('Staff member is already assigned to this shift');
     }
 
     // 3. Constraint: Location Certification
-    const [isCertified] = await this.db
-      .select()
-      .from(staffCertifications)
-      .where(
-        and(
-          eq(staffCertifications.userId, userId),
-          eq(staffCertifications.locationId, shift.locationId)
-        )
-      )
-      .limit(1);
+    const isCertified = await this.userRepo.hasCertification(userId, shift.locationId);
 
     if (!isCertified) {
       throw new BadRequestException('Staff member is not certified for this location');
     }
 
     // 4. Constraint: Skill Matching
-    const [hasSkill] = await this.db
-      .select()
-      .from(staffSkills)
-      .where(
-        and(
-          eq(staffSkills.userId, userId),
-          eq(staffSkills.skillId, shift.requiredSkillId)
-        )
-      )
-      .limit(1);
+    const hasSkill = await this.userRepo.hasSkill(userId, shift.requiredSkillId);
 
     if (!hasSkill) {
       throw new BadRequestException('Staff member does not have the required skill for this shift');
@@ -446,23 +245,11 @@ export class ShiftsService {
     }
 
     // 6. Create assignment
-    const [assignment] = await this.db
-      .insert(assignments)
-      .values({
-        shiftId,
-        userId,
-        status: 'confirmed',
-      })
-      .returning();
+    const assignment = await this.assignmentRepo.createAssignment(shiftId, userId);
 
     // 10. Log override if applicable
     if (compliance.requiresOverride && managerId && overrideReason) {
-      await this.db.insert(complianceOverrides).values({
-        assignmentId: assignment.id,
-        managerId,
-        overrideReason,
-        overrideType: '7th_consecutive_day',
-      });
+      await this.assignmentRepo.createComplianceOverride(assignment.id, managerId, overrideReason);
     }
 
     // Log the assignment

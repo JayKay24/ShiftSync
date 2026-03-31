@@ -15,3 +15,12 @@ export * from './lib/entities/audit-log.entity';
 export * from './lib/entities/compliance-override.entity';
 export * from './lib/entities/time-entry.entity';
 export * from './lib/entities/manager-location.entity';
+
+// Repositories
+export * from './lib/repositories/location.repository';
+export * from './lib/repositories/skill.repository';
+export * from './lib/repositories/time-entry.repository';
+export * from './lib/repositories/user.repository';
+export * from './lib/repositories/assignment.repository';
+export * from './lib/repositories/dashboard.repository';
+export * from './lib/repositories/shift.repository';
