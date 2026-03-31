@@ -14,6 +14,7 @@ import {
   NotificationRepository,
   AnalyticsRepository,
   AuditRepository,
+  SwapRepository,
 } from '@shiftsync/data-access';
 
 export const REPOSITORIES = [
@@ -65,6 +66,11 @@ export const REPOSITORIES = [
   {
     provide: AuditRepository,
     useFactory: (db: NodePgDatabase<typeof schema>) => new AuditRepository(db),
+    inject: [DRIZZLE],
+  },
+  {
+    provide: SwapRepository,
+    useFactory: (db: NodePgDatabase<typeof schema>) => new SwapRepository(db),
     inject: [DRIZZLE],
   },
 ];

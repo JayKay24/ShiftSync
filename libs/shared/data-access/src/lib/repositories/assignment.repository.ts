@@ -62,4 +62,30 @@ export class AssignmentRepository {
       overrideType: '7th_consecutive_day',
     });
   }
+
+  async findConfirmedByUserAndShift(userId: string, shiftId: string) {
+    const [assignment] = await this.db
+      .select()
+      .from(assignments)
+      .where(
+        and(
+          eq(assignments.shiftId, shiftId),
+          eq(assignments.userId, userId),
+          eq(assignments.status, 'confirmed')
+        )
+      )
+      .limit(1);
+      
+    return assignment || null;
+  }
+
+  async updateStatus(userId: string, shiftId: string, status: string) {
+    const [assignment] = await this.db
+      .update(assignments)
+      .set({ status } as any)
+      .where(and(eq(assignments.shiftId, shiftId), eq(assignments.userId, userId)))
+      .returning();
+      
+    return assignment || null;
+  }
 }
