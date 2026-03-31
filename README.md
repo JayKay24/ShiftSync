@@ -28,6 +28,7 @@ Based on the requirements for Coastal Eats, the following technical and domain a
 - **Regret Swap Logic:** If a manager modifies a shift's critical details (time, location, or skill), the system automatically cancels any associated pending swap or drop requests.
 - **Marketplace Guardrails:** Staff members are limited to **three active pending requests** (swaps or drops) to prevent schedule churn.
 - **Shared Type Safety:** The platform uses a unified `@shiftsync/data-access` library containing `class-validator` decorated DTOs, serving as the single source of truth for both API contracts and database schema.
+- **Repository Pattern Architecture:** All NestJS business logic operates strictly independent of database implementation. Raw `drizzle-orm` transactions and complex aggregations are tightly encapsulated within domain-driven repositories, injected globally via `@shiftsync/data-access`.
 
 ## DB Schema
 ![DB Schema](./docs/ShiftSync_db_schema.drawio.png)
