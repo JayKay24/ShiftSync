@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { api } from '@/lib/api';
 import {
   Card,
   CardContent,
@@ -29,11 +28,10 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await api.post('/auth/login', {
+      await login({
         email,
         pass: password, // Backend expects 'pass' based on seed.ts and test-helpers.ts
       });
-      login(response.data);
     } catch (err: any) {
       console.error('Login error:', err);
       setError(
