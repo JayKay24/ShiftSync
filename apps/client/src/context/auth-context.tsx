@@ -2,13 +2,14 @@
 
 import React, { createContext, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { AuthResponse, SafeUser } from '@shiftsync/data-access';
+import { AuthResponse, SafeUser, LoginRequest } from '@shiftsync/data-access';
+import { authApi } from '@/lib/api';
 
 export interface AuthContextType {
   user: SafeUser | null;
   token: string | null;
   isLoading: boolean;
-  login: (authData: AuthResponse) => void;
+  login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
   setUser: (user: SafeUser | null) => void;
 }
@@ -34,7 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = (authData: AuthResponse) => {
+  const login = async (credentials: LoginRequest) => {
+    const response = await authApi.login(credentials);
+    const authData = response.data;
     setToken(authData.access_token);
     setUser(authData.user);
     localStorage.setItem('token', authData.access_token);
