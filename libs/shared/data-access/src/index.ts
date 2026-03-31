@@ -26,3 +26,4 @@ export * from './lib/repositories/dashboard.repository';
 export * from './lib/repositories/shift.repository';
 export * from './lib/repositories/notification.repository';
 export * from './lib/repositories/analytics.repository';
+export * from './lib/repositories/audit.repository';
