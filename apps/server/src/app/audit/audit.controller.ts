@@ -17,7 +17,7 @@ export class AuditController {
     @Query('endDate') endDate?: string,
   ): Promise<AuditLogResponse[]> {
     const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 7));
-    const end = endDate ? new Date(endDate) : new Date();
+    const end = endDate ? new Date(new Date(endDate).setHours(23, 59, 59, 999)) : new Date();
 
     return this.auditService.getLogsInRange(start, end) as unknown as AuditLogResponse[];
   }
