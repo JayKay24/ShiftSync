@@ -1,8 +1,10 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, count } from 'drizzle-orm';
+import { eq, and, count, ne, gte, lte } from 'drizzle-orm';
 import { schema } from '../schema';
 import { assignments } from '../entities/assignment.entity';
 import { complianceOverrides } from '../entities/compliance-override.entity';
+import { shifts } from '../entities/shift.entity';
+import { startOfDay, endOfDay } from 'date-fns';
 
 export class AssignmentRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
@@ -87,5 +89,40 @@ export class AssignmentRepository {
       .returning();
       
     return assignment || null;
+  }
+
+  async getConfirmedShiftTimesForUserExcluding(userId: string, shiftIdToExclude: string) {
+    return this.db
+      .select({
+        startTime: shifts.startTime,
+        endTime: shifts.endTime,
+      })
+      .from(assignments)
+      .innerJoin(shifts, eq(assignments.shiftId, shifts.id))
+      .where(
+        and(
+          eq(assignments.userId, userId),
+          eq(assignments.status, 'confirmed'),
+          ne(assignments.shiftId, shiftIdToExclude)
+        )
+      );
+  }
+
+  async hasWorkedOnDay(userId: string, targetDay: Date): Promise<boolean> {
+    const [worked] = await this.db
+      .select({ id: assignments.id })
+      .from(assignments)
+      .innerJoin(shifts, eq(assignments.shiftId, shifts.id))
+      .where(
+        and(
+          eq(assignments.userId, userId),
+          eq(assignments.status, 'confirmed'),
+          gte(shifts.startTime, startOfDay(targetDay)),
+          lte(shifts.startTime, endOfDay(targetDay))
+        )
+      )
+      .limit(1);
+      
+    return !!worked;
   }
 }

@@ -3,10 +3,21 @@ import { eq, and, sql } from 'drizzle-orm';
 import { schema } from '../schema';
 import { staffCertifications } from '../entities/staff-certification.entity';
 import { staffSkills } from '../entities/staff-skill.entity';
-import { type NewUser } from '../entities/user.entity';
+import { type NewUser, users } from '../entities/user.entity';
+import { availability } from '../entities/availability.entity';
 
 export class UserRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
+
+  async findById(userId: string) {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+      
+    return user || null;
+  }
 
   async findByEmail(email: string) {
     const [user] = await this.db
@@ -118,5 +129,11 @@ export class UserRepository {
       .returning();
       
     return user || null;
+  }
+  async getUserAvailability(userId: string) {
+    return this.db
+      .select()
+      .from(availability)
+      .where(eq(availability.userId, userId));
   }
 }
