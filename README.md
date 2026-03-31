@@ -119,19 +119,19 @@ npm run db:seed
 
 ### Available Test Accounts (Password: `password123`)
 
-| Role | Email | Scope / Details |
-| :--- | :--- | :--- |
-| **Admin** | `admin@coastaleats.com` | Global visibility & 48h lock bypass |
-| **Manager** | `bob.manager@coastaleats.com` | Manages Downtown & Uptown (NY) |
-| **Manager** | `diana.manager@coastaleats.com` | Manages Beach Grill (LA) |
-| **Staff** | `charlie.staff@coastaleats.com` | NY certified (Unavailable Mondays) |
-| **Staff** | `dave.staff@coastaleats.com` | NY certified (Unavailable Tuesdays) |
-| **Staff** | `eva.staff@coastaleats.com` | Uptown certified (Unavailable Wednesdays) |
-| **Staff** | `frank.staff@coastaleats.com` | NY & Uptown certified (24/7 available) |
-| **Staff** | `grace.staff@coastaleats.com` | Beach Grill certified |
-| **Staff** | `heidi.staff@coastaleats.com` | Beach Grill certified |
-| **Staff** | `ivan.staff@coastaleats.com` | Beach Grill certified (Available for swaps) |
-| **Staff** | `judy.staff@coastaleats.com` | Beach Grill certified (Available for swaps) |
+| Role | Email | Timezone | Scope / Details |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@coastaleats.com` | `America/New_York` | Global visibility & 48h lock bypass |
+| **Manager** | `bob.manager@coastaleats.com` | `America/New_York` | Manages Downtown & Uptown (NY) |
+| **Manager** | `diana.manager@coastaleats.com` | `America/Los_Angeles` | Manages Beach Grill (LA) |
+| **Staff** | `charlie.staff@coastaleats.com` | `America/New_York` | NY certified (Unavailable Mondays) |
+| **Staff** | `dave.staff@coastaleats.com` | `America/Chicago` | NY certified (Unavailable Tuesdays) |
+| **Staff** | `eva.staff@coastaleats.com` | `America/Denver` | Uptown certified (Unavailable Wednesdays) |
+| **Staff** | `frank.staff@coastaleats.com` | `America/Los_Angeles` | NY & Uptown certified (24/7 available) |
+| **Staff** | `grace.staff@coastaleats.com` | `America/Los_Angeles` | Beach Grill certified |
+| **Staff** | `heidi.staff@coastaleats.com` | `America/Los_Angeles` | Beach Grill certified |
+| **Staff** | `ivan.staff@coastaleats.com` | `America/Los_Angeles` | Beach Grill certified (Available for swaps) |
+| **Staff** | `judy.staff@coastaleats.com` | `America/Los_Angeles` | Beach Grill certified (Available for swaps) |
 
 ## 🛠 Local Development (Manual)
 ```sh
