@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, User, Mail, ShieldCheck, MapPin, Briefcase } from 'lucide-react';
+import { Loader2, User, Mail, ShieldCheck, MapPin, Briefcase, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StaffProfileModal } from '@/components/staff-profile-modal';
 import { StaffMemberResponse } from '@shiftsync/data-access';
@@ -50,9 +50,15 @@ export default function StaffManagement() {
                     <CardTitle className="text-lg">
                       {person.firstName} {person.lastName}
                     </CardTitle>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                      <Mail className="h-3 w-3" />
-                      {person.email}
+                    <div className="flex flex-col gap-0.5 mt-0.5">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3" />
+                        {person.email}
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] font-medium text-primary/70">
+                        <Globe className="h-2.5 w-2.5" />
+                        {person.timezone}
+                      </div>
                     </div>
                   </div>
                 </div>

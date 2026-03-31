@@ -18,7 +18,8 @@ import {
   Clock, 
   ShieldCheck, 
   Award,
-  TrendingUp
+  TrendingUp,
+  Globe
 } from 'lucide-react';
 import { shiftsApi, analyticsApi } from '@/lib/api';
 import { format, parseISO, isAfter } from 'date-fns';
@@ -82,9 +83,15 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
             <ShadcnDialogTitle className="text-2xl font-bold">
               {staff.firstName} {staff.lastName}
             </ShadcnDialogTitle>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
-              <Mail className="h-3.5 w-3.5" />
-              {staff.email}
+            <div className="flex flex-col gap-1 mt-1">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Mail className="h-3.5 w-3.5" />
+                {staff.email}
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary/70 bg-primary/5 px-2 py-0.5 rounded-full w-fit">
+                <Globe className="h-3 w-3" />
+                {staff.timezone}
+              </div>
             </div>
           </div>
         </ShadcnDialogHeader>

@@ -1,8 +1,5 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException, forwardRef } from '@nestjs/common';
-import { DRIZZLE } from '../database.module';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema, swapRequests, assignments, shifts, NewShift } from '@shiftsync/data-access';
-import { eq, and, or, count, gte, sql } from 'drizzle-orm';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, forwardRef, Inject } from '@nestjs/common';
+import { SwapRepository, AssignmentRepository, ShiftRepository } from '@shiftsync/data-access';
 import { addHours, subHours, isBefore } from 'date-fns';
 import { ShiftsService } from './shifts.service';
 import { AuditService } from '../audit/audit.service';
@@ -11,7 +8,9 @@ import { NotificationService } from '../notifications/notification.service';
 @Injectable()
 export class SwapService {
   constructor(
-    @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
+    private swapRepo: SwapRepository,
+    private assignmentRepo: AssignmentRepository,
+    private shiftRepo: ShiftRepository,
     @Inject(forwardRef(() => ShiftsService))
     private shiftsService: ShiftsService,
     private auditService: AuditService,
@@ -20,37 +19,21 @@ export class SwapService {
 
   async requestSwap(userId: string, shiftId: string, reason: string, targetUserId?: string) {
     // 1. Verify user is assigned to this shift
-    const [assignment] = await this.db
-      .select()
-      .from(assignments)
-      .where(and(eq(assignments.shiftId, shiftId), eq(assignments.userId, userId), eq(assignments.status, 'confirmed')))
-      .limit(1);
+    const assignment = await this.assignmentRepo.findConfirmedByUserAndShift(userId, shiftId);
 
     if (!assignment) {
       throw new ForbiddenException('You are not assigned to this shift');
     }
 
     // 2. Edge Case: Max 3 pending requests
-    const [pendingCount] = await this.db
-      .select({ value: count() })
-      .from(swapRequests)
-      .where(
-        and(
-          eq(swapRequests.requestingUserId, userId),
-          or(eq(swapRequests.status, 'pending_peer'), eq(swapRequests.status, 'pending_manager'))
-        )
-      );
+    const pendingCount = await this.swapRepo.getPendingCount(userId);
 
-    if (Number(pendingCount.value) >= 3) {
+    if (pendingCount >= 3) {
       throw new BadRequestException('You cannot have more than 3 pending swap/drop requests');
     }
 
     // 3. Get shift details for expiration calculation
-    const [shift] = await this.db
-      .select()
-      .from(shifts)
-      .where(eq(shifts.id, shiftId))
-      .limit(1);
+    const shift = await this.shiftRepo.findById(shiftId);
 
     if (!shift) throw new NotFoundException('Shift not found');
 
@@ -66,23 +49,17 @@ export class SwapService {
     }
 
     // 5. Create the request
-    const [request] = await this.db
-      .insert(swapRequests)
-      .values({
-        requestingUserId: userId,
-        targetUserId,
-        shiftId,
-        reason,
-        status: targetUserId ? 'pending_peer' : 'pending_manager', // Drops go straight to manager (or public pool)
-        expiresAt,
-      })
-      .returning();
+    const request = await this.swapRepo.createSwapRequest({
+      requestingUserId: userId,
+      targetUserId,
+      shiftId,
+      reason,
+      status: targetUserId ? 'pending_peer' : 'pending_manager', // Drops go straight to manager (or public pool)
+      expiresAt,
+    });
 
     // 6. Update the original assignment status
-    await this.db
-      .update(assignments)
-      .set({ status: targetUserId ? 'pending_swap' : 'pending_drop' })
-      .where(and(eq(assignments.shiftId, shiftId), eq(assignments.userId, userId)));
+    await this.assignmentRepo.updateStatus(userId, shiftId, targetUserId ? 'pending_swap' : 'pending_drop');
 
     // Log the creation
     await this.auditService.logChange(
@@ -108,11 +85,7 @@ export class SwapService {
   }
 
   async acceptSwap(userId: string, requestId: string) {
-    const [request] = await this.db
-      .select()
-      .from(swapRequests)
-      .where(eq(swapRequests.id, requestId))
-      .limit(1);
+    const request = await this.swapRepo.findById(requestId);
 
     if (!request || request.targetUserId !== userId) {
       throw new ForbiddenException('Invalid swap request');
@@ -123,11 +96,7 @@ export class SwapService {
     }
 
     // Update to pending manager approval
-    const [updatedRequest] = await this.db
-      .update(swapRequests)
-      .set({ status: 'pending_manager' })
-      .where(eq(swapRequests.id, requestId))
-      .returning();
+    const updatedRequest = await this.swapRepo.updateStatus(requestId, 'pending_manager');
 
     // Log the acceptance
     await this.auditService.logChange(
@@ -151,11 +120,7 @@ export class SwapService {
   }
 
   async declineSwap(userId: string, requestId: string) {
-    const [request] = await this.db
-      .select()
-      .from(swapRequests)
-      .where(eq(swapRequests.id, requestId))
-      .limit(1);
+    const request = await this.swapRepo.findById(requestId);
 
     if (!request || request.targetUserId !== userId) {
       throw new ForbiddenException('Invalid swap request');
@@ -165,17 +130,10 @@ export class SwapService {
       throw new BadRequestException('Request is no longer pending peer acceptance');
     }
 
-    const [updatedRequest] = await this.db
-      .update(swapRequests)
-      .set({ status: 'rejected' })
-      .where(eq(swapRequests.id, requestId))
-      .returning();
+    const updatedRequest = await this.swapRepo.updateStatus(requestId, 'rejected');
 
     // Revert original assignment to confirmed
-    await this.db
-      .update(assignments)
-      .set({ status: 'confirmed' })
-      .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)));
+    await this.assignmentRepo.updateStatus(request.requestingUserId, request.shiftId, 'confirmed');
 
     await this.auditService.logChange(userId, 'swap_request', requestId, request, updatedRequest);
 
@@ -191,11 +149,7 @@ export class SwapService {
   }
 
   async cancelSwap(userId: string, requestId: string) {
-    const [request] = await this.db
-      .select()
-      .from(swapRequests)
-      .where(eq(swapRequests.id, requestId))
-      .limit(1);
+    const request = await this.swapRepo.findById(requestId);
 
     if (!request || request.requestingUserId !== userId) {
       throw new ForbiddenException('Invalid swap request');
@@ -205,17 +159,10 @@ export class SwapService {
       throw new BadRequestException('Only pending requests can be cancelled');
     }
 
-    const [updatedRequest] = await this.db
-      .update(swapRequests)
-      .set({ status: 'cancelled' })
-      .where(eq(swapRequests.id, requestId))
-      .returning();
+    const updatedRequest = await this.swapRepo.updateStatus(requestId, 'cancelled');
 
     // Revert assignment
-    await this.db
-      .update(assignments)
-      .set({ status: 'confirmed' })
-      .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, userId)));
+    await this.assignmentRepo.updateStatus(userId, request.shiftId, 'confirmed');
 
     await this.auditService.logChange(userId, 'swap_request', requestId, request, updatedRequest);
 
@@ -233,29 +180,14 @@ export class SwapService {
   }
 
   async cancelPendingSwaps(shiftId: string, actorId: string, reason: string) {
-    const pendingRequests = await this.db
-      .select()
-      .from(swapRequests)
-      .where(
-        and(
-          eq(swapRequests.shiftId, shiftId),
-          or(eq(swapRequests.status, 'pending_peer'), eq(swapRequests.status, 'pending_manager'))
-        )
-      );
+    const pendingRequests = await this.swapRepo.findPendingByShiftId(shiftId);
 
     for (const request of pendingRequests) {
       // 1. Cancel the request
-      const [updatedRequest] = await this.db
-        .update(swapRequests)
-        .set({ status: 'cancelled' })
-        .where(eq(swapRequests.id, request.id))
-        .returning();
+      const updatedRequest = await this.swapRepo.updateStatus(request.id, 'cancelled');
 
       // 2. Revert the original assignment to 'confirmed'
-      await this.db
-        .update(assignments)
-        .set({ status: 'confirmed' })
-        .where(and(eq(assignments.shiftId, shiftId), eq(assignments.userId, request.requestingUserId)));
+      await this.assignmentRepo.updateStatus(request.requestingUserId, shiftId, 'confirmed');
 
       // 3. Log and Notify
       await this.auditService.logChange(actorId, 'swap_request', request.id, request, updatedRequest);
@@ -281,21 +213,13 @@ export class SwapService {
   }
 
   async approveSwap(managerId: string, requestId: string, approve: boolean) {
-    const [request] = await this.db
-      .select()
-      .from(swapRequests)
-      .where(eq(swapRequests.id, requestId))
-      .limit(1);
+    const request = await this.swapRepo.findById(requestId);
 
     if (!request) throw new NotFoundException('Request not found');
     if (request.status !== 'pending_manager') throw new BadRequestException('Request is not awaiting manager approval');
 
     if (!approve) {
-      const [rejectedRequest] = await this.db
-        .update(swapRequests)
-        .set({ status: 'rejected' })
-        .where(eq(swapRequests.id, requestId))
-        .returning();
+      const rejectedRequest = await this.swapRepo.updateStatus(requestId, 'rejected');
 
       // Log the rejection
       await this.auditService.logChange(
@@ -331,29 +255,14 @@ export class SwapService {
     }
 
     // Deactivate the old assignment
-    const [oldAssignment] = await this.db
-      .select()
-      .from(assignments)
-      .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)))
-      .limit(1);
+    const oldAssignment = await this.assignmentRepo.findByUserAndShift(request.requestingUserId, request.shiftId);
 
     if (!oldAssignment) throw new NotFoundException('Original assignment not found');
 
-    const [updatedOldAssignment] = await this.db
-      .update(assignments)
-      .set({ status: 'swapped' })
-      .where(and(eq(assignments.shiftId, request.shiftId), eq(assignments.userId, request.requestingUserId)))
-      .returning();
+    const updatedOldAssignment = await this.assignmentRepo.updateStatus(request.requestingUserId, request.shiftId, 'swapped');
 
     // Create the NEW assignment for the target user
-    const [newAssignment] = await this.db
-      .insert(assignments)
-      .values({
-        shiftId: request.shiftId,
-        userId: request.targetUserId,
-        status: 'confirmed',
-      })
-      .returning();
+    const newAssignment = await this.assignmentRepo.createAssignment(request.shiftId, request.targetUserId);
 
     // Log the assignment update
     await this.auditService.logChange(
@@ -372,11 +281,7 @@ export class SwapService {
       newAssignment
     );
 
-    const [finalRequest] = await this.db
-      .update(swapRequests)
-      .set({ status: 'approved' })
-      .where(eq(swapRequests.id, requestId))
-      .returning();
+    const finalRequest = await this.swapRepo.updateStatus(requestId, 'approved');
 
     // Log the final approval
     await this.auditService.logChange(
@@ -410,39 +315,10 @@ export class SwapService {
   }
 
   async getSwapRequests(userId: string, role: string) {
-    const now = new Date();
     if (role === 'Admin' || role === 'Manager') {
-      return this.db.query.swapRequests.findMany({
-        where: and(
-          eq(swapRequests.status, 'pending_manager'),
-          or(sql`${swapRequests.expiresAt} IS NULL`, gte(swapRequests.expiresAt, now))
-        ),
-        with: {
-          shift: {
-            with: {
-              location: true,
-            },
-          },
-          requestingUser: true,
-          targetUser: true,
-        },
-      });
+      return this.swapRepo.getSwapRequestsForManager();
     }
 
-    return this.db.query.swapRequests.findMany({
-      where: or(
-        eq(swapRequests.requestingUserId, userId),
-        eq(swapRequests.targetUserId, userId)
-      ),
-      with: {
-        shift: {
-          with: {
-            location: true,
-          },
-        },
-        requestingUser: true,
-        targetUser: true,
-      },
-    });
+    return this.swapRepo.getSwapRequestsForUser(userId);
   }
 }

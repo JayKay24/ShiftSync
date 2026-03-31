@@ -1,9 +1,6 @@
-import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { DRIZZLE } from '../database.module';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema, User } from '@shiftsync/data-access';
-import { eq } from 'drizzle-orm';
+import { UserRepository, User } from '@shiftsync/data-access';
 import * as bcrypt from 'bcryptjs';
 
 export type UserWithoutPassword = Omit<User, 'passwordHash'>;
@@ -11,16 +8,12 @@ export type UserWithoutPassword = Omit<User, 'passwordHash'>;
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
+    private userRepository: UserRepository,
     private jwtService: JwtService,
   ) {}
 
   async validateUser(email: string, pass: string): Promise<UserWithoutPassword | null> {
-    const [user] = await this.db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.email, email))
-      .limit(1);
+    const user = await this.userRepository.findByEmail(email);
 
     if (user && (await bcrypt.compare(pass, user.passwordHash))) {
       const { passwordHash, ...result } = user;

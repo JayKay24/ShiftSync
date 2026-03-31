@@ -1,98 +1,39 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { DRIZZLE } from '../database.module';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema, assignments, shifts, users, HourDistributionRecord, FairnessScoreResponse } from '@shiftsync/data-access';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { Injectable } from '@nestjs/common';
+import { AnalyticsRepository, LocationRepository, HourDistributionRecord, FairnessScoreResponse } from '@shiftsync/data-access';
 
 @Injectable()
 export class AnalyticsService {
   constructor(
-    @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
+    private analyticsRepo: AnalyticsRepository,
+    private locationRepo: LocationRepository,
   ) {}
 
   async getHoursDistribution(startDate: Date, endDate: Date, userId: string, role: string): Promise<HourDistributionRecord[]> {
-    let whereClause = eq(users.role, 'Staff');
+    let locationIds: string[] | undefined;
 
     if (role === 'Manager') {
-      const assignedLocations = await this.db.query.managerLocations.findMany({
-        where: eq(schema.managerLocations.userId, userId),
-      });
-      const locationIds = assignedLocations.map(al => al.locationId);
+      const assignedLocations = await this.locationRepo.findAssignedToManager(userId);
+      locationIds = assignedLocations.map(al => al.id);
 
       if (locationIds.length === 0) return [];
-
-      whereClause = and(
-        whereClause,
-        sql`EXISTS (
-          SELECT 1 FROM ${schema.staffCertifications} sc 
-          WHERE sc.user_id = ${users.id} 
-          AND sc.location_id IN (${sql.join(locationIds.map(id => sql`${id}`), sql`, `)})
-        )`
-      ) as any;
     }
 
-    const results = await this.db
-      .select({
-        userId: users.id,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        totalHours: sql<number>`CAST(COALESCE(SUM(EXTRACT(EPOCH FROM (${shifts.endTime} - ${shifts.startTime})) / 3600), 0) AS FLOAT)`,
-        desiredWeeklyHours: users.desiredWeeklyHours,
-      })
-      .from(users)
-      .leftJoin(assignments, eq(assignments.userId, users.id))
-      .leftJoin(shifts, and(
-        eq(assignments.shiftId, shifts.id), 
-        eq(assignments.status, 'confirmed'), 
-        gte(shifts.startTime, startDate), 
-        lte(shifts.endTime, endDate)
-      ))
-      .where(whereClause)
-      .groupBy(users.id)
-      .orderBy(users.lastName);
+    const results = await this.analyticsRepo.getHoursDistribution(startDate, endDate, locationIds);
 
     return results as HourDistributionRecord[];
   }
 
   async getFairnessScore(startDate: Date, endDate: Date, userId: string, role: string): Promise<FairnessScoreResponse> {
-    let whereClause = eq(users.role, 'Staff');
+    let locationIds: string[] | undefined;
 
     if (role === 'Manager') {
-      const assignedLocations = await this.db.query.managerLocations.findMany({
-        where: eq(schema.managerLocations.userId, userId),
-      });
-      const locationIds = assignedLocations.map(al => al.locationId);
+      const assignedLocations = await this.locationRepo.findAssignedToManager(userId);
+      locationIds = assignedLocations.map(al => al.id);
 
       if (locationIds.length === 0) return { distribution: [], periodStart: startDate, periodEnd: endDate, overallScore: 100 };
-
-      whereClause = and(
-        whereClause,
-        sql`EXISTS (
-          SELECT 1 FROM ${schema.staffCertifications} sc 
-          WHERE sc.user_id = ${users.id} 
-          AND sc.location_id IN (${sql.join(locationIds.map(id => sql`${id}`), sql`, `)})
-        )`
-      ) as any;
     }
 
-    const distribution = await this.db
-      .select({
-        userId: users.id,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        premiumShiftCount: sql<number>`CAST(COUNT(CASE WHEN ${shifts.isPremium} = true THEN 1 END) AS INTEGER)`,
-      })
-      .from(users)
-      .leftJoin(assignments, eq(assignments.userId, users.id))
-      .leftJoin(shifts, and(
-        eq(assignments.shiftId, shifts.id), 
-        eq(assignments.status, 'confirmed'), 
-        gte(shifts.startTime, startDate), 
-        lte(shifts.endTime, endDate)
-      ))
-      .where(whereClause)
-      .groupBy(users.id)
-      .orderBy(users.lastName);
+    const distribution = await this.analyticsRepo.getPremiumShiftDistribution(startDate, endDate, locationIds);
 
     const counts = distribution.map(d => Number(d.premiumShiftCount));
     const overallScore = this.calculateFairnessIndex(counts);

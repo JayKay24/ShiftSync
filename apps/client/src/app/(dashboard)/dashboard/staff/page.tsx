@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { ShiftResponse } from '@shiftsync/data-access';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Calendar, Clock, MapPin, ArrowRightLeft } from 'lucide-react';
+import { Loader2, Calendar, Clock, MapPin, ArrowRightLeft, Globe } from 'lucide-react';
 import { format, parseISO, isAfter } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -47,7 +47,13 @@ export default function StaffDashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">My Schedule</h1>
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight">My Schedule</h1>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-full w-fit">
+            <Globe className="h-3 w-3" />
+            {user?.timezone}
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

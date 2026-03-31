@@ -1,8 +1,5 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { DRIZZLE } from '../database.module';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { schema, assignments, shifts, users, availability } from '@shiftsync/data-access';
-import { eq, and, sql, gte, lte, ne } from 'drizzle-orm';
+import { Injectable } from '@nestjs/common';
+import { AssignmentRepository, ShiftRepository, UserRepository } from '@shiftsync/data-access';
 import { startOfWeek, endOfWeek, startOfDay, endOfDay, subDays } from 'date-fns';
 
 export interface ComplianceResult {
@@ -14,7 +11,9 @@ export interface ComplianceResult {
 @Injectable()
 export class ComplianceService {
   constructor(
-    @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
+    private assignmentRepo: AssignmentRepository,
+    private shiftRepo: ShiftRepository,
+    private userRepo: UserRepository,
   ) {}
 
   async checkCompliance(userId: string, shiftId: string): Promise<ComplianceResult> {
@@ -24,17 +23,8 @@ export class ComplianceService {
       requiresOverride: false,
     };
 
-    const [shift] = await this.db
-      .select()
-      .from(shifts)
-      .where(eq(shifts.id, shiftId))
-      .limit(1);
-
-    const [user] = await this.db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+    const shift = await this.shiftRepo.findById(shiftId);
+    const user = await this.userRepo.findById(userId);
 
     if (!shift || !user) return result;
 
@@ -42,20 +32,7 @@ export class ComplianceService {
     const shiftEnd = new Date(shift.endTime);
     const shiftDuration = (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
 
-    const userAssignments = await this.db
-      .select({
-        startTime: shifts.startTime,
-        endTime: shifts.endTime,
-      })
-      .from(assignments)
-      .innerJoin(shifts, eq(assignments.shiftId, shifts.id))
-      .where(
-        and(
-          eq(assignments.userId, userId),
-          eq(assignments.status, 'confirmed'),
-          ne(assignments.shiftId, shiftId)
-        )
-      );
+    const userAssignments = await this.assignmentRepo.getConfirmedShiftTimesForUserExcluding(userId, shiftId);
 
     for (const existing of userAssignments) {
       const existingStart = new Date(existing.startTime).getTime();
@@ -78,10 +55,7 @@ export class ComplianceService {
       }
     }
 
-    const userAvailability = await this.db
-      .select()
-      .from(availability)
-      .where(eq(availability.userId, userId));
+    const userAvailability = await this.userRepo.getUserAvailability(userId);
 
     const isAvailable = await this.checkUserAvailability(userId, user.timezone, shiftStart, shiftEnd, userAvailability);
     if (!isAvailable) {
@@ -128,19 +102,7 @@ export class ComplianceService {
     let consecutiveDays = 0;
     for (let i = 1; i <= 7; i++) {
       const checkDay = subDays(shiftStart, i);
-      const [worked] = await this.db
-        .select({ id: assignments.id })
-        .from(assignments)
-        .innerJoin(shifts, eq(assignments.shiftId, shifts.id))
-        .where(
-          and(
-            eq(assignments.userId, userId),
-            eq(assignments.status, 'confirmed'),
-            gte(shifts.startTime, startOfDay(checkDay)),
-            lte(shifts.startTime, endOfDay(checkDay))
-          )
-        )
-        .limit(1);
+      const worked = await this.assignmentRepo.hasWorkedOnDay(userId, checkDay);
 
       if (worked) {
         consecutiveDays++;
