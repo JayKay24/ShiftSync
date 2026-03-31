@@ -3,6 +3,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { schema } from '../schema';
 import { staffCertifications } from '../entities/staff-certification.entity';
 import { staffSkills } from '../entities/staff-skill.entity';
+import { type NewUser } from '../entities/user.entity';
 
 export class UserRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
@@ -107,5 +108,15 @@ export class UserRepository {
       .limit(1);
     
     return !!skill;
+  }
+
+  async updateUser(userId: string, data: Partial<NewUser>) {
+    const [user] = await this.db
+      .update(schema.users)
+      .set(data)
+      .where(eq(schema.users.id, userId))
+      .returning();
+      
+    return user || null;
   }
 }
