@@ -7,6 +7,16 @@ import { staffSkills } from '../entities/staff-skill.entity';
 export class UserRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
 
+  async findByEmail(email: string) {
+    const [user] = await this.db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.email, email))
+      .limit(1);
+    
+    return user || null;
+  }
+
   async findStaff() {
     return this.db.query.users.findMany({
       where: eq(schema.users.role, 'Staff'),

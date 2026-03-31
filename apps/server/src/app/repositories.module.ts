@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { DatabaseModule, DRIZZLE } from './database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema } from '@shiftsync/data-access';
@@ -51,6 +51,7 @@ export const REPOSITORIES = [
   },
 ];
 
+@Global()
 @Module({
   imports: [DatabaseModule],
   providers: [...REPOSITORIES],
