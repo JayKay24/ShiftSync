@@ -25,6 +25,24 @@ export const shiftsApi = {
 };
 ```
 
+## Styling & Utilities
+
+The project uses a standard utility for conditional class merging to ensure Tailwind classes are applied correctly without conflicts.
+
+### Class Merging (`cn`)
+The `cn` utility in `src/lib/utils.ts` wraps `clsx` and `tailwind-merge`. It should be used for all dynamic class applications in components to handle conditional logic and class overrides safely.
+
+```typescript
+import { cn } from '@/lib/utils';
+
+// Usage example
+<div className={cn(
+  "px-4 py-2 rounded",
+  isActive ? "bg-blue-500 text-white" : "bg-gray-200",
+  className // merge external classes passed via props
+)} />
+```
+
 ## Routing & Auth
 - **Role-Based Redirects**: The root page (`/app/page.tsx`) automatically redirects users to `/dashboard/manager` or `/dashboard/staff` based on their role stored in the `AuthContext`.
 - **Interceptors**: Axios interceptors handle Bearer token injection and automatic logout on 401 Unauthorized responses.
