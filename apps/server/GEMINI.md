@@ -2,6 +2,24 @@
 
 The backend is a **NestJS** application using **Drizzle ORM** for database interactions.
 
+## Database Connection
+
+The server connects to PostgreSQL via a global `DatabaseModule` (found in `src/app/database.module.ts`).
+
+- **Connection Pool**: Uses the `pg` library's `Pool` with a connection string provided by `DATABASE_URL` in the `.env` file.
+- **Drizzle Provider**: The `DRIZZLE` injection token provides an instance of `NodePgDatabase<typeof schema>`, initialized with the shared schema from `@shiftsync/data-access`.
+- **Global Availability**: Since `DatabaseModule` is marked as `@Global()`, the `DRIZZLE` token can be injected into any service or module without manual importing.
+
+```typescript
+import { Inject } from '@nestjs/common';
+import { DRIZZLE } from '../database.module';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { schema } from '@shiftsync/data-access';
+
+// In a service or repository provider
+constructor(@Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>) {}
+```
+
 ## Repository & Data Access Usage
 
 The server relies on the shared `@shiftsync/data-access` library for its database layer. Repositories are injected via a global `RepositoriesModule`.
