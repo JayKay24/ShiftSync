@@ -24,11 +24,10 @@ The `@shiftsync/data-access` library is the backbone of the project, providing a
 Detailed context for specific applications and libraries is available in their respective directories:
 
 - **Client**: [apps/client/GEMINI.md](apps/client/GEMINI.md)
-- **Server**: [apps/server/GEMINI.md](apps/server/GEMINI.md)
-- **Shared Data Access**: [libs/shared/data-access/GEMINI.md](libs/shared/data-access/GEMINI.md)
-
 @./apps/client/GEMINI.md
+- **Server**: [apps/server/GEMINI.md](apps/server/GEMINI.md)
 @./apps/server/GEMINI.md
+- **Shared Data Access**: [libs/shared/data-access/GEMINI.md](libs/shared/data-access/GEMINI.md)
 @./libs/shared/data-access/GEMINI.md
 
 ## 🧪 Testing Strategy
@@ -41,11 +40,10 @@ The project is heavily reliant on automated E2E tests to validate labor law comp
 
 - **Client E2E (`apps/client-e2e`)**: UI-driven tests using **Playwright**. Validates user journeys, visibility rules, and real-time UI updates.
   - [Detailed Client E2E Context](apps/client-e2e/GEMINI.md)
+  @./apps/client-e2e/GEMINI.md
 - **Server E2E (`apps/server-e2e`)**: API-driven integration tests using **Jest** and **Axios**. Focuses on database constraints, business logic enforcement (e.g., 10h rest), and complex workflows like shift swapping.
   - [Detailed Server E2E Context](apps/server-e2e/GEMINI.md)
-
-@./apps/client-e2e/GEMINI.md
-@./apps/server-e2e/GEMINI.md
+  @./apps/server-e2e/GEMINI.md
 
 ### Key Test Categories
 
@@ -74,23 +72,53 @@ The project is heavily reliant on automated E2E tests to validate labor law comp
 
 ## 🛠 Business Rules & Requirements
 
-### 1. Scheduling Constraints
+### 1. User Roles & Access (LBAC/RBAC)
+- **Admin**: Corporate oversight across all locations; bypasses 48h schedule locks and view-only restrictions.
+- **Manager**: Assigned to one or more locations; can only see/manage staff and schedules within their scope.
+- **Staff**: Assigned to one or more locations; possesses specific skills (e.g., "bartender", "server") and maintains their own availability windows.
 
-- **Double-Booking**: No overlapping shifts for the same person.
-- **10-Hour Rest**: Minimum gap between shifts.
-- **48-Hour Lock**: Managers cannot edit shifts close to the start time.
+### 2. Scheduling & Constraints
+- **Double-Booking**: Hard block on overlapping shifts for the same person, even across different locations.
+- **10-Hour Rest**: Minimum gap required between the end of one shift and the start of another for the same person.
+- **Certifications & Skills**: Staff can only be assigned to locations where they are certified and shifts requiring skills they possess.
+- **Availability**: System enforces assignments only within a staff member's recurring or one-off availability windows.
+- **48-Hour Lock**: Managers cannot edit or unpublish shifts within 48 hours of the start time (Admins are exempt).
 
-### 2. Labor Law & Overtime
+### 3. Labor Law & Overtime
+- **Weekly Thresholds**: Tracking at 40h; proactive warning issued at 35h.
+- **Daily Limits**: Warning at 8h; hard block at 12h.
+- **Consecutive Days**: Warning at 6 consecutive days; 7th consecutive day requires a manager override with a documented reason.
+- **Overnight Shifts**: Shifts crossing midnight (e.g., 11 PM – 3 AM) are treated as a single continuous shift for all calculations.
 
-- **Thresholds**: Overtime warning at 35h, tracking at 40h weekly.
-- **Limits**: Hard block at 12h daily.
-- **Overrides**: 7th consecutive day requires documented manager reason.
+### 4. Shift Swapping & Fairness
+- **Swap Workflow**: Staff A requests -> Staff B accepts -> Manager approves. Original assignment remains until final approval.
+- **Drop Requests**: Expire automatically 24 hours before the shift starts if not picked up by another qualified staff member.
+- **Limits**: Maximum of 3 pending swap/drop requests per staff member at any time.
+- **Fairness Index**: Tracks equitable distribution of "Premium Shifts" (defined as Friday and Saturday evening shifts).
+- **Automation**: Pending swaps are automatically cancelled if a manager modifies critical shift details (e.g., start time).
 
-### 3. Shift Swapping
+### 5. Transparency & Auditability
+- **Audit Trail**: Every schedule change is logged with the timestamp, the actor, and the "Before/After" state of the entity.
+- **Real-Time Updates**: Dashboard and notifications use WebSockets to reflect schedule changes, swap resolutions, and "On-Duty Now" status without page refreshes.
 
-- **Drop Requests**: Expire 24h before shift starts.
-- **Limits**: Max 3 pending requests per staff member.
-- **Automation**: Pending swaps are cancelled if shift details are modified by a manager.
+## 📚 Project Reference (Legacy Assessment Context)
+
+The following scenarios and ambiguities were part of the original project assessment and serve as a baseline for system verification and architectural decisions.
+
+### Evaluation Scenarios
+- **Sunday Night Chaos**: Rapid coverage finding for last-minute call-outs.
+- **The Overtime Trap**: Detecting and preventing assignments that push staff into excessive overtime (e.g., 52 hours).
+- **Timezone Tangle**: Managing availability for staff certified in different time zones (e.g., Pacific vs. Eastern).
+- **Simultaneous Assignment**: Handling race conditions when two managers attempt to assign the same staff member concurrently.
+- **Fairness Complaint**: Verifying claims of inequitable "good" shift distribution using the Fairness Index.
+- **Regret Swap**: Managing the implications when a staff member changes their mind about a pending swap.
+
+### Resolved Ambiguities
+- **De-certification**: How the system handles historical assignment data when a staff member loses certification for a location.
+- **Desired Hours**: The interaction between a staff member's "desired weekly hours" and their hard availability windows.
+- **Consecutive Day Logic**: Confirmation that any shift (regardless of length) counts toward consecutive day tracking.
+- **Post-Swap Edits**: System behavior if a shift is modified after a swap is approved but before it occurs.
+- **Timezone Boundaries**: Handling locations that may span state lines or timezone boundaries.
 
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
