@@ -45,6 +45,32 @@ export class ShiftsService {
 }
 ```
 
+## Database Migrations
+
+ShiftSync uses **Drizzle Kit** to manage schema migrations. The configuration is located in the root `drizzle.config.ts`, and migrations are stored in `apps/server/src/migrations`.
+
+- **Generating Migrations**: Use `npm run db:generate` to compare the entity definitions in `@shiftsync/data-access` with the current migration files and generate a new SQL migration.
+- **Applying Changes**: 
+  - For local development, `npm run db:push` can be used to synchronize the database schema directly without creating migration files (use with caution).
+  - In production or staging, migrations should be applied using the generated SQL files.
+- **Visualizing Data**: `npm run db:studio` launches Drizzle Studio, a GUI for exploring and modifying the database.
+
+## Seeding & Test Data
+
+The project includes a robust seeding system located in `apps/server/src/db/seed.ts`. It is used to populate the database with consistent data for development and E2E testing.
+
+- **Command**: `npm run db:seed`
+- **Behavioral Modes**:
+  - **Full Seed**: Clears all existing data and re-populates both base entities (Users, Locations) and complex scenarios (Shifts, Swaps). This is the default behavior in non-test environments.
+  - **Base Seed**: In `test` environments (`NODE_ENV=test`), it defaults to seeding only base entities to ensure speed and stability for E2E suites.
+  - **Force Full**: Passing the `--full` flag (e.g., `npm run db:seed -- --full`) forces a full clear and re-seed regardless of the environment.
+
+### Default Credentials
+After a successful seed, the following users are available for testing (Password: `password123`):
+- **Admin**: `admin@coastaleats.com`
+- **Manager (NY)**: `bob.manager@coastaleats.com`
+- **Staff (Charlie)**: `charlie.staff@coastaleats.com`
+
 ## Core Modules
 - **ShiftsModule**: Handles shift lifecycle, assignments, and compliance checks via `ComplianceService`.
 - **AuthModule**: Manages JWT authentication and roles-based access control (RBAC).
