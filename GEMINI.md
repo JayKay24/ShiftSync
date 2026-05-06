@@ -31,6 +31,29 @@ Detailed context for specific applications and libraries is available in their r
 @./apps/server/GEMINI.md
 @./libs/shared/data-access/GEMINI.md
 
+## 🧪 Testing Strategy
+
+ShiftSync employs a multi-layered testing strategy focused on verifying complex business rules and ensuring system integrity.
+
+### End-to-End (E2E) & Integration Testing
+
+The project is heavily reliant on automated E2E tests to validate labor law compliance, scheduling constraints, and cross-application workflows.
+
+- **Client E2E (`apps/client-e2e`)**: UI-driven tests using **Playwright**. Validates user journeys, visibility rules, and real-time UI updates.
+  - [Detailed Client E2E Context](apps/client-e2e/GEMINI.md)
+- **Server E2E (`apps/server-e2e`)**: API-driven integration tests using **Jest** and **Axios**. Focuses on database constraints, business logic enforcement (e.g., 10h rest), and complex workflows like shift swapping.
+  - [Detailed Server E2E Context](apps/server-e2e/GEMINI.md)
+
+@./apps/client-e2e/GEMINI.md
+@./apps/server-e2e/GEMINI.md
+
+### Key Test Categories
+
+- **Compliance**: Verification of "Hard Blocks" (12h daily limit) and "Overrides" (7th day consecutive).
+- **Scheduling**: Enforcement of no double-booking and minimum rest periods.
+- **Privacy**: Role-based and location-based access control (RBAC/LBAC).
+- **Auditability**: Verification of the immutable audit trail for all critical actions.
+
 ## 🚀 Key Commands
 
 ### Setup & Database
