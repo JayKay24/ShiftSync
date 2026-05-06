@@ -1,87 +1,87 @@
-name: Deploy ShiftSync to Azure
+# name: Deploy ShiftSync to Azure
 
-on:
-  push:
-    branches:
-      - main
+# on:
+#   push:
+#     branches:
+#       - main
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    environment: production
-    permissions:
-      contents: read
-      packages: write
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
+#     environment: production
+#     permissions:
+#       contents: read
+#       packages: write
 
-    steps:
-      - uses: actions/checkout@v3
+#     steps:
+#       - uses: actions/checkout@v3
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Log in to GHCR
+#         uses: docker/login-action@v2
+#         with:
+#           registry: ghcr.io
+#           username: ${{ github.actor }}
+#           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set lower case owner name
-        run: |
-          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
-        env:
-          OWNER: "${{ github.repository_owner }}"
+#       - name: Set lower case owner name
+#         run: |
+#           echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+#         env:
+#           OWNER: "${{ github.repository_owner }}"
 
-      # Build and push Frontend (Injecting API URL at build time)
-      - name: Build and push frontend image
-        run: |
-          docker buildx build --platform linux/amd64 --push -f Dockerfile-client --build-arg "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest .
+#       # Build and push Frontend (Injecting API URL at build time)
+#       - name: Build and push frontend image
+#         run: |
+#           docker buildx build --platform linux/amd64 --push -f Dockerfile-client --build-arg "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest .
 
-      # Build and push Backend
-      - name: Build and push backend image
-        run: |
-          docker buildx build --platform linux/amd64 --push -f Dockerfile-server -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest .
+#       # Build and push Backend
+#       - name: Build and push backend image
+#         run: |
+#           docker buildx build --platform linux/amd64 --push -f Dockerfile-server -t ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest .
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+#       - name: Azure Login
+#         uses: azure/login@v1
+#         with:
+#           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Deploy Backend
-      - name: Deploy backend to Azure Web App
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME_BACKEND }}
-          images: ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest
+#       # Deploy Backend
+#       - name: Deploy backend to Azure Web App
+#         uses: azure/webapps-deploy@v2
+#         with:
+#           app-name: ${{ secrets.AZURE_WEBAPP_NAME_BACKEND }}
+#           images: ghcr.io/${{ env.OWNER_LC }}/shiftsync-server:latest
 
-      # Deploy Frontend
-      - name: Deploy frontend to Azure Web App
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME_FRONTEND }}
-          images: ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest
+#       # Deploy Frontend
+#       - name: Deploy frontend to Azure Web App
+#         uses: azure/webapps-deploy@v2
+#         with:
+#           app-name: ${{ secrets.AZURE_WEBAPP_NAME_FRONTEND }}
+#           images: ghcr.io/${{ env.OWNER_LC }}/shiftsync-client:latest
 
-  seed-database:
-    runs-on: ubuntu-latest
-    needs: build-and-deploy
-    environment: production
-    steps:
-      - uses: actions/checkout@v3
+#   seed-database:
+#     runs-on: ubuntu-latest
+#     needs: build-and-deploy
+#     environment: production
+#     steps:
+#       - uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 24
-          cache: 'npm'
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: 24
+#           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install
+#       - name: Install dependencies
+#         run: npm install
 
-      - name: Push database schema
-        run: |
-          npx drizzle-kit push --force --verbose
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+#       - name: Push database schema
+#         run: |
+#           npx drizzle-kit push --force --verbose
+#         env:
+#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Seed database
-        run: |
-          npm run db:seed
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+#       - name: Seed database
+#         run: |
+#           npm run db:seed
+#         env:
+#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
