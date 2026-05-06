@@ -27,6 +27,10 @@ Detailed context for specific applications and libraries is available in their r
 - **Server**: [apps/server/GEMINI.md](apps/server/GEMINI.md)
 - **Shared Data Access**: [libs/shared/data-access/GEMINI.md](libs/shared/data-access/GEMINI.md)
 
+@./apps/client/GEMINI.md
+@./apps/server/GEMINI.md
+@./libs/shared/data-access/GEMINI.md
+
 ## 🚀 Key Commands
 
 ### Setup & Database
