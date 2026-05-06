@@ -24,11 +24,8 @@ The `@shiftsync/data-access` library is the backbone of the project, providing a
 Detailed context for specific applications and libraries is available in their respective directories:
 
 - **Client**: [apps/client/GEMINI.md](apps/client/GEMINI.md)
-@./apps/client/GEMINI.md
 - **Server**: [apps/server/GEMINI.md](apps/server/GEMINI.md)
-@./apps/server/GEMINI.md
 - **Shared Data Access**: [libs/shared/data-access/GEMINI.md](libs/shared/data-access/GEMINI.md)
-@./libs/shared/data-access/GEMINI.md
 
 ## 🧪 Testing Strategy
 
@@ -40,10 +37,8 @@ The project is heavily reliant on automated E2E tests to validate labor law comp
 
 - **Client E2E (`apps/client-e2e`)**: UI-driven tests using **Playwright**. Validates user journeys, visibility rules, and real-time UI updates.
   - [Detailed Client E2E Context](apps/client-e2e/GEMINI.md)
-  @./apps/client-e2e/GEMINI.md
 - **Server E2E (`apps/server-e2e`)**: API-driven integration tests using **Jest** and **Axios**. Focuses on database constraints, business logic enforcement (e.g., 10h rest), and complex workflows like shift swapping.
   - [Detailed Server E2E Context](apps/server-e2e/GEMINI.md)
-  @./apps/server-e2e/GEMINI.md
 
 ### Key Test Categories
 
@@ -143,3 +138,12 @@ The following scenarios and ambiguities were part of the original project assess
 - The `nx-generate` skill handles generator discovery internally - don't call nx_docs just to look up generator syntax
 
 <!-- nx configuration end-->
+
+---
+## Detailed Context Imports
+
+@./apps/client/GEMINI.md
+@./apps/server/GEMINI.md
+@./libs/shared/data-access/GEMINI.md
+@./apps/client-e2e/GEMINI.md
+@./apps/server-e2e/GEMINI.md
