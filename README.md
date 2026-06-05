@@ -1,5 +1,15 @@
 # ShiftSync — Multi-Location Staff Scheduling Platform
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Nx](https://img.shields.io/badge/Monorepo-Nx-143157?style=flat&logo=nx&logoColor=white)](https://nx.dev)
+[![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000?style=flat&logo=next.js&logoColor=white)](https://nextjs.org)
+[![NestJS](https://img.shields.io/badge/Backend-NestJS-E0234E?style=flat&logo=nestjs&logoColor=white)](https://nestjs.com)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Drizzle ORM](https://img.shields.io/badge/ORM-Drizzle_ORM-C5F74F?style=flat&logoColor=black)](https://orm.drizzle.team)
+[![Jest](https://img.shields.io/badge/Testing-Jest-C21325?style=flat&logo=jest&logoColor=white)](https://jestjs.io)
+[![Playwright](https://img.shields.io/badge/E2E-Playwright-2EAD33?style=flat&logo=playwright&logoColor=white)](https://playwright.dev)
+
 **🌐 Live Demo:** [https://shiftsync-web.azurewebsites.net](https://shiftsync-web.azurewebsites.net)
 
 ShiftSync is a web-based scheduling platform designed for **Coastal Eats**, a fictional restaurant group operating across multiple locations and time zones. It solves the complexities of real-world workforce management by balancing manager control with staff flexibility and labor law compliance.

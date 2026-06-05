@@ -43,7 +43,7 @@ Thumbs.db
 .claude/worktrees
 .claude/settings.local.json
 .env
-.geminiignore
+.agentsignore
 
 # Next.js
 .next
