@@ -12,11 +12,11 @@
 
 **🌐 Live Demo:** [https://shiftsync-web.azurewebsites.net](https://shiftsync-web.azurewebsites.net)
 
-ShiftSync is a web-based scheduling platform designed for **Coastal Eats**, a fictional restaurant group operating across multiple locations and time zones. It solves the complexities of real-world workforce management by balancing manager control with staff flexibility and labor law compliance.
+I built ShiftSync as a web-based scheduling platform for **Coastal Eats**, a fictional restaurant group operating across multiple locations and time zones. I designed it to solve the complexities of real-world workforce management by balancing manager control with staff flexibility and labor law compliance.
 
 ## 🌟 Overview
 
-The platform addresses critical pain points in hospitality management:
+I built this platform to address critical pain points in hospitality management:
 - **Coverage Gaps:** Preventing shifts from going unfilled.
 - **Overtime Control:** Real-time tracking to prevent spiraling labor costs.
 - **Fairness:** Equitable distribution of "premium" shifts (e.g., weekend nights).
@@ -24,21 +24,21 @@ The platform addresses critical pain points in hospitality management:
 
 ## 🤔 Implementation Assumptions
 
-Based on the requirements for Coastal Eats, the following technical and domain assumptions were made during development:
+Based on the requirements for Coastal Eats, I made the following technical and domain assumptions during development:
 
-- **Single Organization:** The platform is scoped to a single organization (Coastal Eats). Multi-tenancy is handled via `locationId`.
-- **Manager Data Isolation:** Managers are strictly restricted to seeing staff, schedules, and analytics for locations they are assigned to manage. Corporate Admins maintain global visibility.
-- **Staff Swap Visibility:** Staff members can see all other staff in the organization when requesting a swap to facilitate cross-location coverage. However, the system only allows selection of "qualified" peers (those with the required skill and location certification).
-- **Shift Skills:** A single shift requires exactly **one primary skill** (e.g., "Bartender"). Shifts needing multiple distinct skills are modeled as separate parallel shift records.
-- **Group Assignments:** A single shift record can accommodate multiple staff members (`headcountNeeded` > 1) to prevent duplicating identical shift definitions.
-- **Timezone Robustness:** All compliance calculations (10-hour rest, availability) utilize `Intl.DateTimeFormat` with explicit timezone support (e.g., `America/Los_Angeles`). This ensures that a manager in Nairobi (EAT) can accurately schedule a staff member in California (PDT) without "off-by-one-day" errors.
-- **48-Hour Schedule Lock:** To ensure operational stability, the system prevents Managers from editing or unpublishing shifts within 48 hours of their start time. Admins can bypass this lock for emergency adjustments.
-- **Unified Swap/Drop Model:** A shift "drop" (putting a shift up for grabs) is modeled as a `swapRequest` with a `null` target user. 
+- **Single Organization:** I scoped the platform to a single organization (Coastal Eats). Multi-tenancy is handled via `locationId`.
+- **Manager Data Isolation:** I strictly restrict managers to seeing staff, schedules, and analytics for locations they are assigned to manage. Corporate Admins maintain global visibility.
+- **Staff Swap Visibility:** Staff members can see all other staff in the organization when requesting a swap to facilitate cross-location coverage. However, I only allow selection of "qualified" peers (those with the required skill and location certification).
+- **Shift Skills:** I modeled a single shift to require exactly **one primary skill** (e.g., "Bartender"). Shifts needing multiple distinct skills are modeled as separate parallel shift records.
+- **Group Assignments:** I designed a single shift record to accommodate multiple staff members (`headcountNeeded` > 1) to prevent duplicating identical shift definitions.
+- **Timezone Robustness:** I built all compliance calculations (10-hour rest, availability) to use `Intl.DateTimeFormat` with explicit timezone support (e.g., `America/Los_Angeles`). This ensures that a manager in Nairobi (EAT) can accurately schedule a staff member in California (PDT) without "off-by-one-day" errors.
+- **48-Hour Schedule Lock:** To ensure operational stability, I prevent managers from editing or unpublishing shifts within 48 hours of their start time. Admins can bypass this lock for emergency adjustments.
+- **Unified Swap/Drop Model:** I modeled a shift "drop" (putting a shift up for grabs) as a `swapRequest` with a `null` target user.
 - **Peer Rejection & Withdrawal:** Staff members can decline incoming swap requests, and requesters can withdraw pending requests, automatically reverting shift assignments to their original state.
-- **Regret Swap Logic:** If a manager modifies a shift's critical details (time, location, or skill), the system automatically cancels any associated pending swap or drop requests.
-- **Marketplace Guardrails:** Staff members are limited to **three active pending requests** (swaps or drops) to prevent schedule churn.
-- **Shared Type Safety:** The platform uses a unified `@shiftsync/data-access` library containing `class-validator` decorated DTOs, serving as the single source of truth for both API contracts and database schema.
-- **Repository Pattern Architecture:** All NestJS business logic operates strictly independent of database implementation. Raw `drizzle-orm` transactions and complex aggregations are tightly encapsulated within domain-driven repositories, injected globally via `@shiftsync/data-access`.
+- **Regret Swap Logic:** If a manager modifies a shift's critical details (time, location, or skill), I built the system to automatically cancel any associated pending swap or drop requests.
+- **Marketplace Guardrails:** I limit staff members to **three active pending requests** (swaps or drops) to prevent schedule churn.
+- **Shared Type Safety:** I use a unified `@shiftsync/data-access` library containing `class-validator` decorated DTOs, serving as the single source of truth for both API contracts and database schema.
+- **Repository Pattern Architecture:** I designed all NestJS business logic to operate strictly independent of database implementation. Raw `drizzle-orm` transactions and complex aggregations are tightly encapsulated within domain-driven repositories, injected globally via `@shiftsync/data-access`.
 
 ## DB Schema
 ![DB Schema](./docs/ShiftSync_db_schema.drawio.png)
@@ -84,7 +84,7 @@ Based on the requirements for Coastal Eats, the following technical and domain a
 npm install
 ```
 
-## 🐳 Docker Deployment 
+## 🐳 Docker Deployment
 
 The easiest way to run the entire stack (Frontend, Backend, and Database) is using Docker Compose.
 
@@ -108,13 +108,13 @@ The easiest way to run the entire stack (Frontend, Backend, and Database) is usi
 ## 🧪 Testing
 
 ### Server Integration Tests (21 Tests)
-Verifies complex business logic, labor law compliance, and database state.
+I wrote these to verify complex business logic, labor law compliance, and database state.
 ```sh
 npx nx e2e server-e2e
 ```
 
 ### Client E2E Tests (10 Scenarios)
-Simulates end-to-end user journeys including Audit Trails, Fairness UI, and Staff Swap flows.
+These simulate end-to-end user journeys including Audit Trails, Fairness UI, and Staff Swap flows.
 ```sh
 npx nx e2e client-e2e
 ```
