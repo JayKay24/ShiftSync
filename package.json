@@ -6,7 +6,9 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx --tsconfig tsconfig.base.json apps/server/src/db/seed.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "prepare": "husky",
+    "typecheck": "tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.app.json --noEmit && tsc -p libs/shared/data-access/tsconfig.lib.json --noEmit"
   },
   "private": true,
   "dependencies": {
@@ -47,6 +49,8 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
     "@eslint/js": "^9.8.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
@@ -89,10 +93,12 @@
     "eslint-plugin-playwright": "^1.6.2",
     "eslint-plugin-react": "7.35.0",
     "eslint-plugin-react-hooks": "5.0.0",
+    "husky": "^9.1.7",
     "jest": "^30.0.2",
     "jest-environment-jsdom": "^30.0.2",
     "jest-environment-node": "^30.0.2",
     "jest-util": "^30.0.2",
+    "lint-staged": "^17.6.0",
     "nx": "22.6.1",
     "postcss": "8.4.38",
     "prettier": "~3.6.2",
