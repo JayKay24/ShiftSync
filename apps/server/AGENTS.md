@@ -4,20 +4,22 @@ The backend is a **NestJS** application using **Drizzle ORM** for database inter
 
 ## Database Connection
 
-The server connects to PostgreSQL via a global `DatabaseModule` (found in `src/app/database.module.ts`).
+The server connects to PostgreSQL via a global `DatabaseModule` (found in `src/app/database.module.ts`) configured with the official `@nestjs/drizzle` package.
 
-- **Connection Pool**: Uses the `pg` library's `Pool` with a connection string provided by `DATABASE_URL` in the `.env` file.
-- **Drizzle Provider**: The `DRIZZLE` injection token provides an instance of `NodePgDatabase<typeof schema>`, initialized with the shared schema from `@shiftsync/data-access`.
-- **Global Availability**: Since `DatabaseModule` is marked as `@Global()`, the `DRIZZLE` token can be injected into any service or module without manual importing.
+- **Drizzle Integration**: Uses `DrizzleModule.forRootAsync` with connection string provided by `DATABASE_URL` via `ConfigService` and the shared schema from `@shiftsync/data-access`.
+- **Drizzle Provider**: The official `getDrizzleToken()` (and backwards-compatible `DRIZZLE` token) provides an instance of `NodePgDatabase<typeof schema>`.
+- **Global Availability**: `DatabaseModule` is marked as `@Global()`, and database injection is available application-wide.
 
 ```typescript
 import { Inject } from '@nestjs/common';
-import { DRIZZLE } from '../database.module';
+import { getDrizzleToken } from '@nestjs/drizzle';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { schema } from '@shiftsync/data-access';
 
-// In a service or repository provider
-constructor(@Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>) {}
+// In a factory provider or service:
+inject: [getDrizzleToken()];
+// Or in constructor injection:
+// constructor(@InjectDrizzle() private db: NodePgDatabase<typeof schema>) {}
 ```
 
 ## Repository & Data Access Usage
@@ -25,6 +27,7 @@ constructor(@Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>) {}
 The server relies on the shared `@shiftsync/data-access` library for its database layer. Repositories are injected via a global `RepositoriesModule`.
 
 ### Repository Injection Example
+
 In `src/app/shifts/shifts.service.ts`, the service injects repositories and uses shared entities/types for business logic:
 
 ```typescript
@@ -50,7 +53,7 @@ export class ShiftsService {
 ShiftSync uses **Drizzle Kit** to manage schema migrations. The configuration is located in the root `drizzle.config.ts`, and migrations are stored in `apps/server/src/migrations`.
 
 - **Generating Migrations**: Use `npm run db:generate` to compare the entity definitions in `@shiftsync/data-access` with the current migration files and generate a new SQL migration.
-- **Applying Changes**: 
+- **Applying Changes**:
   - For local development, `npm run db:push` can be used to synchronize the database schema directly without creating migration files (use with caution).
   - In production or staging, migrations should be applied using the generated SQL files.
 - **Visualizing Data**: `npm run db:studio` launches Drizzle Studio, a GUI for exploring and modifying the database.
@@ -66,16 +69,20 @@ The project includes a robust seeding system located in `apps/server/src/db/seed
   - **Force Full**: Passing the `--full` flag (e.g., `npm run db:seed -- --full`) forces a full clear and re-seed regardless of the environment.
 
 ### Default Credentials
+
 After a successful seed, the following users are available for testing (Password: `password123`):
+
 - **Admin**: `admin@coastaleats.com`
 - **Manager (NY)**: `bob.manager@coastaleats.com`
 - **Staff (Charlie)**: `charlie.staff@coastaleats.com`
 
 ## Core Modules
+
 - **ShiftsModule**: Handles shift lifecycle, assignments, and compliance checks via `ComplianceService`.
 - **AuthModule**: Manages JWT authentication and roles-based access control (RBAC).
 - **NotificationModule**: Handles real-time events via WebSockets.
 - **AuditModule**: Centrally logs all state changes for shifts and assignments.
 
 ## Compliance Logic
+
 Labor law compliance is enforced in `src/app/shifts/compliance.service.ts`, which validates constraints like the 10-hour rest rule and the 7th consecutive day override requirement.
