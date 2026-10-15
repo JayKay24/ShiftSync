@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
   commitlint:
     name: Conventional Commits
@@ -65,7 +65,7 @@ jobs:
 
       - name: Fallback install if cache missed
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Validate PR commits with commitlint
         run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
@@ -92,7 +92,7 @@ jobs:
 
       - name: Fallback install if cache missed
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Cache Nx computation cache
         uses: actions/cache@v4
@@ -130,7 +130,7 @@ jobs:
 
       - name: Fallback install if cache missed
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Cache Nx computation cache
         uses: actions/cache@v4
@@ -165,7 +165,7 @@ jobs:
 
       - name: Fallback install if cache missed
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Cache Nx computation cache
         uses: actions/cache@v4
@@ -221,7 +221,7 @@ jobs:
 
       - name: Fallback install if cache missed
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Push database schema
         run: npx drizzle-kit push
