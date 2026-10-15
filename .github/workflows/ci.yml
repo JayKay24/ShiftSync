@@ -16,9 +16,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  install:
+    name: Install Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Cache node_modules
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
   commitlint:
     name: Conventional Commits
     runs-on: ubuntu-latest
+    needs: install
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout repository
@@ -30,9 +55,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'npm'
 
-      - name: Install dependencies
+      - name: Restore node_modules
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Fallback install if cache missed
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Validate PR commits with commitlint
@@ -41,6 +73,7 @@ jobs:
   lint-and-typecheck:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
+    needs: install
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,10 +82,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'npm'
 
-      - name: Install dependencies
+      - name: Restore node_modules
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Fallback install if cache missed
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci
+
+      - name: Cache Nx computation cache
+        uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: ${{ runner.os }}-nx-lint-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-nx-lint-
 
       - name: Run ESLint across monorepo
         run: npx nx run-many -t lint
@@ -63,6 +111,7 @@ jobs:
   build:
     name: Build Applications
     runs-on: ubuntu-latest
+    needs: install
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -71,10 +120,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'npm'
 
-      - name: Install dependencies
+      - name: Restore node_modules
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Fallback install if cache missed
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci
+
+      - name: Cache Nx computation cache
+        uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: ${{ runner.os }}-nx-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-nx-build-
 
       - name: Build applications
         run: npx nx run-many -t build
@@ -82,6 +146,7 @@ jobs:
   test-unit:
     name: Unit Tests
     runs-on: ubuntu-latest
+    needs: install
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -90,10 +155,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'npm'
 
-      - name: Install dependencies
+      - name: Restore node_modules
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Fallback install if cache missed
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci
+
+      - name: Cache Nx computation cache
+        uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: ${{ runner.os }}-nx-test-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-nx-test-
 
       - name: Run unit tests
         run: npx nx run-many -t test
@@ -101,6 +181,7 @@ jobs:
   test-integration:
     name: Backend Integration Tests
     runs-on: ubuntu-latest
+    needs: install
     services:
       postgres:
         image: postgres:16-alpine
@@ -130,9 +211,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'npm'
 
-      - name: Install dependencies
+      - name: Restore node_modules
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Fallback install if cache missed
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Push database schema
