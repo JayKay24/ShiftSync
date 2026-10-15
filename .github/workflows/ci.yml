@@ -105,9 +105,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: shiftsync
-          POSTGRES_PASSWORD: password123
-          POSTGRES_DB: shiftsync_test
+          POSTGRES_USER: ${{ secrets.CI_POSTGRES_USER || 'shiftsync' }}
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD || 'password123' }}
+          POSTGRES_DB: ${{ secrets.CI_POSTGRES_DB || 'shiftsync_test' }}
         ports:
           - 5432:5432
         options: >-
@@ -117,8 +117,8 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql://shiftsync:password123@localhost:5432/shiftsync_test
-      JWT_SECRET: supersecretjwtkeyforlocaltestingandci1234567890
+      DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://shiftsync:password123@localhost:5432/shiftsync_test' }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'supersecretjwtkeyforlocaltestingandci1234567890' }}
       PORT: 3001
       NODE_ENV: test
 
