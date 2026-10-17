@@ -28,7 +28,7 @@ export class NotificationRepository {
     userId: string,
     pagination?: CursorPaginationParams,
   ): Promise<CursorPaginatedResponse<Notification>> {
-    const limit = clampLimit(pagination?.limit, 20);
+    const limit = clampLimit(pagination?.limit, 10);
     const conditions = [eq(notifications.userId, userId)];
 
     const cursorPayload = decodeCursor(pagination?.cursor);

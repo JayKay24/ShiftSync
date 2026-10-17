@@ -83,7 +83,7 @@ export class SwapRepository {
   async getSwapRequestsForManager(
     pagination?: CursorPaginationParams,
   ): Promise<CursorPaginatedResponse<SwapRequestResponse>> {
-    const limit = clampLimit(pagination?.limit, 20);
+    const limit = clampLimit(pagination?.limit, 10);
     const now = new Date();
     const conditions = [
       eq(swapRequests.status, 'pending_manager'),
@@ -136,7 +136,7 @@ export class SwapRepository {
     userId: string,
     pagination?: CursorPaginationParams,
   ): Promise<CursorPaginatedResponse<SwapRequestResponse>> {
-    const limit = clampLimit(pagination?.limit, 20);
+    const limit = clampLimit(pagination?.limit, 10);
     const conditions = [
       or(
         eq(swapRequests.requestingUserId, userId),
