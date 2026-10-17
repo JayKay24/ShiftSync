@@ -282,13 +282,30 @@ export interface StaffMemberResponse extends Omit<User, 'passwordHash'> {
 }
 
 /**
+ * Cursor-based pagination query parameters
+ */
+export interface CursorPaginationParams {
+  cursor?: string;
+  limit?: number;
+}
+
+/**
+ * Standardized envelope for cursor-paginated endpoints
+ */
+export interface CursorPaginatedResponse<T> {
+  data: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+/**
  * Single notification response
  */
 export type NotificationResponse = Notification;
 /**
- * List of notifications
+ * List of notifications (cursor-paginated)
  */
-export type NotificationListResponse = Notification[];
+export type NotificationListResponse = CursorPaginatedResponse<Notification>;
 
 /**
  * WebSocket Event Payloads

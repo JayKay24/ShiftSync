@@ -4,10 +4,25 @@ import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useSwaps } from '@/hooks/use-swaps';
 import { useStaff } from '@/hooks/use-staff';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ArrowRightLeft, Clock, MapPin, User, AlertCircle, Info, X } from 'lucide-react';
+import {
+  Loader2,
+  ArrowRightLeft,
+  Clock,
+  MapPin,
+  User,
+  AlertCircle,
+  Info,
+  X,
+} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
@@ -15,17 +30,20 @@ import { Label } from '@/components/ui/label';
 
 function SwapMarketplaceContent() {
   const { user } = useAuth();
-  const { 
-    swaps, 
-    isLoading: isSwapsLoading, 
+  const {
+    swaps,
+    isLoading: isSwapsLoading,
+    isLoadingMore: isSwapsLoadingMore,
+    hasMore: hasMoreSwaps,
     error: swapError,
-    fetchSwaps, 
-    createRequest, 
-    acceptRequest, 
-    rejectRequest, 
-    cancelRequest 
+    fetchSwaps,
+    loadMoreSwaps,
+    createRequest,
+    acceptRequest,
+    rejectRequest,
+    cancelRequest,
   } = useSwaps();
-  
+
   const { staffList, fetchStaff, fetchMyAssignments } = useStaff();
   const searchParams = useSearchParams();
   const initialShiftId = searchParams.get('shiftId');
@@ -42,24 +60,30 @@ function SwapMarketplaceContent() {
     fetchMyAssignments().then(setMyAssignments);
   }, [fetchSwaps, fetchStaff, fetchMyAssignments]);
 
-  const otherStaff = useMemo(() => 
-    staffList.filter(s => s.id !== user?.id),
-    [staffList, user?.id]
+  const otherStaff = useMemo(
+    () => staffList.filter((s) => s.id !== user?.id),
+    [staffList, user?.id],
   );
 
-  const myRequests = useMemo(() => 
-    swaps.filter(s => s.requestingUserId === user?.id), 
-    [swaps, user?.id]
-  );
-  
-  const pendingRequestsCount = useMemo(() => 
-    myRequests.filter(r => r.status === 'pending_peer' || r.status === 'pending_manager').length,
-    [myRequests]
+  const myRequests = useMemo(
+    () => swaps.filter((s) => s.requestingUserId === user?.id),
+    [swaps, user?.id],
   );
 
-  const requestsForMe = useMemo(() => 
-    swaps.filter(s => s.targetUserId === user?.id && s.status === 'pending_peer'), 
-    [swaps, user?.id]
+  const pendingRequestsCount = useMemo(
+    () =>
+      myRequests.filter(
+        (r) => r.status === 'pending_peer' || r.status === 'pending_manager',
+      ).length,
+    [myRequests],
+  );
+
+  const requestsForMe = useMemo(
+    () =>
+      swaps.filter(
+        (s) => s.targetUserId === user?.id && s.status === 'pending_peer',
+      ),
+    [swaps, user?.id],
   );
 
   const handleCreateRequest = async (e: React.FormEvent) => {
@@ -71,7 +95,7 @@ function SwapMarketplaceContent() {
       await createRequest({
         shiftId: selectedShift,
         targetUserId: selectedTarget || undefined,
-        reason
+        reason,
       });
       setSelectedShift('');
       setSelectedTarget('');
@@ -93,7 +117,11 @@ function SwapMarketplaceContent() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-1">
-          <Card className={isLimitReached ? 'border-orange-200 bg-orange-50/20' : ''}>
+          <Card
+            className={
+              isLimitReached ? 'border-orange-200 bg-orange-50/20' : ''
+            }
+          >
             <CardHeader>
               <CardTitle>Request a Swap</CardTitle>
               <CardDescription>
@@ -106,13 +134,20 @@ function SwapMarketplaceContent() {
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <div>
                     <p className="font-bold">Request Limit Reached</p>
-                    <p className="mt-1">You have {pendingRequestsCount} pending requests. Requirement #3 limits you to a maximum of 3 pending requests at a time.</p>
+                    <p className="mt-1">
+                      You have {pendingRequestsCount} pending requests.
+                      Requirement #3 limits you to a maximum of 3 pending
+                      requests at a time.
+                    </p>
                   </div>
                 </div>
               ) : (
                 <div className="rounded-md bg-blue-50 p-4 text-[11px] text-blue-700 flex items-start gap-2 mb-4">
                   <Info className="h-4 w-4 shrink-0" />
-                  <span>You have <strong>{pendingRequestsCount} / 3</strong> pending requests allowed.</span>
+                  <span>
+                    You have <strong>{pendingRequestsCount} / 3</strong> pending
+                    requests allowed.
+                  </span>
                 </div>
               )}
 
@@ -130,7 +165,11 @@ function SwapMarketplaceContent() {
                     <option value="">-- Select Shift --</option>
                     {myAssignments.map((asgn) => (
                       <option key={asgn.id} value={asgn.shift.id}>
-                        {format(parseISO(asgn.shift.startTime.toString()), 'MMM d')} - {asgn.shift.location?.name}
+                        {format(
+                          parseISO(asgn.shift.startTime.toString()),
+                          'MMM d',
+                        )}{' '}
+                        - {asgn.shift.location?.name}
                       </option>
                     ))}
                   </select>
@@ -156,7 +195,7 @@ function SwapMarketplaceContent() {
 
                 <div className="space-y-2">
                   <Label htmlFor="reason">Reason for Request</Label>
-                  <Input 
+                  <Input
                     id="reason"
                     placeholder="e.g., Personal emergency, doctor appointment"
                     value={reason}
@@ -167,11 +206,20 @@ function SwapMarketplaceContent() {
                 </div>
 
                 {swapError && (
-                  <p className="text-xs font-medium text-destructive">{swapError}</p>
+                  <p className="text-xs font-medium text-destructive">
+                    {swapError}
+                  </p>
                 )}
 
-                <Button className="w-full" disabled={isSubmitting || !selectedShift || isLimitReached}>
-                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRightLeft className="mr-2 h-4 w-4" />}
+                <Button
+                  className="w-full"
+                  disabled={isSubmitting || !selectedShift || isLimitReached}
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                  )}
                   Submit Request
                 </Button>
               </form>
@@ -183,11 +231,16 @@ function SwapMarketplaceContent() {
           {requestsForMe.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
-                <Badge variant="destructive" className="animate-pulse">{requestsForMe.length}</Badge>
+                <Badge variant="destructive" className="animate-pulse">
+                  {requestsForMe.length}
+                </Badge>
                 Requests for You
               </h2>
               {requestsForMe.map((swap) => (
-                <Card key={swap.id} className="border-l-4 border-l-primary shadow-sm">
+                <Card
+                  key={swap.id}
+                  className="border-l-4 border-l-primary shadow-sm"
+                >
                   <CardContent className="flex items-center justify-between p-4">
                     <div className="flex items-center gap-4">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -200,7 +253,10 @@ function SwapMarketplaceContent() {
                         <div className="flex flex-col gap-1 mt-1 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3.5 w-3.5" />
-                            {format(parseISO(swap.shift.startTime.toString()), 'EEEE, MMM d @ HH:mm')}
+                            {format(
+                              parseISO(swap.shift.startTime.toString()),
+                              'EEEE, MMM d @ HH:mm',
+                            )}
                           </span>
                           <span className="flex items-center gap-1 italic">
                             &quot;{swap.reason}&quot;
@@ -212,7 +268,12 @@ function SwapMarketplaceContent() {
                       <Button size="sm" onClick={() => acceptRequest(swap.id)}>
                         Accept
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => rejectRequest(swap.id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground"
+                        onClick={() => rejectRequest(swap.id)}
+                      >
                         Ignore
                       </Button>
                     </div>
@@ -236,38 +297,62 @@ function SwapMarketplaceContent() {
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-bold">
-                            {format(parseISO(swap.shift.startTime.toString()), 'MMM d, HH:mm')}
+                            {format(
+                              parseISO(swap.shift.startTime.toString()),
+                              'MMM d, HH:mm',
+                            )}
                           </span>
-                          <Badge 
+                          <Badge
                             variant="outline"
                             className={
-                              swap.status === 'approved' ? 'border-green-200 text-green-700 bg-green-50' :
-                              swap.status === 'rejected' ? 'border-red-200 text-red-700 bg-red-50' :
-                              swap.status === 'cancelled' ? 'border-slate-200 text-slate-500 bg-slate-50' :
-                              'border-blue-200 text-blue-700 bg-blue-50'
+                              swap.status === 'approved'
+                                ? 'border-green-200 text-green-700 bg-green-50'
+                                : swap.status === 'rejected'
+                                  ? 'border-red-200 text-red-700 bg-red-50'
+                                  : swap.status === 'cancelled'
+                                    ? 'border-slate-200 text-slate-500 bg-slate-50'
+                                    : 'border-blue-200 text-blue-700 bg-blue-50'
                             }
                           >
                             {swap.status.replace('_', ' ')}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>Target: {swap.targetUser ? `${swap.targetUser.firstName} ${swap.targetUser.lastName}` : 'Public Drop'}</span>
+                          <span>
+                            Target:{' '}
+                            {swap.targetUser
+                              ? `${swap.targetUser.firstName} ${swap.targetUser.lastName}`
+                              : 'Public Drop'}
+                          </span>
                           <span>•</span>
-                          <span>Sent {format(parseISO(swap.createdAt.toString()), 'MMM d')}</span>
+                          <span>
+                            Sent{' '}
+                            {format(
+                              parseISO(swap.createdAt.toString()),
+                              'MMM d',
+                            )}
+                          </span>
                         </div>
                         {swap.status === 'cancelled' && (
-                          <p className="text-[10px] text-orange-600 font-medium">Auto-cancelled due to schedule update</p>
+                          <p className="text-[10px] text-orange-600 font-medium">
+                            Auto-cancelled due to schedule update
+                          </p>
                         )}
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Reason</span>
-                           <p className="text-xs italic text-slate-500 max-w-[150px] truncate">{swap.reason}</p>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                            Reason
+                          </span>
+                          <p className="text-xs italic text-slate-500 max-w-[150px] truncate">
+                            {swap.reason}
+                          </p>
                         </div>
-                        {(swap.status === 'pending_peer' || swap.status === 'pending_manager') && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        {(swap.status === 'pending_peer' ||
+                          swap.status === 'pending_manager') && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-8 w-8 text-muted-foreground hover:text-destructive"
                             onClick={() => cancelRequest(swap.id)}
                             title="Cancel Request"
@@ -279,10 +364,28 @@ function SwapMarketplaceContent() {
                     </CardContent>
                   </Card>
                 ))}
+                {hasMoreSwaps && (
+                  <div className="flex justify-center pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadMoreSwaps}
+                      disabled={isSwapsLoadingMore}
+                      className="gap-2"
+                    >
+                      {isSwapsLoadingMore ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : null}
+                      Load More Requests
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-slate-200 p-12 text-center">
-                <p className="text-sm text-muted-foreground">You haven't made any swap requests yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  You haven't made any swap requests yet.
+                </p>
               </div>
             )}
           </div>
@@ -294,11 +397,13 @@ function SwapMarketplaceContent() {
 
 export default function SwapMarketplace() {
   return (
-    <Suspense fallback={
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
       <SwapMarketplaceContent />
     </Suspense>
   );
