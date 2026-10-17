@@ -24,6 +24,9 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
+/** Default page size for cursor-paginated list views ('Load More'). */
+export const DEFAULT_PAGE_SIZE = 10;
+
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -71,7 +74,7 @@ export const shiftsApi = {
 
   getStaff: (params?: { cursor?: string; limit?: number }) =>
     api.get<CursorPaginatedResponse<StaffMemberResponse>>('/shifts/staff', {
-      params,
+      params: { limit: DEFAULT_PAGE_SIZE, ...params },
     }),
 
   getShift: (id: string) => api.get<ShiftResponse>(`/shifts/${id}`),
@@ -102,7 +105,9 @@ export const shiftsApi = {
  */
 export const swapsApi = {
   getSwaps: (params?: { cursor?: string; limit?: number }) =>
-    api.get<CursorPaginatedResponse<SwapRequestResponse>>('/swaps', { params }),
+    api.get<CursorPaginatedResponse<SwapRequestResponse>>('/swaps', {
+      params: { limit: DEFAULT_PAGE_SIZE, ...params },
+    }),
 
   createRequest: (data: CreateSwapRequest) =>
     api.post<SwapRequestResponse>('/swaps/request', data),
@@ -141,7 +146,9 @@ export const auditApi = {
     cursor?: string;
     limit?: number;
   }) =>
-    api.get<CursorPaginatedResponse<AuditLogResponse>>('/audit', { params }),
+    api.get<CursorPaginatedResponse<AuditLogResponse>>('/audit', {
+      params: { limit: DEFAULT_PAGE_SIZE, ...params },
+    }),
 
   getLogsByEntity: (
     type: string,
@@ -150,7 +157,7 @@ export const auditApi = {
   ) =>
     api.get<CursorPaginatedResponse<AuditLogResponse>>(
       `/audit/entity/${type}/${id}`,
-      { params },
+      { params: { limit: DEFAULT_PAGE_SIZE, ...params } },
     ),
 };
 
@@ -159,7 +166,9 @@ export const auditApi = {
  */
 export const notificationsApi = {
   getNotifications: (params?: { cursor?: string; limit?: number }) =>
-    api.get<NotificationListResponse>('/notifications', { params }),
+    api.get<NotificationListResponse>('/notifications', {
+      params: { limit: DEFAULT_PAGE_SIZE, ...params },
+    }),
 
   markRead: (id: string) => api.post(`/notifications/${id}/read`),
 };

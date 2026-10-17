@@ -97,14 +97,14 @@ describe('Manager Location-Based Access Control', () => {
     // Grace: Loc 3
     // Heidi: Loc 3
 
-    // Bob manages Loc 1, 2. So Bob should see 4 staff (Charlie, Dave, Eva, Frank).
-    expect(bobStats.data.totalStaff).toBe(4);
+    // Bob manages Loc 1, 2: 4 core staff (Charlie, Dave, Eva, Frank) + 11 pagination-demo staff.
+    expect(bobStats.data.totalStaff).toBe(15);
 
     const dianaTokenVal = await loginDiana();
     const dianaStats = await axios.get('/api/shifts/stats', {
       headers: { Authorization: `Bearer ${dianaTokenVal}` },
     });
-    // Diana manages Loc 3. She should see 4 staff (Grace, Heidi, Ivan, Judy).
-    expect(dianaStats.data.totalStaff).toBe(4);
+    // Diana manages Loc 3: 4 core staff (Grace, Heidi, Ivan, Judy) + 11 pagination-demo staff.
+    expect(dianaStats.data.totalStaff).toBe(15);
   });
 });

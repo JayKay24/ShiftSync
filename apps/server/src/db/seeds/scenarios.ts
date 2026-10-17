@@ -6,6 +6,7 @@ import {
   swapRequests,
   complianceOverrides,
 } from '@shiftsync/data-access';
+import { seedPaginationDemo } from './pagination-demo';
 import { addDays, setHours, setMinutes, startOfWeek, subDays } from 'date-fns';
 
 export async function seedScenarios(db: NodePgDatabase<typeof schema>) {
@@ -28,75 +29,95 @@ export async function seedScenarios(db: NodePgDatabase<typeof schema>) {
   const weekStart = startOfWeek(today, { weekStartsOn: 1 });
 
   // A. Past Completed Shift
-  const pastShift = await db.insert(shifts).values({
-    locationId: loc1Id,
-    requiredSkillId: skillBartenderId,
-    startTime: setHours(setMinutes(subDays(today, 2), 0), 10),
-    endTime: setHours(setMinutes(subDays(today, 2), 0), 18),
-    headcountNeeded: 1,
-    status: 'completed',
-    createdBy: bobId,
-  }).returning().then(r => r[0]);
+  const pastShift = await db
+    .insert(shifts)
+    .values({
+      locationId: loc1Id,
+      requiredSkillId: skillBartenderId,
+      startTime: setHours(setMinutes(subDays(today, 2), 0), 10),
+      endTime: setHours(setMinutes(subDays(today, 2), 0), 18),
+      headcountNeeded: 1,
+      status: 'completed',
+      createdBy: bobId,
+    })
+    .returning()
+    .then((r) => r[0]);
 
   await db.insert(assignments).values({
     shiftId: pastShift.id,
     userId: charlieId,
-    status: 'confirmed'
+    status: 'confirmed',
   });
 
   // B. Active Published Shift (Beach Grill)
-  const beachShift = await db.insert(shifts).values({
-    locationId: loc3Id,
-    requiredSkillId: skillHostId,
-    startTime: setHours(setMinutes(addDays(weekStart, 2), 0), 17),
-    endTime: setHours(setMinutes(addDays(weekStart, 2), 0), 22),
-    headcountNeeded: 1,
-    status: 'published',
-    createdBy: dianaId,
-  }).returning().then(r => r[0]);
+  const beachShift = await db
+    .insert(shifts)
+    .values({
+      locationId: loc3Id,
+      requiredSkillId: skillHostId,
+      startTime: setHours(setMinutes(addDays(weekStart, 2), 0), 17),
+      endTime: setHours(setMinutes(addDays(weekStart, 2), 0), 22),
+      headcountNeeded: 1,
+      status: 'published',
+      createdBy: dianaId,
+    })
+    .returning()
+    .then((r) => r[0]);
 
   await db.insert(assignments).values({
     shiftId: beachShift.id,
     userId: graceId,
-    status: 'confirmed'
+    status: 'confirmed',
   });
 
   // C. 7th Consecutive Day Scenario (Frank)
   for (let i = 0; i < 6; i++) {
     const day = addDays(weekStart, i);
-    const s = await db.insert(shifts).values({
-      locationId: loc1Id,
-      requiredSkillId: skillLineCookId,
-      startTime: setHours(setMinutes(day, 0), 8),
-      endTime: setHours(setMinutes(day, 0), 16),
-      headcountNeeded: 1,
-      status: 'published',
-      createdBy: bobId,
-    }).returning().then(r => r[0]);
+    const s = await db
+      .insert(shifts)
+      .values({
+        locationId: loc1Id,
+        requiredSkillId: skillLineCookId,
+        startTime: setHours(setMinutes(day, 0), 8),
+        endTime: setHours(setMinutes(day, 0), 16),
+        headcountNeeded: 1,
+        status: 'published',
+        createdBy: bobId,
+      })
+      .returning()
+      .then((r) => r[0]);
 
     await db.insert(assignments).values({
       shiftId: s.id,
       userId: frankId,
-      status: 'confirmed'
+      status: 'confirmed',
     });
   }
 
   const monday7th = addDays(weekStart, 6);
-  const shift7thDay = await db.insert(shifts).values({
-    locationId: loc1Id,
-    requiredSkillId: skillLineCookId,
-    startTime: setHours(setMinutes(monday7th, 0), 8),
-    endTime: setHours(setMinutes(monday7th, 0), 16),
-    headcountNeeded: 1,
-    status: 'published',
-    createdBy: bobId,
-  }).returning().then(r => r[0]);
+  const shift7thDay = await db
+    .insert(shifts)
+    .values({
+      locationId: loc1Id,
+      requiredSkillId: skillLineCookId,
+      startTime: setHours(setMinutes(monday7th, 0), 8),
+      endTime: setHours(setMinutes(monday7th, 0), 16),
+      headcountNeeded: 1,
+      status: 'published',
+      createdBy: bobId,
+    })
+    .returning()
+    .then((r) => r[0]);
 
-  const assignment7th = await db.insert(assignments).values({
-    shiftId: shift7thDay.id,
-    userId: frankId,
-    status: 'confirmed'
-  }).returning().then(r => r[0]);
+  const assignment7th = await db
+    .insert(assignments)
+    .values({
+      shiftId: shift7thDay.id,
+      userId: frankId,
+      status: 'confirmed',
+    })
+    .returning()
+    .then((r) => r[0]);
 
   await db.insert(complianceOverrides).values({
     assignmentId: assignment7th.id,
@@ -107,20 +128,24 @@ export async function seedScenarios(db: NodePgDatabase<typeof schema>) {
   });
 
   // D. Pending Swap Request
-  const swapShift = await db.insert(shifts).values({
-    locationId: loc1Id,
-    requiredSkillId: skillBartenderId,
-    startTime: setHours(setMinutes(addDays(today, 1), 0), 16),
-    endTime: setHours(setMinutes(addDays(today, 1), 0), 22),
-    headcountNeeded: 1,
-    status: 'published',
-    createdBy: bobId,
-  }).returning().then(r => r[0]);
+  const swapShift = await db
+    .insert(shifts)
+    .values({
+      locationId: loc1Id,
+      requiredSkillId: skillBartenderId,
+      startTime: setHours(setMinutes(addDays(today, 1), 0), 16),
+      endTime: setHours(setMinutes(addDays(today, 1), 0), 22),
+      headcountNeeded: 1,
+      status: 'published',
+      createdBy: bobId,
+    })
+    .returning()
+    .then((r) => r[0]);
 
   await db.insert(assignments).values({
     shiftId: swapShift.id,
     userId: charlieId,
-    status: 'pending_swap'
+    status: 'pending_swap',
   });
 
   await db.insert(swapRequests).values({
@@ -130,4 +155,7 @@ export async function seedScenarios(db: NodePgDatabase<typeof schema>) {
     reason: 'Family event',
     status: 'pending_peer',
   });
+
+  // E. Bulk data demonstrating cursor-based pagination across list views
+  await seedPaginationDemo(db);
 }
