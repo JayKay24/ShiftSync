@@ -45,6 +45,7 @@ describe('Manager Location-Based Access Control', () => {
     // Let's assume some staff is only LA. (Grace is LA in seed.ts)
     const bobStaff = await axios.get('/api/shifts/staff', {
       headers: { Authorization: `Bearer ${bobToken}` },
+      params: { limit: 20 },
     });
     const bobStaffNames = bobStaff.data.data.map((s: any) => s.firstName);
     expect(bobStaffNames).toContain('Charlie');
@@ -53,6 +54,7 @@ describe('Manager Location-Based Access Control', () => {
     const dianaTokenVal = await loginDiana();
     const dianaStaff = await axios.get('/api/shifts/staff', {
       headers: { Authorization: `Bearer ${dianaTokenVal}` },
+      params: { limit: 20 },
     });
     const dianaStaffNames = dianaStaff.data.data.map((s: any) => s.firstName);
     expect(dianaStaffNames).toContain('Grace');
@@ -97,14 +99,14 @@ describe('Manager Location-Based Access Control', () => {
     // Grace: Loc 3
     // Heidi: Loc 3
 
-    // Bob manages Loc 1, 2. So Bob should see 4 staff (Charlie, Dave, Eva, Frank).
-    expect(bobStats.data.totalStaff).toBe(4);
+    // Bob manages Loc 1, 2: 4 core staff (Charlie, Dave, Eva, Frank) + 11 pagination-demo staff.
+    expect(bobStats.data.totalStaff).toBe(15);
 
     const dianaTokenVal = await loginDiana();
     const dianaStats = await axios.get('/api/shifts/stats', {
       headers: { Authorization: `Bearer ${dianaTokenVal}` },
     });
-    // Diana manages Loc 3. She should see 4 staff (Grace, Heidi, Ivan, Judy).
-    expect(dianaStats.data.totalStaff).toBe(4);
+    // Diana manages Loc 3: 4 core staff (Grace, Heidi, Ivan, Judy) + 11 pagination-demo staff.
+    expect(dianaStats.data.totalStaff).toBe(15);
   });
 });

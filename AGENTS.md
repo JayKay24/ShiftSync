@@ -128,6 +128,7 @@ The project features a comprehensive seed script in `apps/server/src/db/seed.ts`
 - **Behavioral Modes**:
   - **Full Seed (`--full`)**: Clears existing dynamic tables and populates base entities (Users, Locations) and complex scenarios (Shifts, Swaps, Overtime, Consecutivity).
   - **Base Seed**: When `NODE_ENV=test`, defaults to seeding base entities for fast, stable E2E testing.
+- **Pagination Demo Data**: The full seed also creates 30 staff (15 per region), 85 shifts, 28 swap requests (13 awaiting manager approval), 50 notifications (25 each for Charlie and Bob), and 40 audit logs (14 on one shift) so every list view exceeds the client's default page size of 10 and shows the "Load More" flow.
 - **Default Test Accounts** (Password: `password123`):
   - **Admin**: `admin@coastaleats.com` (Global visibility, 48h schedule lock bypass)
   - **Manager (NY)**: `bob.manager@coastaleats.com` (Manages Downtown & Uptown)

@@ -53,9 +53,9 @@ describe('Pagination Utilities', () => {
 
   describe('clampLimit', () => {
     it('should return default limit when limit is undefined, null, or empty', () => {
-      expect(clampLimit(undefined)).toBe(20);
-      expect(clampLimit(null)).toBe(20);
-      expect(clampLimit('')).toBe(20);
+      expect(clampLimit(undefined)).toBe(10);
+      expect(clampLimit(null)).toBe(10);
+      expect(clampLimit('')).toBe(10);
     });
 
     it('should return custom default limit when provided', () => {
@@ -64,13 +64,13 @@ describe('Pagination Utilities', () => {
 
     it('should parse string number or return default on invalid input', () => {
       expect(clampLimit('15')).toBe(15);
-      expect(clampLimit('-5')).toBe(20);
-      expect(clampLimit('abc')).toBe(20);
+      expect(clampLimit('-5')).toBe(10);
+      expect(clampLimit('abc')).toBe(10);
     });
 
     it('should clamp to maxLimit', () => {
-      expect(clampLimit(500, 20, 100)).toBe(100);
-      expect(clampLimit('150', 20, 100)).toBe(100);
+      expect(clampLimit(500, 10, 100)).toBe(100);
+      expect(clampLimit('150', 10, 100)).toBe(100);
     });
   });
 

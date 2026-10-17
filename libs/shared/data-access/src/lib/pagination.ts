@@ -53,12 +53,14 @@ export function decodeCursor(cursor?: string | null): CursorPayload | null {
   }
 }
 
+export const DEFAULT_PAGE_LIMIT = 10;
+
 /**
  * Clamps and normalizes a limit query parameter between 1 and maxLimit.
  */
 export function clampLimit(
   limit?: number | string | null,
-  defaultLimit = 20,
+  defaultLimit = DEFAULT_PAGE_LIMIT,
   maxLimit = 100,
 ): number {
   if (limit === undefined || limit === null || limit === '') {
