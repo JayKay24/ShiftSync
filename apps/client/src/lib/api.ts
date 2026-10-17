@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { 
-  AuthResponse, 
-  ShiftResponse, 
-  AssignmentResult, 
+import {
+  AuthResponse,
+  ShiftResponse,
+  AssignmentResult,
   AvailableStaffResponse,
   OnDutyStaffResponse,
   FairnessScoreResponse,
@@ -17,7 +17,9 @@ import {
   ApproveSwapRequest,
   UpdateProfileRequest,
   SafeUser,
-  AuditLogResponse
+  AuditLogResponse,
+  CursorPaginatedResponse,
+  StaffMemberResponse,
 } from '@shiftsync/data-access';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -31,7 +33,8 @@ export const api = axios.create({
 
 // Interceptor to add Bearer token to requests
 api.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token =
+    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -49,33 +52,46 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
  * Shifts API
  */
 export const shiftsApi = {
-  getShifts: (params?: { start?: string; end?: string; locationId?: string }) => 
-    api.get<ShiftResponse[]>('/shifts', { params }),
-  
-  getShift: (id: string) => 
-    api.get<ShiftResponse>(`/shifts/${id}`),
-  
-  createShift: (data: CreateShiftRequest) => 
+  getShifts: (params?: {
+    start?: string;
+    end?: string;
+    startDate?: string;
+    endDate?: string;
+    locationId?: string;
+    cursor?: string;
+    limit?: number;
+  }) => api.get<CursorPaginatedResponse<ShiftResponse>>('/shifts', { params }),
+
+  getStaff: (params?: { cursor?: string; limit?: number }) =>
+    api.get<CursorPaginatedResponse<StaffMemberResponse>>('/shifts/staff', {
+      params,
+    }),
+
+  getShift: (id: string) => api.get<ShiftResponse>(`/shifts/${id}`),
+
+  createShift: (data: CreateShiftRequest) =>
     api.post<ShiftResponse>('/shifts', data),
-  
-  updateShift: (id: string, data: UpdateShiftRequest) => 
+
+  updateShift: (id: string, data: UpdateShiftRequest) =>
     api.patch<ShiftResponse>(`/shifts/${id}`, data),
-  
-  assignStaff: (shiftId: string, userId: string, overrideReason?: string) => 
-    api.post<AssignmentResult>(`/shifts/${shiftId}/assign`, { userId, overrideReason } as AssignStaffRequest),
-  
-  getAvailableStaff: (shiftId: string) => 
+
+  assignStaff: (shiftId: string, userId: string, overrideReason?: string) =>
+    api.post<AssignmentResult>(`/shifts/${shiftId}/assign`, {
+      userId,
+      overrideReason,
+    } as AssignStaffRequest),
+
+  getAvailableStaff: (shiftId: string) =>
     api.get<AvailableStaffResponse[]>(`/shifts/${shiftId}/available-staff`),
-  
-  getOnDutyNow: () => 
-    api.get<OnDutyStaffResponse[]>('/shifts/on-duty'),
+
+  getOnDutyNow: () => api.get<OnDutyStaffResponse[]>('/shifts/on-duty'),
 
   getStaffAssignments: (userId: string) =>
     api.get<AssignmentResult[]>(`/shifts/staff/${userId}/assignments`),
@@ -85,19 +101,19 @@ export const shiftsApi = {
  * Swaps API
  */
 export const swapsApi = {
-  getSwaps: () => 
-    api.get<SwapRequestResponse[]>('/swaps'),
-  
-  createRequest: (data: CreateSwapRequest) => 
+  getSwaps: (params?: { cursor?: string; limit?: number }) =>
+    api.get<CursorPaginatedResponse<SwapRequestResponse>>('/swaps', { params }),
+
+  createRequest: (data: CreateSwapRequest) =>
     api.post<SwapRequestResponse>('/swaps/request', data),
-  
-  acceptRequest: (id: string) => 
+
+  acceptRequest: (id: string) =>
     api.put<SwapRequestResponse>(`/swaps/accept/${id}`),
-  
-  rejectRequest: (id: string) => 
+
+  rejectRequest: (id: string) =>
     api.put<SwapRequestResponse>(`/swaps/reject/${id}`),
 
-  cancelRequest: (id: string) => 
+  cancelRequest: (id: string) =>
     api.put<SwapRequestResponse>(`/swaps/cancel/${id}`),
 
   approveRequest: (id: string, data: ApproveSwapRequest) =>
@@ -108,10 +124,10 @@ export const swapsApi = {
  * Analytics API
  */
 export const analyticsApi = {
-  getFairness: (params?: { startDate?: string; endDate?: string }) => 
+  getFairness: (params?: { startDate?: string; endDate?: string }) =>
     api.get<FairnessScoreResponse>('/analytics/fairness', { params }),
-  
-  getDistribution: (params?: { startDate?: string; endDate?: string }) => 
+
+  getDistribution: (params?: { startDate?: string; endDate?: string }) =>
     api.get<HourDistributionRecord[]>('/analytics/distribution', { params }),
 };
 
@@ -119,29 +135,40 @@ export const analyticsApi = {
  * Audit API
  */
 export const auditApi = {
-  getLogs: (params?: { startDate?: string; endDate?: string }) => 
-    api.get<AuditLogResponse[]>('/audit', { params }),
-  
-  getLogsByEntity: (type: string, id: string) => 
-    api.get<AuditLogResponse[]>(`/audit/entity/${type}/${id}`),
+  getLogs: (params?: {
+    startDate?: string;
+    endDate?: string;
+    cursor?: string;
+    limit?: number;
+  }) =>
+    api.get<CursorPaginatedResponse<AuditLogResponse>>('/audit', { params }),
+
+  getLogsByEntity: (
+    type: string,
+    id: string,
+    params?: { cursor?: string; limit?: number },
+  ) =>
+    api.get<CursorPaginatedResponse<AuditLogResponse>>(
+      `/audit/entity/${type}/${id}`,
+      { params },
+    ),
 };
 
 /**
  * Notifications API
  */
 export const notificationsApi = {
-  getNotifications: () => 
-    api.get<NotificationListResponse>('/notifications'),
-  
-  markRead: (id: string) => 
-    api.post(`/notifications/${id}/read`),
+  getNotifications: (params?: { cursor?: string; limit?: number }) =>
+    api.get<NotificationListResponse>('/notifications', { params }),
+
+  markRead: (id: string) => api.post(`/notifications/${id}/read`),
 };
 
 /**
  * Users API
  */
 export const usersApi = {
-  updateProfile: (data: UpdateProfileRequest) => 
+  updateProfile: (data: UpdateProfileRequest) =>
     api.patch<SafeUser>('/users/profile', data),
 };
 
@@ -149,6 +176,6 @@ export const usersApi = {
  * Auth API
  */
 export const authApi = {
-  login: (credentials: LoginRequest) => 
+  login: (credentials: LoginRequest) =>
     api.post<AuthResponse>('/auth/login', credentials),
 };

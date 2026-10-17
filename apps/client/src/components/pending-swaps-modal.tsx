@@ -21,8 +21,20 @@ interface PendingSwapsModalProps {
   onSuccess: () => void;
 }
 
-export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsModalProps) {
-  const { swaps, isLoading, fetchSwaps, approveRequest } = useSwaps();
+export function PendingSwapsModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: PendingSwapsModalProps) {
+  const {
+    swaps,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    fetchSwaps,
+    loadMoreSwaps,
+    approveRequest,
+  } = useSwaps();
   const { fetchNotifications } = useNotifications();
   const [actioningId, setActioningId] = useState<string | null>(null);
 
@@ -32,9 +44,9 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
     }
   }, [isOpen, fetchSwaps]);
 
-  const pendingSwaps = useMemo(() => 
-    swaps.filter(s => s.status === 'pending_manager'),
-    [swaps]
+  const pendingSwaps = useMemo(
+    () => swaps.filter((s) => s.status === 'pending_manager'),
+    [swaps],
   );
 
   const handleAction = async (id: string, approve: boolean) => {
@@ -56,7 +68,7 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
         <DialogHeader>
           <DialogTitle>Pending Swap Approvals</DialogTitle>
         </DialogHeader>
-        
+
         {isLoading && pendingSwaps.length === 0 ? (
           <div className="flex h-32 items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -68,18 +80,32 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
                 <div className="flex items-start justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="border-primary text-primary">
+                      <Badge
+                        variant="outline"
+                        className="border-primary text-primary"
+                      >
                         {swap.targetUser ? 'SWAP' : 'DROP'}
                       </Badge>
                       <span className="text-sm font-bold">
-                        {format(parseISO(swap.shift.startTime.toString()), 'MMM d, HH:mm')}
+                        {format(
+                          parseISO(swap.shift.startTime.toString()),
+                          'MMM d, HH:mm',
+                        )}
                       </span>
                     </div>
-                    
+
                     <div className="text-sm">
-                      <span className="font-semibold">{swap.requestingUser.firstName}</span> 
+                      <span className="font-semibold">
+                        {swap.requestingUser.firstName}
+                      </span>
                       {swap.targetUser ? (
-                        <> wants to swap with <span className="font-semibold">{swap.targetUser.firstName}</span></>
+                        <>
+                          {' '}
+                          wants to swap with{' '}
+                          <span className="font-semibold">
+                            {swap.targetUser.firstName}
+                          </span>
+                        </>
                       ) : (
                         <> wants to drop this shift</>
                       )}
@@ -100,18 +126,22 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="h-8 bg-emerald-600 hover:bg-emerald-700"
                       onClick={() => handleAction(swap.id, true)}
                       disabled={!!actioningId}
                     >
-                      {actioningId === swap.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3 mr-1" />}
+                      {actioningId === swap.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Check className="h-3 w-3 mr-1" />
+                      )}
                       Approve
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => handleAction(swap.id, false)}
                       disabled={!!actioningId}
@@ -123,6 +153,22 @@ export function PendingSwapsModal({ isOpen, onClose, onSuccess }: PendingSwapsMo
                 </div>
               </Card>
             ))}
+            {hasMore && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadMoreSwaps}
+                  disabled={isLoadingMore}
+                  className="gap-2"
+                >
+                  {isLoadingMore ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : null}
+                  Load More Swaps
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="py-8 text-center text-muted-foreground">

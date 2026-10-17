@@ -1,10 +1,16 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, gt, or, sql } from 'drizzle-orm';
 import { schema } from '../schema';
 import { staffCertifications } from '../entities/staff-certification.entity';
 import { staffSkills } from '../entities/staff-skill.entity';
 import { type NewUser, users } from '../entities/user.entity';
 import { availability } from '../entities/availability.entity';
+import {
+  CursorPaginationParams,
+  CursorPaginatedResponse,
+  StaffMemberResponse,
+} from '../api-interfaces';
+import { clampLimit, decodeCursor, paginateResults } from '../pagination';
 
 export class UserRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
@@ -15,7 +21,7 @@ export class UserRepository {
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
-      
+
     return user || null;
   }
 
@@ -25,13 +31,31 @@ export class UserRepository {
       .from(schema.users)
       .where(eq(schema.users.email, email))
       .limit(1);
-    
+
     return user || null;
   }
 
-  async findStaff() {
-    return this.db.query.users.findMany({
-      where: eq(schema.users.role, 'Staff'),
+  async findStaff(
+    pagination?: CursorPaginationParams,
+  ): Promise<CursorPaginatedResponse<StaffMemberResponse>> {
+    const limit = clampLimit(pagination?.limit, 20);
+    const conditions = [eq(schema.users.role, 'Staff')];
+
+    const cursorPayload = decodeCursor(pagination?.cursor);
+    if (cursorPayload) {
+      conditions.push(
+        or(
+          gt(schema.users.lastName, cursorPayload.value),
+          and(
+            eq(schema.users.lastName, cursorPayload.value),
+            gt(schema.users.id, cursorPayload.id),
+          ),
+        )!,
+      );
+    }
+
+    const rows = await this.db.query.users.findMany({
+      where: and(...conditions),
       columns: {
         id: true,
         firstName: true,
@@ -39,23 +63,62 @@ export class UserRepository {
         email: true,
         timezone: true,
         desiredWeeklyHours: true,
+        role: true,
+        createdAt: true,
       },
       with: {
         staffCertifications: {
-          with: { location: true }
+          with: { location: true },
         },
         staffSkills: {
-          with: { skill: true }
-        }
-      }
+          with: { skill: true },
+        },
+      },
+      orderBy: (users, { asc }) => [asc(users.lastName), asc(users.id)],
+      limit: limit + 1,
     });
+
+    return paginateResults(
+      rows as unknown as StaffMemberResponse[],
+      limit,
+      (u) => u.lastName,
+    );
   }
 
-  async findStaffByLocations(locationIds: string[]) {
-    if (locationIds.length === 0) return [];
-    
-    const users = await this.db.query.users.findMany({
-      where: eq(schema.users.role, 'Staff'),
+  async findStaffByLocations(
+    locationIds: string[],
+    pagination?: CursorPaginationParams,
+  ): Promise<CursorPaginatedResponse<StaffMemberResponse>> {
+    if (locationIds.length === 0) {
+      return {
+        data: [],
+        nextCursor: null,
+        hasMore: false,
+      };
+    }
+
+    const limit = clampLimit(pagination?.limit, 20);
+    const inLocationsCondition = sql`${schema.users.id} IN (SELECT user_id FROM staff_certifications WHERE location_id IN (${sql.join(
+      locationIds.map((id) => sql`${id}`),
+      sql`, `,
+    )}))`;
+    const conditions = [eq(schema.users.role, 'Staff'), inLocationsCondition];
+
+    const cursorPayload = decodeCursor(pagination?.cursor);
+    if (cursorPayload) {
+      conditions.push(
+        or(
+          gt(schema.users.lastName, cursorPayload.value),
+          and(
+            eq(schema.users.lastName, cursorPayload.value),
+            gt(schema.users.id, cursorPayload.id),
+          ),
+        )!,
+      );
+    }
+
+    const rows = await this.db.query.users.findMany({
+      where: and(...conditions),
       columns: {
         id: true,
         firstName: true,
@@ -63,19 +126,30 @@ export class UserRepository {
         email: true,
         timezone: true,
         desiredWeeklyHours: true,
+        role: true,
+        createdAt: true,
       },
       with: {
         staffCertifications: {
-          where: sql`${schema.staffCertifications.locationId} IN (${sql.join(locationIds.map(id => sql`${id}`), sql`, `)})`,
-          with: { location: true }
+          where: sql`${schema.staffCertifications.locationId} IN (${sql.join(
+            locationIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+          with: { location: true },
         },
         staffSkills: {
-          with: { skill: true }
-        }
-      }
+          with: { skill: true },
+        },
+      },
+      orderBy: (users, { asc }) => [asc(users.lastName), asc(users.id)],
+      limit: limit + 1,
     });
-    
-    return users.filter(u => u.staffCertifications.length > 0);
+
+    return paginateResults(
+      rows as unknown as StaffMemberResponse[],
+      limit,
+      (u) => u.lastName,
+    );
   }
 
   async findQualifiedStaffWithAssignments(shiftId: string) {
@@ -98,11 +172,11 @@ export class UserRepository {
       .where(
         and(
           eq(staffCertifications.userId, userId),
-          eq(staffCertifications.locationId, locationId)
-        )
+          eq(staffCertifications.locationId, locationId),
+        ),
       )
       .limit(1);
-    
+
     return !!cert;
   }
 
@@ -111,13 +185,10 @@ export class UserRepository {
       .select()
       .from(staffSkills)
       .where(
-        and(
-          eq(staffSkills.userId, userId),
-          eq(staffSkills.skillId, skillId)
-        )
+        and(eq(staffSkills.userId, userId), eq(staffSkills.skillId, skillId)),
       )
       .limit(1);
-    
+
     return !!skill;
   }
 
@@ -127,7 +198,7 @@ export class UserRepository {
       .set(data)
       .where(eq(schema.users.id, userId))
       .returning();
-      
+
     return user || null;
   }
   async getUserAvailability(userId: string) {

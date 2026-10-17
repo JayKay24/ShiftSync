@@ -1,7 +1,13 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, or, count, gte, sql } from 'drizzle-orm';
+import { eq, and, or, count, gte, lt, sql } from 'drizzle-orm';
 import { schema } from '../schema';
 import { swapRequests } from '../entities/swap-request.entity';
+import {
+  CursorPaginationParams,
+  CursorPaginatedResponse,
+  SwapRequestResponse,
+} from '../api-interfaces';
+import { clampLimit, decodeCursor, paginateResults } from '../pagination';
 
 export class SwapRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
@@ -13,10 +19,13 @@ export class SwapRepository {
       .where(
         and(
           eq(swapRequests.requestingUserId, userId),
-          or(eq(swapRequests.status, 'pending_peer'), eq(swapRequests.status, 'pending_manager'))
-        )
+          or(
+            eq(swapRequests.status, 'pending_peer'),
+            eq(swapRequests.status, 'pending_manager'),
+          ),
+        ),
       );
-      
+
     return Number(pendingCount.value);
   }
 
@@ -32,7 +41,7 @@ export class SwapRepository {
       .insert(swapRequests)
       .values(data as any)
       .returning();
-      
+
     return request;
   }
 
@@ -42,7 +51,7 @@ export class SwapRepository {
       .from(swapRequests)
       .where(eq(swapRequests.id, requestId))
       .limit(1);
-      
+
     return request || null;
   }
 
@@ -52,7 +61,7 @@ export class SwapRepository {
       .set({ status } as any)
       .where(eq(swapRequests.id, requestId))
       .returning();
-      
+
     return request || null;
   }
 
@@ -63,18 +72,43 @@ export class SwapRepository {
       .where(
         and(
           eq(swapRequests.shiftId, shiftId),
-          or(eq(swapRequests.status, 'pending_peer'), eq(swapRequests.status, 'pending_manager'))
-        )
+          or(
+            eq(swapRequests.status, 'pending_peer'),
+            eq(swapRequests.status, 'pending_manager'),
+          ),
+        ),
       );
   }
 
-  async getSwapRequestsForManager() {
+  async getSwapRequestsForManager(
+    pagination?: CursorPaginationParams,
+  ): Promise<CursorPaginatedResponse<SwapRequestResponse>> {
+    const limit = clampLimit(pagination?.limit, 20);
     const now = new Date();
-    return this.db.query.swapRequests.findMany({
-      where: and(
-        eq(swapRequests.status, 'pending_manager'),
-        or(sql`${swapRequests.expiresAt} IS NULL`, gte(swapRequests.expiresAt, now))
-      ),
+    const conditions = [
+      eq(swapRequests.status, 'pending_manager'),
+      or(
+        sql`${swapRequests.expiresAt} IS NULL`,
+        gte(swapRequests.expiresAt, now),
+      )!,
+    ];
+
+    const cursorPayload = decodeCursor(pagination?.cursor);
+    if (cursorPayload) {
+      const cursorDate = new Date(cursorPayload.value);
+      conditions.push(
+        or(
+          lt(swapRequests.createdAt, cursorDate),
+          and(
+            eq(swapRequests.createdAt, cursorDate),
+            lt(swapRequests.id, cursorPayload.id),
+          ),
+        )!,
+      );
+    }
+
+    const rows = await this.db.query.swapRequests.findMany({
+      where: and(...conditions),
       with: {
         shift: {
           with: {
@@ -84,15 +118,48 @@ export class SwapRepository {
         requestingUser: true,
         targetUser: true,
       },
+      orderBy: (swapRequests, { desc }) => [
+        desc(swapRequests.createdAt),
+        desc(swapRequests.id),
+      ],
+      limit: limit + 1,
     });
+
+    return paginateResults(
+      rows as unknown as SwapRequestResponse[],
+      limit,
+      (item) => item.createdAt,
+    );
   }
 
-  async getSwapRequestsForUser(userId: string) {
-    return this.db.query.swapRequests.findMany({
-      where: or(
+  async getSwapRequestsForUser(
+    userId: string,
+    pagination?: CursorPaginationParams,
+  ): Promise<CursorPaginatedResponse<SwapRequestResponse>> {
+    const limit = clampLimit(pagination?.limit, 20);
+    const conditions = [
+      or(
         eq(swapRequests.requestingUserId, userId),
-        eq(swapRequests.targetUserId, userId)
-      ),
+        eq(swapRequests.targetUserId, userId),
+      )!,
+    ];
+
+    const cursorPayload = decodeCursor(pagination?.cursor);
+    if (cursorPayload) {
+      const cursorDate = new Date(cursorPayload.value);
+      conditions.push(
+        or(
+          lt(swapRequests.createdAt, cursorDate),
+          and(
+            eq(swapRequests.createdAt, cursorDate),
+            lt(swapRequests.id, cursorPayload.id),
+          ),
+        )!,
+      );
+    }
+
+    const rows = await this.db.query.swapRequests.findMany({
+      where: and(...conditions),
       with: {
         shift: {
           with: {
@@ -102,6 +169,17 @@ export class SwapRepository {
         requestingUser: true,
         targetUser: true,
       },
+      orderBy: (swapRequests, { desc }) => [
+        desc(swapRequests.createdAt),
+        desc(swapRequests.id),
+      ],
+      limit: limit + 1,
     });
+
+    return paginateResults(
+      rows as unknown as SwapRequestResponse[],
+      limit,
+      (item) => item.createdAt,
+    );
   }
 }
