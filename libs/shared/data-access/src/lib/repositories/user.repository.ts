@@ -38,7 +38,7 @@ export class UserRepository {
   async findStaff(
     pagination?: CursorPaginationParams,
   ): Promise<CursorPaginatedResponse<StaffMemberResponse>> {
-    const limit = clampLimit(pagination?.limit, 10);
+    const limit = clampLimit(pagination?.limit);
     const conditions = [eq(schema.users.role, 'Staff')];
 
     const cursorPayload = decodeCursor(pagination?.cursor);
@@ -97,7 +97,7 @@ export class UserRepository {
       };
     }
 
-    const limit = clampLimit(pagination?.limit, 10);
+    const limit = clampLimit(pagination?.limit);
     const inLocationsCondition = sql`${schema.users.id} IN (SELECT user_id FROM staff_certifications WHERE location_id IN (${sql.join(
       locationIds.map((id) => sql`${id}`),
       sql`, `,

@@ -36,7 +36,7 @@ export class AuditRepository {
     entityId: string,
     pagination?: CursorPaginationParams,
   ): Promise<CursorPaginatedResponse<AuditLogResponse>> {
-    const limit = clampLimit(pagination?.limit, 10);
+    const limit = clampLimit(pagination?.limit);
     const conditions = [
       eq(auditLogs.entityType, entityType),
       eq(auditLogs.entityId, entityId),
@@ -85,7 +85,7 @@ export class AuditRepository {
     endDate: Date,
     pagination?: CursorPaginationParams,
   ): Promise<CursorPaginatedResponse<AuditLogResponse>> {
-    const limit = clampLimit(pagination?.limit, 10);
+    const limit = clampLimit(pagination?.limit);
     const conditions = [
       gte(auditLogs.changedAt, startDate),
       lte(auditLogs.changedAt, endDate),

@@ -45,6 +45,7 @@ describe('Manager Location-Based Access Control', () => {
     // Let's assume some staff is only LA. (Grace is LA in seed.ts)
     const bobStaff = await axios.get('/api/shifts/staff', {
       headers: { Authorization: `Bearer ${bobToken}` },
+      params: { limit: 20 },
     });
     const bobStaffNames = bobStaff.data.data.map((s: any) => s.firstName);
     expect(bobStaffNames).toContain('Charlie');
@@ -53,6 +54,7 @@ describe('Manager Location-Based Access Control', () => {
     const dianaTokenVal = await loginDiana();
     const dianaStaff = await axios.get('/api/shifts/staff', {
       headers: { Authorization: `Bearer ${dianaTokenVal}` },
+      params: { limit: 20 },
     });
     const dianaStaffNames = dianaStaff.data.data.map((s: any) => s.firstName);
     expect(dianaStaffNames).toContain('Grace');

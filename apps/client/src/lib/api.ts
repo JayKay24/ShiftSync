@@ -20,12 +20,13 @@ import {
   AuditLogResponse,
   CursorPaginatedResponse,
   StaffMemberResponse,
+  DEFAULT_PAGE_LIMIT,
 } from '@shiftsync/data-access';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 /** Default page size for cursor-paginated list views ('Load More'). */
-export const DEFAULT_PAGE_SIZE = 10;
+export const DEFAULT_PAGE_SIZE = DEFAULT_PAGE_LIMIT;
 
 export const api = axios.create({
   baseURL: API_URL,
