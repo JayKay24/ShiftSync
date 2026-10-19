@@ -70,8 +70,9 @@ flowchart TD
     Commitlint["Conventional Commits"]
     LintTypecheck["ESLint & TypeScript Typecheck"]
     BuildJob["Production Application Builds"]
-    UnitTests["Jest Unit Test Suite"]
+    UnitTests["Vitest & Jest Unit Test Suite"]
     IntegrationTests["Server E2E & Compliance (PostgreSQL Service)"]
+    ClientE2ETests["Client UI E2E (Playwright + PostgreSQL Service)"]
   end
 
   %% Client interactions
