@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Nx](https://img.shields.io/badge/Monorepo-Nx-143157?style=flat&logo=nx&logoColor=white)](https://nx.dev)
 [![TypeScript](https://img.shields.io/badge/Language-TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Next.js](https://img.shields.io/badge/Frontend-Next.js-000000?style=flat&logo=next.js&logoColor=white)](https://nextjs.org)
+[![Vite](https://img.shields.io/badge/Frontend-Vite_SPA-646CFF?style=flat&logo=vite&logoColor=white)](https://vite.dev)
 [![NestJS](https://img.shields.io/badge/Backend-NestJS-E0234E?style=flat&logo=nestjs&logoColor=white)](https://nestjs.com)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![Drizzle ORM](https://img.shields.io/badge/ORM-Drizzle_ORM-C5F74F?style=flat&logoColor=black)](https://orm.drizzle.team)
@@ -29,13 +29,13 @@ ShiftSync addresses the core operational challenges of multi-location hospitalit
 
 ## 🏗 System Architecture
 
-The monorepo is managed with **Nx**, separating concerns into a **Next.js** frontend, a **NestJS** backend, and a unified **`@shiftsync/data-access`** shared library.
+The monorepo is managed with **Nx**, separating concerns into a **React (Vite)** frontend SPA, a **NestJS** backend, and a unified **`@shiftsync/data-access`** shared library.
 
 ```mermaid
 flowchart TD
   subgraph Clients ["Client Tier"]
-    ManagerUI["Manager Dashboard (Next.js 16)"]
-    StaffUI["Staff Portal (Next.js 16)"]
+    ManagerUI["Manager Dashboard (React 19 SPA)"]
+    StaffUI["Staff Portal (React 19 SPA)"]
   end
 
   subgraph FrontendApp ["Frontend Application (apps/client)"]
@@ -126,10 +126,10 @@ Based on the operational requirements for Coastal Eats, the platform adheres to 
 ## 🛠 Tech Stack
 
 - **Monorepo Architecture**: [Nx](https://nx.dev)
-- **Frontend**: Next.js 16 (React 19, TypeScript, Tailwind CSS, Lucide React)
+- **Frontend**: React 19 SPA with [Vite](https://vite.dev) & [React Router v7](https://reactrouter.com) (TypeScript, Tailwind CSS, Lucide React)
 - **Backend**: NestJS 11 (TypeScript, Socket.io WebSockets, Passport JWT)
 - **Database & ORM**: PostgreSQL 16 with [Drizzle ORM](https://orm.drizzle.team/) & [Drizzle Kit](https://orm.drizzle.team/kit-docs/overview)
-- **Testing**: Jest (Unit & Server Integration), Playwright (Client UI E2E)
+- **Testing**: Vitest & Jest (Unit), Jest (Server Integration), Playwright (Client UI E2E)
 - **Continuous Integration**: GitHub Actions with dedicated dependency caching and PostgreSQL service containers
 
 ---
@@ -157,17 +157,17 @@ ShiftSync uses environment variables for database connections, authentication se
 
 2. Review and adjust variables as needed:
 
-| Variable              | Description                                               | Default Value                                                                 | Scope             |
-| :-------------------- | :-------------------------------------------------------- | :---------------------------------------------------------------------------- | :---------------- |
-| `DATABASE_URL`        | PostgreSQL connection string                              | `postgresql://shiftsync:password123@localhost:5432/shiftsync?sslmode=disable` | Backend & Drizzle |
-| `JWT_SECRET`          | Secret key used for signing JWT tokens                    | `supersecretjwtkeyforlocaldevelopment1234567890`                              | Backend           |
-| `PORT`                | HTTP server port for backend API                          | `3001`                                                                        | Backend           |
-| `NODE_ENV`            | Runtime environment (`development`, `test`, `production`) | `development`                                                                 | Backend           |
-| `NEXT_PUBLIC_API_URL` | Backend API URL consumed by client                        | `http://localhost:3001/api`                                                   | Frontend          |
-| `POSTGRES_USER`       | PostgreSQL superuser for Docker container                 | `shiftsync`                                                                   | Docker Compose    |
-| `POSTGRES_PASSWORD`   | PostgreSQL password for Docker container                  | `password123`                                                                 | Docker Compose    |
-| `POSTGRES_DB`         | Database name for Docker container                        | `shiftsync`                                                                   | Docker Compose    |
-| `POSTGRES_PORT`       | Host port for PostgreSQL                                  | `5432`                                                                        | Docker Compose    |
+| Variable            | Description                                               | Default Value                                                                 | Scope             |
+| :------------------ | :-------------------------------------------------------- | :---------------------------------------------------------------------------- | :---------------- |
+| `DATABASE_URL`      | PostgreSQL connection string                              | `postgresql://shiftsync:password123@localhost:5432/shiftsync?sslmode=disable` | Backend & Drizzle |
+| `JWT_SECRET`        | Secret key used for signing JWT tokens                    | `supersecretjwtkeyforlocaldevelopment1234567890`                              | Backend           |
+| `PORT`              | HTTP server port for backend API                          | `3001`                                                                        | Backend           |
+| `NODE_ENV`          | Runtime environment (`development`, `test`, `production`) | `development`                                                                 | Backend           |
+| `VITE_API_URL`      | Backend API URL consumed by client                        | `http://localhost:3001/api`                                                   | Frontend          |
+| `POSTGRES_USER`     | PostgreSQL superuser for Docker container                 | `shiftsync`                                                                   | Docker Compose    |
+| `POSTGRES_PASSWORD` | PostgreSQL password for Docker container                  | `password123`                                                                 | Docker Compose    |
+| `POSTGRES_DB`       | Database name for Docker container                        | `shiftsync`                                                                   | Docker Compose    |
+| `POSTGRES_PORT`     | Host port for PostgreSQL                                  | `5432`                                                                        | Docker Compose    |
 
 ---
 
@@ -216,7 +216,7 @@ Open two terminal windows (or use Nx parallel serve):
 # Terminal 1: Start NestJS Backend (http://localhost:3001)
 npx nx serve server
 
-# Terminal 2: Start Next.js Frontend (http://localhost:3000)
+# Terminal 2: Start React Frontend (http://localhost:3000)
 npx nx serve client
 ```
 

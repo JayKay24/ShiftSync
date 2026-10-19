@@ -1,24 +1,22 @@
-'use client';
-
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
-export default function Index() {
+export default function LandingPage() {
   const { user, isLoading } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isLoading && user) {
       if (user.role === 'Admin' || user.role === 'Manager') {
-        router.push('/dashboard/manager');
+        navigate('/dashboard/manager');
       } else {
-        router.push('/dashboard/staff');
+        navigate('/dashboard/staff');
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -37,11 +35,11 @@ export default function Index() {
         Welcome to ShiftSync
       </h1>
       <p className="mb-8 max-w-lg text-lg text-slate-600">
-        Effortless shift scheduling and management for Coastal Eats. 
-        Streamline your workflow with real-time sync and labor compliance.
+        Effortless shift scheduling and management for Coastal Eats. Streamline
+        your workflow with real-time sync and labor compliance.
       </p>
       <div className="flex gap-4">
-        <Button size="lg" onClick={() => router.push('/login')}>
+        <Button size="lg" onClick={() => navigate('/login')}>
           Sign In
         </Button>
       </div>

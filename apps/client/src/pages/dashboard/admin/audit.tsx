@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAudit } from '@/hooks/use-audit';
 import { format, subDays, parseISO } from 'date-fns';
@@ -308,7 +306,7 @@ export default function GlobalAuditPage() {
                 No Audit Records
               </h3>
               <p className="text-sm text-slate-500 max-w-[280px] mt-2 leading-relaxed">
-                We couldn\'t find any modification logs for this period. Try
+                We couldn't find any modification logs for this period. Try
                 extending your date range.
               </p>
               <Button

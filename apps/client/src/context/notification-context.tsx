@@ -1,5 +1,3 @@
-'use client';
-
 import React, {
   createContext,
   useContext,
@@ -14,7 +12,7 @@ import { notificationsApi } from '@/lib/api';
 import { Notification } from '@shiftsync/data-access';
 
 const SOCKET_URL = (
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+  (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3001/api'
 ).replace('/api', '');
 
 interface NotificationContextType {
