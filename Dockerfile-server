@@ -3,11 +3,11 @@ FROM node:25-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency manifests
-COPY package*.json ./
+# Copy dependency manifests and npm configuration
+COPY package*.json .npmrc* ./
 
 # Install all dependencies (including Nx and build tools)
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy the entire workspace
 COPY . .
@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=builder /app/apps/server/dist/apps/server .
 
 # Install ONLY production dependencies
-RUN npm install --omit=dev
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Expose the application port
 EXPOSE 3001
