@@ -245,6 +245,13 @@ All contributions, bug fixes, and feature implementations must strictly follow t
    - Unit & integration tests: `npx nx run-many -t test`
 3. **Conventional Commits**: Commit changes following the Conventional Commits specification enforced by Commitlint (e.g., `feat(...)`, `fix(...)`, `docs(...)`).
 4. **Push & Create PR**: Push the branch to upstream (`origin`) and open a Pull Request targeting the `develop` branch for review and CI validation.
+5. **Automated Release Pipeline**:
+   - Merges from `develop` into `main` trigger the `Continuous Integration` suite. Upon successful completion, the `Release` workflow (`.github/workflows/release.yml`) automatically executes.
+   - `nx release` parses conventional commits since the previous release, computes the appropriate semantic version increment (`feat` $\rightarrow$ minor, `fix` $\rightarrow$ patch, `BREAKING CHANGE` or `!` $\rightarrow$ major), updates the root `package.json`, generates `CHANGELOG.md`, creates a git tag (`vX.Y.Z`), and publishes a GitHub Release.
+   - The release bot (`github-actions[bot]`) commits the bump (`chore(release): vX.Y.Z`) and pushes to `main`.
+6. **Main-to-Develop Back-Merge**:
+   - Following an automated release on `main`, `main` contains a new release commit and updated `CHANGELOG.md` that is not yet on `develop`.
+   - Always back-merge `main` into `develop` (`git checkout develop && git pull origin develop && git merge origin/main && git push origin develop`) to ensure `develop` remains in sync with the latest released version and changelog.
 
 ---
 
@@ -302,6 +309,16 @@ npx nx e2e client-e2e
 
 # Build all applications for production
 npx nx run-many -t build
+```
+
+### Versioning & Releases
+
+```sh
+# Preview release version bump, changelog updates, and git tags without modifying files
+npx nx release --dry-run
+
+# Run full release locally (when authorized)
+npx nx release
 ```
 
 ---
