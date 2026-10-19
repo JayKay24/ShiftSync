@@ -1,8 +1,6 @@
-'use client';
-
 import React, { createContext, useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { AuthResponse, SafeUser, LoginRequest } from '@shiftsync/data-access';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { SafeUser, LoginRequest } from '@shiftsync/data-access';
 import { authApi } from '@/lib/api';
 
 export interface AuthContextType {
@@ -14,14 +12,17 @@ export interface AuthContextType {
   setUser: (user: SafeUser | null) => void;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SafeUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-  const pathname = usePathname();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const pathname = location.pathname;
 
   useEffect(() => {
     // Check for existing session
@@ -42,12 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(authData.user);
     localStorage.setItem('token', authData.access_token);
     localStorage.setItem('user', JSON.stringify(authData.user));
-    
+
     // Redirect based on role
     if (authData.user.role === 'Admin' || authData.user.role === 'Manager') {
-      router.push('/dashboard/manager');
+      navigate('/dashboard/manager');
     } else {
-      router.push('/dashboard/staff');
+      navigate('/dashboard/staff');
     }
   };
 
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    router.push('/login');
+    navigate('/login');
   };
 
   // Basic route protection logic
@@ -66,13 +67,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isPublic = publicRoutes.includes(pathname);
 
       if (!token && !isPublic) {
-        router.push('/login');
+        navigate('/login');
       }
     }
-  }, [token, isLoading, pathname, router]);
+  }, [token, isLoading, pathname, navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, setUser }}>
+    <AuthContext.Provider
+      value={{ user, token, isLoading, login, logout, setUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

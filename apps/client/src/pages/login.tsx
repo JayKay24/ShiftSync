@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -35,7 +33,8 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error('Login error:', err);
       setError(
-        err.response?.data?.message || 'Invalid email or password. Please try again.'
+        err.response?.data?.message ||
+          'Invalid email or password. Please try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -48,10 +47,14 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
             <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">S</span>
+              <span className="text-primary-foreground font-bold text-xl">
+                S
+              </span>
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">ShiftSync Login</CardTitle>
+          <CardTitle className="text-2xl text-center">
+            ShiftSync Login
+          </CardTitle>
           <CardDescription className="text-center">
             Enter your credentials to access your schedule
           </CardDescription>
@@ -87,11 +90,7 @@ export default function LoginPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-            >
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

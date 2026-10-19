@@ -1,6 +1,5 @@
-'use client';
-
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import { useSwaps } from '@/hooks/use-swaps';
 import { useStaff } from '@/hooks/use-staff';
@@ -17,14 +16,12 @@ import {
   Loader2,
   ArrowRightLeft,
   Clock,
-  MapPin,
   User,
   AlertCircle,
   Info,
   X,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -45,7 +42,7 @@ function SwapMarketplaceContent() {
   } = useSwaps();
 
   const { staffList, fetchStaff, fetchMyAssignments } = useStaff();
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const initialShiftId = searchParams.get('shiftId');
 
   const [myAssignments, setMyAssignments] = useState<any[]>([]);

@@ -3,39 +3,35 @@ FROM node:25-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency manifests
-COPY package*.json ./
+# Copy dependency manifests and npm configuration
+COPY package*.json .npmrc* ./
 
 # Install all dependencies (including Nx and build tools)
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copy the entire workspace
 COPY . .
 
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ARG VITE_API_URL=http://localhost:3001/api
+ENV VITE_API_URL=$VITE_API_URL
 
 # Build the client application
-RUN npx nx build client --configuration=production
+RUN npx nx build client
 
-# Stage 2: Run the application
-FROM node:25-alpine
+# Stage 2: Serve the static SPA with Nginx
+FROM nginx:alpine
 
-WORKDIR /app
+COPY --from=builder /app/dist/apps/client /usr/share/nginx/html
 
-# Set production environment
-ENV NODE_ENV=production
+RUN printf 'server {\n\
+    listen 3000;\n\
+    location / {\n\
+        root /usr/share/nginx/html;\n\
+        index index.html index.htm;\n\
+        try_files $uri $uri/ /index.html;\n\
+    }\n\
+}\n' > /etc/nginx/conf.d/default.conf
 
-# In standalone mode, Next.js produces a standalone folder that contains 
-# only the necessary files for production, including the monorepo structure.
-# The standalone folder is located at dist/apps/client/.next/standalone
-COPY --from=builder /app/apps/client/.next/standalone ./
-COPY --from=builder /app/apps/client/.next/static ./apps/client/.next/static
-COPY --from=builder /app/apps/client/public ./apps/client/public
-
-# Expose the application port
 EXPOSE 3000
 
-# Run the compiled application using the standalone server
-# Note: In an Nx monorepo, the standalone build keeps the original folder structure
-CMD ["node", "apps/client/server.js"]
+CMD ["nginx", "-g", "daemon off;"]

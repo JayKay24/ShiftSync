@@ -1,6 +1,6 @@
 # ShiftSync - Technical Context & Guidelines
 
-ShiftSync is a multi-location staff scheduling platform for **Coastal Eats**. It is built as a monorepo using **Nx**, featuring a **NestJS** backend, a **Next.js** frontend, and a shared data access library.
+ShiftSync is a multi-location staff scheduling platform for **Coastal Eats**. It is built as a monorepo using **Nx**, featuring a **NestJS** backend, a **React (Vite)** frontend SPA, and a shared data access library.
 
 ---
 
@@ -147,7 +147,7 @@ The project features a comprehensive seed script in `apps/server/src/db/seed.ts`
 
 ## 🌐 Frontend Application (`apps/client`)
 
-The frontend is a **Next.js** application built with the App Router, **Tailwind CSS** for styling, and **Lucide React** for icons.
+The frontend is a **React 19** Single Page Application (SPA) powered by **Vite**, **React Router v7**, **Tailwind CSS** for styling, and **Lucide React** for icons.
 
 ### API Consumption
 
@@ -179,7 +179,7 @@ import { cn } from '@/lib/utils';
 
 ### Routing & Authentication
 
-- **Role-Based Redirects**: The index page (`/app/page.tsx`) automatically routes users to `/dashboard/manager` or `/dashboard/staff` based on their role stored in `AuthContext`.
+- **Role-Based Redirects**: The landing page (`/` in `src/pages/landing.tsx`) automatically routes users to `/dashboard/manager` or `/dashboard/staff` based on their role stored in `AuthContext`.
 - **Axios Interceptors**: Injects Bearer tokens on outgoing requests and handles automatic logout and redirection upon receiving 401 Unauthorized responses.
 - **Notification Context**: Maintains a real-time unread notification badge counter synced across tabs via WebSockets.
 
@@ -191,12 +191,12 @@ ShiftSync employs a multi-layered testing strategy verifying business logic, com
 
 ### 1. Unit Tests
 
-Unit tests are implemented with Jest across all applications and libraries:
+Unit tests are implemented with **Vitest** for the client and **Jest** for backend/shared libraries:
 
 - `npx nx run-many -t test`: Runs all unit test suites.
-- `apps/client`: Tests UI components, routing guards, and helper utilities.
-- `apps/server`: Tests service business logic, compliance calculation, and repository integration.
-- `libs/shared/data-access`: Tests DTO validation decorators and schema mapping.
+- `apps/client`: Tests UI components, routing guards, and helper utilities with Vitest.
+- `apps/server`: Tests service business logic, compliance calculation, and repository integration with Jest.
+- `libs/shared/data-access`: Tests DTO validation decorators and schema mapping with Jest.
 
 ### 2. Backend Integration & E2E Tests (`apps/server-e2e`)
 
