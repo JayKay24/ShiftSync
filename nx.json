@@ -38,15 +38,18 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/server-e2e/**/*"]
+      "exclude": ["apps/server-e2e/**/*", "apps/client/**/*"]
     },
     {
-      "plugin": "@nx/next/plugin",
+      "plugin": "@nx/vite/plugin",
       "options": {
-        "startTargetName": "start",
         "buildTargetName": "build",
+        "testTargetName": "test",
+        "serveTargetName": "serve",
         "devTargetName": "dev",
+        "previewTargetName": "preview",
         "serveStaticTargetName": "serve-static",
+        "typecheckTargetName": "typecheck",
         "buildDepsTargetName": "build-deps",
         "watchDepsTargetName": "watch-deps"
       }
@@ -58,12 +61,26 @@
       }
     }
   ],
-  "generators": {
-    "@nx/next": {
-      "application": {
-        "style": "tailwind",
-        "linter": "eslint"
+  "release": {
+    "projects": ["shiftsync"],
+    "projectsRelationship": "fixed",
+    "releaseTagPattern": "v{version}",
+    "version": {
+      "conventionalCommits": true,
+      "fallbackCurrentVersionResolver": "disk",
+      "manifestRootsToUpdate": ["{projectRoot}"]
+    },
+    "changelog": {
+      "automaticFromRef": true,
+      "workspaceChangelog": {
+        "file": "CHANGELOG.md",
+        "createRelease": "github"
       }
+    },
+    "git": {
+      "commit": true,
+      "commitMessage": "chore(release): v{version}",
+      "tag": true
     }
   }
 }

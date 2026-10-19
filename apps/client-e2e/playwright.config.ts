@@ -18,13 +18,21 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   timeout: 60000,
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npx nx run client:dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-    cwd: workspaceRoot,
-  },
+  /* Run local dev servers before starting the tests */
+  webServer: [
+    {
+      command: 'npx nx run server:serve:development',
+      url: 'http://localhost:3001/api',
+      reuseExistingServer: true,
+      cwd: workspaceRoot,
+    },
+    {
+      command: 'npx nx run client:dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: true,
+      cwd: workspaceRoot,
+    },
+  ],
   workers: 1,
   projects: [
     {

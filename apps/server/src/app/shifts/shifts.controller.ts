@@ -1,4 +1,14 @@
-import { Controller, Post, Body, Param, UseGuards, Req, Get, Query, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+  Get,
+  Query,
+  Patch,
+} from '@nestjs/common';
 import { ShiftsService } from './shifts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -11,6 +21,9 @@ import {
   CreateShiftRequest,
   UpdateShiftRequest,
   AssignStaffRequest,
+  StaffMemberResponse,
+  ShiftResponse,
+  CursorPaginatedResponse,
 } from '@shiftsync/data-access';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,8 +47,15 @@ export class ShiftsController {
   }
 
   @Get('staff')
-  async getStaff(@Req() req) {
-    return this.shiftsService.getStaff(req.user.userId, req.user.role);
+  async getStaff(
+    @Req() req,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ): Promise<CursorPaginatedResponse<StaffMemberResponse>> {
+    return this.shiftsService.getStaff(req.user.userId, req.user.role, {
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Get('staff/:id/assignments')
@@ -54,7 +74,7 @@ export class ShiftsController {
   @Roles('Admin', 'Manager')
   async getOnDuty(): Promise<OnDutyStaffResponse[]> {
     const records = await this.shiftsService.getOnDutyStaff();
-    return records.map(r => ({
+    return records.map((r) => ({
       id: r.id,
       user: r.user,
       location: r.location,
@@ -64,9 +84,11 @@ export class ShiftsController {
 
   @Get(':id/available-staff')
   @Roles('Admin', 'Manager')
-  async getAvailable(@Param('id') id: string): Promise<AvailableStaffResponse[]> {
+  async getAvailable(
+    @Param('id') id: string,
+  ): Promise<AvailableStaffResponse[]> {
     const staff = await this.shiftsService.findAvailableStaff(id);
-    return staff.map(s => ({
+    return staff.map((s) => ({
       id: s.user.id,
       name: `${s.user.firstName} ${s.user.lastName}`,
       warnings: s.warnings,
@@ -77,13 +99,21 @@ export class ShiftsController {
   @Get()
   async getAll(
     @Query('startDate') startDate?: string,
+    @Query('start') start?: string,
     @Query('endDate') endDate?: string,
-    @Query('locationId') locationId?: string
-  ): Promise<Shift[]> {
+    @Query('end') end?: string,
+    @Query('locationId') locationId?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ): Promise<CursorPaginatedResponse<ShiftResponse>> {
+    const effectiveStart = startDate || start;
+    const effectiveEnd = endDate || end;
     return this.shiftsService.getShifts({
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate: effectiveStart ? new Date(effectiveStart) : undefined,
+      endDate: effectiveEnd ? new Date(effectiveEnd) : undefined,
       locationId,
+      cursor,
+      limit: limit ? Number(limit) : undefined,
     });
   }
 
@@ -94,7 +124,10 @@ export class ShiftsController {
 
   @Post()
   @Roles('Admin', 'Manager')
-  async create(@Body() createShiftDto: CreateShiftRequest, @Req() req): Promise<Shift> {
+  async create(
+    @Body() createShiftDto: CreateShiftRequest,
+    @Req() req,
+  ): Promise<Shift> {
     return this.shiftsService.createShift({
       ...createShiftDto,
       startTime: new Date(createShiftDto.startTime),
@@ -109,13 +142,13 @@ export class ShiftsController {
   async assign(
     @Param('id') id: string,
     @Body() assignStaffDto: AssignStaffRequest,
-    @Req() req
+    @Req() req,
   ): Promise<AssignmentResult> {
     const res = await this.shiftsService.assignStaff(
       id,
       assignStaffDto.userId,
       req.user.userId,
-      assignStaffDto.overrideReason
+      assignStaffDto.overrideReason,
     );
     return res as AssignmentResult;
   }
@@ -125,11 +158,13 @@ export class ShiftsController {
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateShiftRequest,
-    @Req() req
+    @Req() req,
   ): Promise<Shift> {
     return this.shiftsService.updateShift(id, req.user.userId, req.user.role, {
       ...updateDto,
-      startTime: updateDto.startTime ? new Date(updateDto.startTime) : undefined,
+      startTime: updateDto.startTime
+        ? new Date(updateDto.startTime)
+        : undefined,
       endTime: updateDto.endTime ? new Date(updateDto.endTime) : undefined,
     } as any);
   }

@@ -2,9 +2,17 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, sql, gte, count } from 'drizzle-orm';
 import { schema } from '../schema';
 
+/**
+ * Repository providing high-level operational metrics and statistics for dashboard views.
+ */
 export class DashboardRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
 
+  /**
+   * Retrieves organization-wide metrics for the Admin dashboard.
+   *
+   * @returns {Promise<{ totalStaff: number; pendingSwaps: number; upcomingShifts: number }>} System-wide counts.
+   */
   async getAdminStats() {
     const [staffCount] = await this.db
       .select({ value: count() })
@@ -28,12 +36,21 @@ export class DashboardRepository {
     };
   }
 
+  /**
+   * Retrieves operational metrics scoped to a manager's authorized locations.
+   *
+   * @param {string[]} locationIds - List of location IDs the manager supervises.
+   * @returns {Promise<{ totalStaff: number; pendingSwaps: number; upcomingShifts: number }>} Location-filtered counts.
+   */
   async getManagerStats(locationIds: string[]) {
     if (locationIds.length === 0) {
       return { totalStaff: 0, pendingSwaps: 0, upcomingShifts: 0 };
     }
 
-    const locIdsSql = sql.join(locationIds.map(id => sql`${id}`), sql`, `);
+    const locIdsSql = sql.join(
+      locationIds.map((id) => sql`${id}`),
+      sql`, `,
+    );
 
     const staffCountWhere = and(
       eq(schema.users.role, 'Staff'),
@@ -41,7 +58,7 @@ export class DashboardRepository {
         SELECT 1 FROM ${schema.staffCertifications} sc 
         WHERE sc.user_id = ${schema.users.id} 
         AND sc.location_id IN (${locIdsSql})
-      )`
+      )`,
     ) as any;
 
     const [staffCount] = await this.db
@@ -55,7 +72,7 @@ export class DashboardRepository {
         SELECT 1 FROM ${schema.shifts} s 
         WHERE s.id = ${schema.swapRequests.shiftId} 
         AND s.location_id IN (${locIdsSql})
-      )`
+      )`,
     ) as any;
 
     const [pendingSwapsCount] = await this.db
@@ -65,7 +82,7 @@ export class DashboardRepository {
 
     const shiftsWhere = and(
       gte(schema.shifts.startTime, new Date()),
-      sql`${schema.shifts.locationId} IN (${locIdsSql})`
+      sql`${schema.shifts.locationId} IN (${locIdsSql})`,
     ) as any;
 
     const [upcomingShiftsCount] = await this.db

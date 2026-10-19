@@ -1,5 +1,6 @@
 export * from './lib/schema';
 export * from './lib/api-interfaces';
+export * from './lib/pagination';
 export * from './lib/entities/user.entity';
 export * from './lib/entities/location.entity';
 export * from './lib/entities/skill.entity';

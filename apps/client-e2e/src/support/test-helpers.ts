@@ -12,7 +12,7 @@ export async function login(page: Page, email: string, pass: string) {
 
 export function seedDatabase() {
   console.log('Seeding database for client e2e...');
-  execSync('npm run db:seed', { stdio: 'inherit' });
+  execSync('npm run db:seed -- --full', { stdio: 'inherit' });
 }
 
 export const TEST_USERS = {

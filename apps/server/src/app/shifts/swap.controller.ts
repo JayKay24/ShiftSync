@@ -1,6 +1,21 @@
-import { Controller, Post, Body, UseGuards, Req, Param, Put, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Param,
+  Put,
+  Get,
+  Query,
+} from '@nestjs/common';
 import { SwapService } from './swap.service';
-import { CreateSwapRequest, ApproveSwapRequest } from '@shiftsync/data-access';
+import {
+  CreateSwapRequest,
+  ApproveSwapRequest,
+  CursorPaginatedResponse,
+  SwapRequestResponse,
+} from '@shiftsync/data-access';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -11,14 +26,26 @@ export class SwapController {
   constructor(private readonly swapService: SwapService) {}
 
   @Get()
-  async get(@Req() req) {
-    return this.swapService.getSwapRequests(req.user.userId, req.user.role);
+  async get(
+    @Req() req,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ): Promise<CursorPaginatedResponse<SwapRequestResponse>> {
+    return this.swapService.getSwapRequests(req.user.userId, req.user.role, {
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Post('request')
   @Roles('Staff')
   async request(@Body() dto: CreateSwapRequest, @Req() req) {
-    return this.swapService.requestSwap(req.user.userId, dto.shiftId, dto.reason, dto.targetUserId);
+    return this.swapService.requestSwap(
+      req.user.userId,
+      dto.shiftId,
+      dto.reason,
+      dto.targetUserId,
+    );
   }
 
   @Put('accept/:id')
@@ -41,7 +68,11 @@ export class SwapController {
 
   @Put('approve/:id')
   @Roles('Manager', 'Admin')
-  async approve(@Param('id') id: string, @Body() body: ApproveSwapRequest, @Req() req) {
+  async approve(
+    @Param('id') id: string,
+    @Body() body: ApproveSwapRequest,
+    @Req() req,
+  ) {
     return this.swapService.approveSwap(req.user.userId, id, body.approve);
   }
 }
