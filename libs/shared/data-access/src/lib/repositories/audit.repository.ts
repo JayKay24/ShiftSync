@@ -9,9 +9,24 @@ import {
 } from '../api-interfaces';
 import { clampLimit, decodeCursor, paginateResults } from '../pagination';
 
+/**
+ * Repository handling audit logging and history retrieval.
+ * Provides immutable audit trail storage for schedule modifications and entity diffs.
+ */
 export class AuditRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
 
+  /**
+   * Persists an immutable audit log record for an entity modification.
+   *
+   * @template T
+   * @param {string} actorId - Unique identifier of the user making the modification.
+   * @param {string} entityType - The category or table name of the affected entity (e.g., 'shift', 'swap_request').
+   * @param {string} entityId - Primary key of the modified entity.
+   * @param {T | null} oldState - Pre-modification snapshot state of the entity, or null if created.
+   * @param {T | null} newState - Post-modification snapshot state of the entity, or null if deleted.
+   * @returns {Promise<any[]>} Created audit log database record.
+   */
   async logChange<T>(
     actorId: string,
     entityType: string,
@@ -31,6 +46,14 @@ export class AuditRepository {
       .returning();
   }
 
+  /**
+   * Retrieves chronological audit logs for a specific entity with keyset pagination.
+   *
+   * @param {string} entityType - Target entity type (e.g., 'shift').
+   * @param {string} entityId - Target entity identifier.
+   * @param {CursorPaginationParams} [pagination] - Pagination options including limit and cursor token.
+   * @returns {Promise<CursorPaginatedResponse<AuditLogResponse>>} Paginated audit records with actor metadata.
+   */
   async getLogsByEntity(
     entityType: string,
     entityId: string,
@@ -80,6 +103,14 @@ export class AuditRepository {
     );
   }
 
+  /**
+   * Retrieves audit logs recorded across the system within a date window, ordered newest-first.
+   *
+   * @param {Date} startDate - Start of the audit search window (inclusive).
+   * @param {Date} endDate - End of the audit search window (inclusive).
+   * @param {CursorPaginationParams} [pagination] - Pagination options including limit and cursor token.
+   * @returns {Promise<CursorPaginatedResponse<AuditLogResponse>>} Paginated audit records with actor metadata.
+   */
   async getLogsInRange(
     startDate: Date,
     endDate: Date,

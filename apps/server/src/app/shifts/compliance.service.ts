@@ -1,13 +1,32 @@
 import { Injectable } from '@nestjs/common';
-import { AssignmentRepository, ShiftRepository, UserRepository } from '@shiftsync/data-access';
-import { startOfWeek, endOfWeek, startOfDay, endOfDay, subDays } from 'date-fns';
+import {
+  AssignmentRepository,
+  ShiftRepository,
+  UserRepository,
+} from '@shiftsync/data-access';
+import {
+  startOfWeek,
+  endOfWeek,
+  startOfDay,
+  endOfDay,
+  subDays,
+} from 'date-fns';
 
+/**
+ * Evaluation outcome returned by compliance and labor law checks.
+ */
 export interface ComplianceResult {
+  /** Indicates whether a scheduling violation prevents assignment without exception (e.g. overlap, 10h rest gap, 12h daily cap). */
   hasHardBlock: boolean;
+  /** List of explanatory warning and alert messages detailing rule transgressions. */
   warnings: string[];
+  /** Indicates whether the assignment requires an explicit manager override justification (e.g. 7th consecutive day). */
   requiresOverride: boolean;
 }
 
+/**
+ * Service enforcing labor law compliance, rest gaps, overtime thresholds, and availability rules.
+ */
 @Injectable()
 export class ComplianceService {
   constructor(
@@ -16,7 +35,19 @@ export class ComplianceService {
     private userRepo: UserRepository,
   ) {}
 
-  async checkCompliance(userId: string, shiftId: string): Promise<ComplianceResult> {
+  /**
+   * Verifies labor law and scheduling compliance rules for assigning a user to a shift.
+   * Checks for overlapping shifts, 10-hour rest gaps, availability window alignment,
+   * daily limits (8h warning, 12h hard cap), weekly overtime (35h/40h warnings), and consecutive days (6th/7th).
+   *
+   * @param {string} userId - ID of the staff member being evaluated.
+   * @param {string} shiftId - ID of the target shift.
+   * @returns {Promise<ComplianceResult>} Evaluation result with hard blocks, warnings, and override flags.
+   */
+  async checkCompliance(
+    userId: string,
+    shiftId: string,
+  ): Promise<ComplianceResult> {
     const result: ComplianceResult = {
       hasHardBlock: false,
       warnings: [],
@@ -30,9 +61,14 @@ export class ComplianceService {
 
     const shiftStart = new Date(shift.startTime);
     const shiftEnd = new Date(shift.endTime);
-    const shiftDuration = (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
+    const shiftDuration =
+      (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
 
-    const userAssignments = await this.assignmentRepo.getConfirmedShiftTimesForUserExcluding(userId, shiftId);
+    const userAssignments =
+      await this.assignmentRepo.getConfirmedShiftTimesForUserExcluding(
+        userId,
+        shiftId,
+      );
 
     for (const existing of userAssignments) {
       const existingStart = new Date(existing.startTime).getTime();
@@ -51,13 +87,21 @@ export class ComplianceService {
         (existingStart < newEnd + restPeriodMs && existingStart >= newEnd)
       ) {
         result.hasHardBlock = true;
-        result.warnings.push('Minimum 10-hour rest period required between shifts');
+        result.warnings.push(
+          'Minimum 10-hour rest period required between shifts',
+        );
       }
     }
 
     const userAvailability = await this.userRepo.getUserAvailability(userId);
 
-    const isAvailable = await this.checkUserAvailability(userId, user.timezone, shiftStart, shiftEnd, userAvailability);
+    const isAvailable = await this.checkUserAvailability(
+      userId,
+      user.timezone,
+      shiftStart,
+      shiftEnd,
+      userAvailability,
+    );
     if (!isAvailable) {
       result.hasHardBlock = true;
       result.warnings.push('Shift falls outside of staff availability windows');
@@ -66,7 +110,12 @@ export class ComplianceService {
     const dayStart = startOfDay(shiftStart);
     const dayEnd = endOfDay(shiftStart);
 
-    const calculateHoursInRange = (start: Date, end: Date, rangeStart: Date, rangeEnd: Date) => {
+    const calculateHoursInRange = (
+      start: Date,
+      end: Date,
+      rangeStart: Date,
+      rangeEnd: Date,
+    ) => {
       const actualStart = start > rangeStart ? start : rangeStart;
       const actualEnd = end < rangeEnd ? end : rangeEnd;
       const ms = actualEnd.getTime() - actualStart.getTime();
@@ -75,14 +124,23 @@ export class ComplianceService {
 
     let totalDailyHours = shiftDuration;
     for (const a of userAssignments) {
-      totalDailyHours += calculateHoursInRange(new Date(a.startTime), new Date(a.endTime), dayStart, dayEnd);
+      totalDailyHours += calculateHoursInRange(
+        new Date(a.startTime),
+        new Date(a.endTime),
+        dayStart,
+        dayEnd,
+      );
     }
 
     if (totalDailyHours > 12.01) {
       result.hasHardBlock = true;
-      result.warnings.push(`Daily hours (${totalDailyHours.toFixed(1)}) exceed 12-hour hard block limit`);
+      result.warnings.push(
+        `Daily hours (${totalDailyHours.toFixed(1)}) exceed 12-hour hard block limit`,
+      );
     } else if (totalDailyHours > 8.01) {
-      result.warnings.push(`Daily hours (${totalDailyHours.toFixed(1)}) exceed 8-hour warning threshold`);
+      result.warnings.push(
+        `Daily hours (${totalDailyHours.toFixed(1)}) exceed 8-hour warning threshold`,
+      );
     }
 
     const weekStart = startOfWeek(shiftStart, { weekStartsOn: 1 });
@@ -90,13 +148,22 @@ export class ComplianceService {
 
     let totalWeeklyHours = shiftDuration;
     for (const a of userAssignments) {
-      totalWeeklyHours += calculateHoursInRange(new Date(a.startTime), new Date(a.endTime), weekStart, weekEnd);
+      totalWeeklyHours += calculateHoursInRange(
+        new Date(a.startTime),
+        new Date(a.endTime),
+        weekStart,
+        weekEnd,
+      );
     }
 
     if (totalWeeklyHours >= 40) {
-      result.warnings.push(`Weekly hours (${totalWeeklyHours.toFixed(1)}) exceed 40-hour high alert`);
+      result.warnings.push(
+        `Weekly hours (${totalWeeklyHours.toFixed(1)}) exceed 40-hour high alert`,
+      );
     } else if (totalWeeklyHours >= 35) {
-      result.warnings.push(`Weekly hours (${totalWeeklyHours.toFixed(1)}) approaching 40 (35+)`);
+      result.warnings.push(
+        `Weekly hours (${totalWeeklyHours.toFixed(1)}) approaching 40 (35+)`,
+      );
     }
 
     let consecutiveDays = 0;
@@ -121,7 +188,24 @@ export class ComplianceService {
     return result;
   }
 
-  private async checkUserAvailability(userId: string, timezone: string, start: Date, end: Date, avails: any[]): Promise<boolean> {
+  /**
+   * Evaluates if a shift interval fits entirely within a user's local recurring availability windows.
+   * Walks the shift in 30-minute intervals evaluated in the staff member's local timezone.
+   *
+   * @param {string} userId - User identifier.
+   * @param {string} timezone - IANA timezone identifier for the user (e.g. 'America/New_York').
+   * @param {Date} start - UTC start time of the shift.
+   * @param {Date} end - UTC end time of the shift.
+   * @param {any[]} avails - Array of user availability records.
+   * @returns {Promise<boolean>} True if the user is available for all intervals of the shift.
+   */
+  private async checkUserAvailability(
+    userId: string,
+    timezone: string,
+    start: Date,
+    end: Date,
+    avails: any[],
+  ): Promise<boolean> {
     if (avails.length === 0) return true;
 
     const checkStepMs = 30 * 60 * 1000;
@@ -138,26 +222,39 @@ export class ComplianceService {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false
+        hour12: false,
       });
 
       const parts = fmt.formatToParts(currentDate);
       const map: any = {};
-      parts.forEach(p => map[p.type] = p.value);
+      parts.forEach((p) => (map[p.type] = p.value));
 
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const days = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ];
       const dayOfWeek = days.indexOf(map.weekday);
-      
+
       const hour = map.hour === '24' ? '00' : map.hour;
       const timeStr = `${hour}:${map.minute}:${map.second}`;
 
-      const recurring = avails.find(a => !a.isException && a.dayOfWeek === dayOfWeek);
-      
+      const recurring = avails.find(
+        (a) => !a.isException && a.dayOfWeek === dayOfWeek,
+      );
+
       if (!recurring) {
         return false;
       }
 
-      if (timeStr < recurring.startTimeLocal || timeStr > recurring.endTimeLocal) {
+      if (
+        timeStr < recurring.startTimeLocal ||
+        timeStr > recurring.endTimeLocal
+      ) {
         return false;
       }
 

@@ -25,6 +25,9 @@ import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
 import { SwapService } from './swap.service';
 
+/**
+ * Service managing shift scheduling, staff assignments, operational statistics, and 48-hour edit locks.
+ */
 @Injectable()
 export class ShiftsService {
   constructor(
@@ -42,6 +45,14 @@ export class ShiftsService {
     private swapService: SwapService,
   ) {}
 
+  /**
+   * Retrieves locations accessible to the current user based on RBAC.
+   * Admins see all locations; managers only see locations assigned to them.
+   *
+   * @param {string} userId - User identifier.
+   * @param {string} role - User role ('Admin', 'Manager', or 'Staff').
+   * @returns {Promise<any[]>} Accessible locations list.
+   */
   async getLocations(userId: string, role: string) {
     if (role === 'Admin') {
       return this.locationRepo.findAll();
@@ -51,10 +62,23 @@ export class ShiftsService {
     return this.locationRepo.findAssignedToManager(userId);
   }
 
+  /**
+   * Retrieves all certified skills configured across the system.
+   *
+   * @returns {Promise<any[]>} Skills list.
+   */
   async getSkills() {
     return this.skillRepo.findAll();
   }
 
+  /**
+   * Retrieves paginated staff members, scoped by manager locations or all staff for Admins.
+   *
+   * @param {string} userId - Requesting user identifier.
+   * @param {string} role - Requesting user role.
+   * @param {CursorPaginationParams} [pagination] - Pagination options.
+   * @returns {Promise<CursorPaginatedResponse<StaffMemberResponse>>} Paginated staff members with skills and certifications.
+   */
   async getStaff(
     userId: string,
     role: string,
@@ -72,6 +96,14 @@ export class ShiftsService {
     return this.userRepo.findStaffByLocations(locationIds, pagination);
   }
 
+  /**
+   * Finds qualified staff eligible to be assigned to a specific shift.
+   * Filters out staff already assigned, lacking required skills/certifications, or having hard compliance blocks.
+   *
+   * @param {string} shiftId - Shift identifier.
+   * @returns {Promise<Array<{ user: any; warnings: string[]; requiresOverride: boolean }>>} Eligible staff list.
+   * @throws {NotFoundException} If the shift does not exist.
+   */
   async findAvailableStaff(shiftId: string) {
     const shift = await this.shiftRepo.findById(shiftId);
 
@@ -111,10 +143,22 @@ export class ShiftsService {
     return results;
   }
 
+  /**
+   * Retrieves active time clock records for staff currently clocked in on-duty.
+   *
+   * @returns {Promise<any[]>} On-duty staff list with location and user info.
+   */
   async getOnDutyStaff() {
     return this.timeEntryRepo.findOnDutyStaff();
   }
 
+  /**
+   * Computes dashboard KPI statistics (total staff, pending swaps, upcoming shifts) scoped by role and location.
+   *
+   * @param {string} userId - User identifier.
+   * @param {string} role - User role ('Admin' or 'Manager').
+   * @returns {Promise<{ totalStaff: number; pendingSwaps: number; upcomingShifts: number }>} Dashboard metrics.
+   */
   async getDashboardStats(userId: string, role: string) {
     if (role === 'Manager') {
       const assignedLocations =
@@ -125,10 +169,27 @@ export class ShiftsService {
     return this.dashboardRepo.getAdminStats();
   }
 
+  /**
+   * Retrieves all confirmed shift assignments for a specific user.
+   *
+   * @param {string} userId - User identifier.
+   * @returns {Promise<any[]>} User assignments list.
+   */
   async getUserAssignments(userId: string) {
     return this.assignmentRepo.getUserConfirmedAssignments(userId);
   }
 
+  /**
+   * Retrieves shifts matching optional date range, location, and keyset cursor pagination filters.
+   *
+   * @param {Object} filters - Search filters.
+   * @param {Date} [filters.startDate] - Start timestamp filter.
+   * @param {Date} [filters.endDate] - End timestamp filter.
+   * @param {string} [filters.locationId] - Location filter.
+   * @param {string} [filters.cursor] - Keyset pagination cursor token.
+   * @param {number} [filters.limit] - Max items per page.
+   * @returns {Promise<CursorPaginatedResponse<ShiftResponse>>} Paginated shifts with assignments and location details.
+   */
   async getShifts(filters: {
     startDate?: Date;
     endDate?: Date;
@@ -139,6 +200,13 @@ export class ShiftsService {
     return this.shiftRepo.findShiftsByFilters(filters);
   }
 
+  /**
+   * Fetches a single shift by ID with its confirmed staff assignments and user profiles.
+   *
+   * @param {string} id - Shift identifier.
+   * @returns {Promise<any>} Shift record with eager-loaded assignments.
+   * @throws {NotFoundException} If the shift does not exist.
+   */
   async getShiftById(id: string) {
     const shift = await this.shiftRepo.findByIdWithAssignments(id);
 
@@ -149,6 +217,12 @@ export class ShiftsService {
     return shift;
   }
 
+  /**
+   * Creates a new shift, automatically detecting and tagging Friday/Saturday evening shifts as premium.
+   *
+   * @param {NewShift} newShift - Shift creation data.
+   * @returns {Promise<any>} Created shift record.
+   */
   async createShift(newShift: NewShift) {
     // Requirement #5: Friday/Saturday evening shifts are premium
     // Assume evening starts at 6 PM (18:00)
@@ -175,6 +249,18 @@ export class ShiftsService {
     return result;
   }
 
+  /**
+   * Updates an existing shift, enforcing the 48-hour schedule lock rule unless performed by an Admin.
+   * Automatically cancels pending shift swaps and notifies affected staff if critical fields change.
+   *
+   * @param {string} shiftId - Shift identifier.
+   * @param {string} userId - Actor user identifier.
+   * @param {string} role - Actor role ('Admin' or 'Manager').
+   * @param {Partial<NewShift>} updates - Shift modifications.
+   * @returns {Promise<any>} Updated shift record.
+   * @throws {NotFoundException} If shift does not exist.
+   * @throws {BadRequestException} If modifying within 48h lock window or past shifts as non-admin.
+   */
   async updateShift(
     shiftId: string,
     userId: string,
@@ -245,6 +331,17 @@ export class ShiftsService {
     return result;
   }
 
+  /**
+   * Assigns a staff member to a shift, validating certifications, skills, capacity, and labor law compliance.
+   *
+   * @param {string} shiftId - Shift identifier.
+   * @param {string} userId - Assigned staff user identifier.
+   * @param {string} [managerId] - Assigning manager user identifier.
+   * @param {string} [overrideReason] - Documented justification if a 7th consecutive day override is needed.
+   * @returns {Promise<any>} Assignment record including compliance warnings.
+   * @throws {NotFoundException} If shift is not found.
+   * @throws {BadRequestException} If shift has passed, is full, user already assigned, lacks skills/certs, or has hard blocks.
+   */
   async assignStaff(
     shiftId: string,
     userId: string,

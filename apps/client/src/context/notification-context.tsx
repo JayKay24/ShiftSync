@@ -15,17 +15,31 @@ const SOCKET_URL = (
   (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3001/api'
 ).replace('/api', '');
 
-interface NotificationContextType {
+/**
+ * State contract for notification management and real-time updates.
+ */
+export interface NotificationContextType {
+  /** Array of loaded notifications. */
   notifications: Notification[];
+  /** Computed count of unread notifications. */
   unreadCount: number;
+  /** Initial loading flag. */
   isLoading: boolean;
+  /** Subsequent page loading flag. */
   isLoadingMore: boolean;
+  /** Keyset pagination cursor token for the next page. */
   nextCursor: string | null;
+  /** Indicates whether more notifications are available to fetch. */
   hasMore: boolean;
+  /** Dispatches an initial fetch of user notifications. */
   fetchNotifications: () => Promise<void>;
+  /** Loads the next page of notifications using nextCursor. */
   loadMoreNotifications: () => Promise<void>;
+  /** Marks a single notification as read. */
   markAsRead: (id: string) => Promise<void>;
+  /** Marks all currently loaded unread notifications as read. */
   markAllAsRead: () => Promise<void>;
+  /** Active Socket.io client instance. */
   socket: Socket | null;
 }
 
@@ -33,6 +47,13 @@ const NotificationContext = createContext<NotificationContextType | undefined>(
   undefined,
 );
 
+/**
+ * Provider component managing real-time WebSocket connection and notification updates.
+ *
+ * @param {Object} props - Component props.
+ * @param {ReactNode} props.children - Child elements.
+ * @returns {React.JSX.Element} Context provider element.
+ */
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -168,6 +189,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Hook to access real-time notifications, unread counts, and notification actions.
+ *
+ * @returns {NotificationContextType} Notification context state and operations.
+ * @throws {Error} If called outside of a NotificationProvider.
+ */
 export function useNotifications() {
   const context = useContext(NotificationContext);
   if (context === undefined) {

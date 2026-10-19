@@ -4,6 +4,11 @@ import { useState, useCallback } from 'react';
 import { auditApi } from '@/lib/api';
 import { AuditLogResponse } from '@shiftsync/data-access';
 
+/**
+ * Custom React hook for fetching and paginating entity-level and date-range audit logs.
+ *
+ * @returns {Object} Audit logs list, pagination states, loading flags, and fetch dispatchers.
+ */
 export function useAudit() {
   const [logs, setLogs] = useState<AuditLogResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);

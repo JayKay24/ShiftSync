@@ -12,9 +12,18 @@ import {
 } from '../api-interfaces';
 import { clampLimit, decodeCursor, paginateResults } from '../pagination';
 
+/**
+ * Repository managing user notifications and read receipts.
+ */
 export class NotificationRepository {
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
 
+  /**
+   * Persists a newly generated notification.
+   *
+   * @param {NewNotification} data - Notification payload including recipient user ID, type, and message.
+   * @returns {Promise<Notification>} Newly created notification record.
+   */
   async createNotification(data: NewNotification): Promise<Notification> {
     const [notification] = await this.db
       .insert(notifications)
@@ -24,6 +33,13 @@ export class NotificationRepository {
     return notification;
   }
 
+  /**
+   * Fetches paginated notifications for a recipient user ordered newest-first.
+   *
+   * @param {string} userId - Recipient user identifier.
+   * @param {CursorPaginationParams} [pagination] - Pagination options including limit and cursor.
+   * @returns {Promise<CursorPaginatedResponse<Notification>>} Paginated notifications list.
+   */
   async getUserNotifications(
     userId: string,
     pagination?: CursorPaginationParams,
@@ -55,6 +71,13 @@ export class NotificationRepository {
     return paginateResults(rows, limit, (n) => n.createdAt);
   }
 
+  /**
+   * Marks a specific notification as read, ensuring ownership by the specified user.
+   *
+   * @param {string} notificationId - Identifier of the notification to mark read.
+   * @param {string} userId - ID of the user owning the notification.
+   * @returns {Promise<Notification | undefined>} Updated notification record, or undefined if not found.
+   */
   async markAsRead(
     notificationId: string,
     userId: string,
