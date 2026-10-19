@@ -234,6 +234,20 @@ End-to-end UI tests use **Playwright** to validate user journeys in Chromium:
 
 ---
 
+## 🌿 Development Workflow
+
+All contributions, bug fixes, and feature implementations must strictly follow this branching and pull request workflow:
+
+1. **Branch Off `develop`**: Never commit or push directly to `develop` or `main`. Always implement changes inside a new, descriptive branch created from the latest `develop` branch (e.g., `feat/<feature-name>`, `fix/<issue-name>`, `docs/<topic>`).
+2. **Implement & Validate**: Make your changes and verify that all local quality gates pass:
+   - TypeScript checks: `npm run typecheck`
+   - Linting: `npx nx run-many -t lint`
+   - Unit & integration tests: `npx nx run-many -t test`
+3. **Conventional Commits**: Commit changes following the Conventional Commits specification enforced by Commitlint (e.g., `feat(...)`, `fix(...)`, `docs(...)`).
+4. **Push & Create PR**: Push the branch to upstream (`origin`) and open a Pull Request targeting the `develop` branch for review and CI validation.
+
+---
+
 ## 🚀 Key Commands
 
 ### Setup & Database
