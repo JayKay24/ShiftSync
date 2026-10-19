@@ -4,6 +4,11 @@ import { useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { Location, Skill } from '@shiftsync/data-access';
 
+/**
+ * Custom React hook for fetching system metadata (locations and skills).
+ *
+ * @returns {Object} Locations list, skills list, loading flag, error state, and fetch dispatcher.
+ */
 export function useMetadata() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -34,6 +39,6 @@ export function useMetadata() {
     skills,
     isLoading,
     error,
-    fetchMetadata
+    fetchMetadata,
   };
 }

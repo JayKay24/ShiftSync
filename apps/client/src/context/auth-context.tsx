@@ -3,19 +3,38 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { SafeUser, LoginRequest } from '@shiftsync/data-access';
 import { authApi } from '@/lib/api';
 
+/**
+ * Contract representing client authentication state and actions.
+ */
 export interface AuthContextType {
+  /** Authenticated user profile, or null if guest. */
   user: SafeUser | null;
+  /** JWT bearer token, or null if unauthenticated. */
   token: string | null;
+  /** Flag indicating initial session restoration from local storage. */
   isLoading: boolean;
+  /** Authenticates user with credentials and performs role-based redirect. */
   login: (credentials: LoginRequest) => Promise<void>;
+  /** Clears local session and navigates to login screen. */
   logout: () => void;
+  /** Updates the local user state. */
   setUser: (user: SafeUser | null) => void;
 }
 
+/**
+ * React context storing active authentication state.
+ */
 export const AuthContext = createContext<AuthContextType | undefined>(
   undefined,
 );
 
+/**
+ * Provider component wrapping application subtree with authentication state and route protection.
+ *
+ * @param {Object} props - Component props.
+ * @param {React.ReactNode} props.children - Child elements.
+ * @returns {React.JSX.Element} Context provider element.
+ */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SafeUser | null>(null);
   const [token, setToken] = useState<string | null>(null);

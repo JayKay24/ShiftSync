@@ -10,6 +10,11 @@ import {
   AvailableStaffResponse,
 } from '@shiftsync/data-access';
 
+/**
+ * Custom React hook managing shift state, keyset pagination, creation, updates, and staff assignment.
+ *
+ * @returns {Object} Shifts state, loading indicators, pagination cursors, and action dispatchers.
+ */
 export function useShifts() {
   const [shifts, setShifts] = useState<ShiftResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);

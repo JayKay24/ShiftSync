@@ -8,6 +8,11 @@ import {
   ApproveSwapRequest,
 } from '@shiftsync/data-access';
 
+/**
+ * Custom React hook for managing shift swap and drop workflows with cursor pagination.
+ *
+ * @returns {Object} Swaps list, pagination indicators, loading states, and workflow mutation actions.
+ */
 export function useSwaps() {
   const [swaps, setSwaps] = useState<SwapRequestResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);

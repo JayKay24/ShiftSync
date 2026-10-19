@@ -1,6 +1,12 @@
 import { useContext } from 'react';
 import { AuthContext } from '@/context/auth-context';
 
+/**
+ * Hook to access current authentication state and actions (login, logout, active user).
+ *
+ * @returns {import('@/context/auth-context').AuthContextType} Auth context value.
+ * @throws {Error} If called outside of an AuthProvider.
+ */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

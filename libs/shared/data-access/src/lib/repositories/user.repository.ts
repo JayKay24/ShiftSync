@@ -12,9 +12,24 @@ import {
 } from '../api-interfaces';
 import { clampLimit, decodeCursor, paginateResults } from '../pagination';
 
+/**
+ * Repository encapsulating user account management, staff certification verification,
+ * location authorization (LBAC), skills validation, and availability schedules.
+ */
 export class UserRepository {
+  /**
+   * Initializes the repository with the Drizzle PostgreSQL database client.
+   *
+   * @param {NodePgDatabase<typeof schema>} db - Drizzle database instance aware of the ShiftSync schema.
+   */
   constructor(private readonly db: NodePgDatabase<typeof schema>) {}
 
+  /**
+   * Retrieves a single user record by their unique UUID.
+   *
+   * @param {string} userId - User UUID.
+   * @returns {Promise<typeof users.$inferSelect | null>} User record or null if not found.
+   */
   async findById(userId: string) {
     const [user] = await this.db
       .select()
@@ -25,6 +40,12 @@ export class UserRepository {
     return user || null;
   }
 
+  /**
+   * Retrieves a single user record by their unique email address.
+   *
+   * @param {string} email - User email address.
+   * @returns {Promise<typeof users.$inferSelect | null>} User record or null if not found.
+   */
   async findByEmail(email: string) {
     const [user] = await this.db
       .select()
@@ -35,6 +56,13 @@ export class UserRepository {
     return user || null;
   }
 
+  /**
+   * Retrieves a cursor-paginated list of all staff members, ordered by last name.
+   * Eagerly loads certified locations and skills.
+   *
+   * @param {CursorPaginationParams} [pagination] - Pagination options containing cursor and limit.
+   * @returns {Promise<CursorPaginatedResponse<StaffMemberResponse>>} Paginated staff collection.
+   */
   async findStaff(
     pagination?: CursorPaginationParams,
   ): Promise<CursorPaginatedResponse<StaffMemberResponse>> {
@@ -85,6 +113,14 @@ export class UserRepository {
     );
   }
 
+  /**
+   * Retrieves a cursor-paginated list of staff members certified for one or more target locations.
+   * Used for Location-Based Access Control (LBAC) so managers only view authorized staff.
+   *
+   * @param {string[]} locationIds - List of authorized restaurant location UUIDs.
+   * @param {CursorPaginationParams} [pagination] - Pagination options.
+   * @returns {Promise<CursorPaginatedResponse<StaffMemberResponse>>} Paginated staff certified for the specified locations.
+   */
   async findStaffByLocations(
     locationIds: string[],
     pagination?: CursorPaginationParams,
@@ -152,6 +188,12 @@ export class UserRepository {
     );
   }
 
+  /**
+   * Finds all staff members with skills, certifications, and existing assignments for a specific shift.
+   *
+   * @param {string} shiftId - Shift UUID.
+   * @returns {Promise<any[]>} List of staff members with assignments for the shift.
+   */
   async findQualifiedStaffWithAssignments(shiftId: string) {
     return this.db.query.users.findMany({
       where: eq(schema.users.role, 'Staff'),
@@ -165,6 +207,13 @@ export class UserRepository {
     });
   }
 
+  /**
+   * Checks whether a staff member holds an active certification for a given restaurant location.
+   *
+   * @param {string} userId - User UUID.
+   * @param {string} locationId - Location UUID.
+   * @returns {Promise<boolean>} True if the user is certified for the location, false otherwise.
+   */
   async hasCertification(userId: string, locationId: string): Promise<boolean> {
     const [cert] = await this.db
       .select()
@@ -180,6 +229,13 @@ export class UserRepository {
     return !!cert;
   }
 
+  /**
+   * Checks whether a staff member possesses a certified skill.
+   *
+   * @param {string} userId - User UUID.
+   * @param {string} skillId - Skill UUID.
+   * @returns {Promise<boolean>} True if the user possesses the certified skill, false otherwise.
+   */
   async hasSkill(userId: string, skillId: string): Promise<boolean> {
     const [skill] = await this.db
       .select()
@@ -192,6 +248,13 @@ export class UserRepository {
     return !!skill;
   }
 
+  /**
+   * Updates user profile fields such as name, email, or desired weekly working hours.
+   *
+   * @param {string} userId - User UUID.
+   * @param {Partial<NewUser>} data - Updated profile fields.
+   * @returns {Promise<typeof users.$inferSelect | null>} Updated user record or null if not found.
+   */
   async updateUser(userId: string, data: Partial<NewUser>) {
     const [user] = await this.db
       .update(schema.users)
@@ -201,6 +264,13 @@ export class UserRepository {
 
     return user || null;
   }
+
+  /**
+   * Fetches recurring availability time blocks configured for a staff member.
+   *
+   * @param {string} userId - User UUID.
+   * @returns {Promise<any[]>} List of availability window records (day of week, start/end times).
+   */
   async getUserAvailability(userId: string) {
     return this.db
       .select()

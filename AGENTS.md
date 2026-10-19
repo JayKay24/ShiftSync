@@ -255,6 +255,25 @@ All contributions, bug fixes, and feature implementations must strictly follow t
 
 ---
 
+## 📖 Code Documentation & JSDoc Standards
+
+To ensure code clarity, readability, and maintainability across the ShiftSync monorepo, all TypeScript code must follow strict JSDoc documentation standards:
+
+1. **JSDoc Annotation Scope**:
+   - **Shared Data Layer (`@shiftsync/data-access`)**: All repositories, pagination helpers, DTO request/response interfaces, and entity relations must be annotated with intent, parameters, return types, and constraints.
+   - **Backend Application (`apps/server`)**: All injectable services, gateways, guards, and business logic methods (e.g., `ComplianceService`, `ShiftsService`, `SwapService`, `AnalyticsService`) must document business intent, compliance rules, thrown exceptions, and parameters.
+   - **Frontend Application (`apps/client`)**: All centralized API modules (`api.ts`), custom hooks (`useShifts`, `useSwaps`, `useAnalytics`, etc.), contexts (`AuthProvider`, `NotificationProvider`), and helper utilities (`cn`) must be documented with parameter descriptions and return shapes.
+
+2. **Explicit Tagging Convention**:
+   - Use explicit JSDoc tags: `@param {type} name - description`, `@returns {type} description`, `@template T`, and `@throws {ExceptionType} condition`.
+   - Document business rules explicitly within docstrings (e.g. 48-hour schedule lock, 10-hour mandatory rest gaps, 12-hour daily caps, 7th consecutive day override documentation, 3 pending swap caps, Fairness Index scoring).
+
+3. **Preserving Procedural Comments**:
+   - Retain procedural step comments (`// 1. Check shift existence...`, `// 2. Check full capacity...`) inside function/method bodies.
+   - Do not replace or delete internal implementation notes when adding method-level JSDoc blocks.
+
+---
+
 ## 🚀 Key Commands
 
 ### Setup & Database
