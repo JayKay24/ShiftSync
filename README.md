@@ -75,6 +75,10 @@ flowchart TD
     ClientE2ETests["Client UI E2E (Playwright + PostgreSQL Service)"]
   end
 
+  subgraph ReleasePipeline ["Automated Release (GitHub Actions)"]
+    ReleaseJob["Nx Release (Changelog, SemVer Bump & GitHub Release)"]
+  end
+
   %% Client interactions
   ManagerUI --> AxiosClient
   StaffUI --> AxiosClient
@@ -102,6 +106,9 @@ flowchart TD
   %% Backend -> Database
   DrizzleModule -->|"Connection Pool"| PostgreSQL
   Repos -->|"SQL Queries / Transactions"| PostgreSQL
+
+  %% CI to Release Workflow
+  CI -->|"On successful main merge"| ReleaseJob
 ```
 
 ---
@@ -302,8 +309,21 @@ Every commit and pull request targeting `develop` or `main` triggers our GitHub 
 2. **`commitlint`**: Enforces Conventional Commits format on PRs.
 3. **`lint-and-typecheck`**: Runs monorepo ESLint and TypeScript checks.
 4. **`build`**: Compiles production client and server bundles.
-5. **`test-unit`**: Executes Jest unit tests with Nx computation caching.
+5. **`test-unit`**: Executes Vitest and Jest unit test suites with Nx computation caching.
 6. **`test-integration`**: Launches an ephemeral PostgreSQL 16 container, runs migrations, seeds data, and executes `server-e2e`.
+7. **`client-e2e`**: Runs Playwright end-to-end browser tests against isolated PostgreSQL and backend services.
+
+### Release & Versioning Automation
+
+ShiftSync uses [Nx Release](https://nx.dev/features/manage-releases) to automate semantic versioning, changelog generation, and GitHub Releases:
+
+- **Conventional Commit Driven**: Automatically calculates version bumps (`feat` $\rightarrow$ minor, `fix` $\rightarrow$ patch, breaking change $\rightarrow$ major).
+- **Post-CI Trigger**: Once the `Continuous Integration` workflow completes successfully on `main`, the `Release` workflow (`.github/workflows/release.yml`) executes.
+- **Artifacts**: Generates `CHANGELOG.md`, tags the repository (`vX.Y.Z`), creates categorized GitHub Releases, and commits `chore(release): vX.Y.Z` to `main`.
+- **Dry Run Verification**: Developers can preview pending version increments and changelog updates locally:
+  ```sh
+  npx nx release --dry-run
+  ```
 
 ---
 
