@@ -12,7 +12,6 @@ import { addHours, setHours, addDays } from 'date-fns';
 describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
   let managerToken: string;
   let charlieToken: string;
-  let frankToken: string;
 
   const loc1Id = '11111111-1111-4111-8111-111111111111';
   const charlieId = '33333333-3333-4333-8333-333333333332'; // Unavailable MON
@@ -29,7 +28,6 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
       TEST_USERS.charlie.email,
       TEST_USERS.charlie.pass,
     );
-    frankToken = await login(TEST_USERS.frank.email, TEST_USERS.frank.pass);
   });
 
   describe('Edge Case: Shift Full (Headcount Enforcement)', () => {

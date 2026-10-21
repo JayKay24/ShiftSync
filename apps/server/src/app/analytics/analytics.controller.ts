@@ -3,7 +3,10 @@ import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { HourDistributionRecord, FairnessScoreResponse } from '@shiftsync/data-access';
+import {
+  HourDistributionRecord,
+  FairnessScoreResponse,
+} from '@shiftsync/data-access';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('analytics')
@@ -17,10 +20,19 @@ export class AnalyticsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<HourDistributionRecord[]> {
-    const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const end = endDate ? new Date(endDate) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
-    
-    return this.analyticsService.getHoursDistribution(start, end, req.user.userId, req.user.role);
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const end = endDate
+      ? new Date(endDate)
+      : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+
+    return this.analyticsService.getHoursDistribution(
+      start,
+      end,
+      req.user.userId,
+      req.user.role,
+    );
   }
 
   @Get('fairness')
@@ -30,9 +42,18 @@ export class AnalyticsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ): Promise<FairnessScoreResponse> {
-    const start = startDate ? new Date(startDate) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const end = endDate ? new Date(endDate) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const end = endDate
+      ? new Date(endDate)
+      : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
 
-    return this.analyticsService.getFairnessScore(start, end, req.user.userId, req.user.role);
+    return this.analyticsService.getFairnessScore(
+      start,
+      end,
+      req.user.userId,
+      req.user.role,
+    );
   }
 }

@@ -6,7 +6,6 @@ import {
   ShiftResponse,
   CreateShiftRequest,
   UpdateShiftRequest,
-  AssignmentResult,
   AvailableStaffResponse,
 } from '@shiftsync/data-access';
 

@@ -1,29 +1,33 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Dialog as ShadcnDialog, 
-  DialogContent as ShadcnDialogContent, 
-  DialogHeader as ShadcnDialogHeader, 
-  DialogTitle as ShadcnDialogTitle 
+import { useState, useEffect } from 'react';
+import {
+  Dialog as ShadcnDialog,
+  DialogContent as ShadcnDialogContent,
+  DialogHeader as ShadcnDialogHeader,
+  DialogTitle as ShadcnDialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Loader2, 
-  Mail, 
-  Briefcase, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  ShieldCheck, 
+import {
+  Loader2,
+  Mail,
+  Briefcase,
+  MapPin,
+  Calendar,
+  Clock,
+  ShieldCheck,
   Award,
   TrendingUp,
-  Globe
+  Globe,
 } from 'lucide-react';
 import { shiftsApi, analyticsApi } from '@/lib/api';
 import { format, parseISO, isAfter } from 'date-fns';
-import { AssignmentResult, HourDistributionRecord, StaffMemberResponse } from '@shiftsync/data-access';
+import {
+  AssignmentResult,
+  HourDistributionRecord,
+  StaffMemberResponse,
+} from '@shiftsync/data-access';
 
 interface StaffProfileModalProps {
   isOpen: boolean;
@@ -31,12 +35,22 @@ interface StaffProfileModalProps {
   staff: StaffMemberResponse | null;
 }
 
-export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalProps) {
+export function StaffProfileModal({
+  isOpen,
+  onClose,
+  staff,
+}: StaffProfileModalProps) {
   const [assignments, setAssignments] = useState<AssignmentResult[]>([]);
-  const [fairnessStats, setFairnessStats] = useState<{ premiumShiftCount: number } | null>(null);
-  const [distStats, setDistStats] = useState<HourDistributionRecord | null>(null);
+  const [fairnessStats, setFairnessStats] = useState<{
+    premiumShiftCount: number;
+  } | null>(null);
+  const [distStats, setDistStats] = useState<HourDistributionRecord | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'schedule'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'schedule'>(
+    'overview',
+  );
 
   useEffect(() => {
     if (isOpen && staff) {
@@ -46,15 +60,17 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
           const [asgnRes, fairnessRes, distRes] = await Promise.all([
             shiftsApi.getStaffAssignments(staff.id),
             analyticsApi.getFairness(),
-            analyticsApi.getDistribution()
+            analyticsApi.getDistribution(),
           ]);
-          
+
           setAssignments(asgnRes.data);
-          
-          const staffFairness = fairnessRes.data.distribution.find(d => d.userId === staff.id);
+
+          const staffFairness = fairnessRes.data.distribution.find(
+            (d) => d.userId === staff.id,
+          );
           setFairnessStats(staffFairness || { premiumShiftCount: 0 });
-          
-          const staffDist = distRes.data.find(d => d.userId === staff.id);
+
+          const staffDist = distRes.data.find((d) => d.userId === staff.id);
           setDistStats(staffDist || null);
         } catch (error) {
           console.error('Failed to fetch staff profile data:', error);
@@ -68,8 +84,8 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
 
   if (!staff) return null;
 
-  const upcomingAssignments = assignments.filter(a => 
-    isAfter(parseISO(a.shift?.startTime?.toString() || ''), new Date())
+  const upcomingAssignments = assignments.filter((a) =>
+    isAfter(parseISO(a.shift?.startTime?.toString() || ''), new Date()),
   );
 
   return (
@@ -77,7 +93,8 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
       <ShadcnDialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <ShadcnDialogHeader className="flex-row items-center gap-4 space-y-0">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-2xl shadow-inner">
-            {staff.firstName[0]}{staff.lastName[0]}
+            {staff.firstName[0]}
+            {staff.lastName[0]}
           </div>
           <div>
             <ShadcnDialogTitle className="text-2xl font-bold">
@@ -100,8 +117,8 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === 'overview' 
-                ? 'border-primary text-primary' 
+              activeTab === 'overview'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -110,8 +127,8 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
           <button
             onClick={() => setActiveTab('schedule')}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === 'schedule' 
-                ? 'border-primary text-primary' 
+              activeTab === 'schedule'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -133,12 +150,15 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
                       <TrendingUp className="h-3.5 w-3.5" /> Weekly Hours
                     </div>
                     <div className="text-2xl font-bold">
-                      {distStats?.totalHours.toFixed(1) || '0.0'} / {staff.desiredWeeklyHours || 40}
+                      {distStats?.totalHours.toFixed(1) || '0.0'} /{' '}
+                      {staff.desiredWeeklyHours || 40}
                     </div>
                     <div className="mt-2 h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
-                      <div 
-                        className="h-full bg-primary" 
-                        style={{ width: `${Math.min(((distStats?.totalHours || 0) / (staff.desiredWeeklyHours || 40)) * 100, 100)}%` }}
+                      <div
+                        className="h-full bg-primary"
+                        style={{
+                          width: `${Math.min(((distStats?.totalHours || 0) / (staff.desiredWeeklyHours || 40)) * 100, 100)}%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -162,7 +182,11 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {staff.staffSkills.map(({ skill }) => (
-                        <Badge key={skill.id} variant="secondary" className="px-3 py-1 font-medium capitalize">
+                        <Badge
+                          key={skill.id}
+                          variant="secondary"
+                          className="px-3 py-1 font-medium capitalize"
+                        >
                           {skill.name.replace('_', ' ')}
                         </Badge>
                       ))}
@@ -173,13 +197,19 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
 
                   <div>
                     <h3 className="text-sm font-bold flex items-center gap-2 mb-2">
-                      <ShieldCheck className="h-4 w-4 text-primary" /> Certified Locations
+                      <ShieldCheck className="h-4 w-4 text-primary" /> Certified
+                      Locations
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {staff.staffCertifications.map(({ location }) => (
-                        <div key={location.id} className="flex items-center gap-2 p-2 rounded-lg border text-sm bg-white">
+                        <div
+                          key={location.id}
+                          className="flex items-center gap-2 p-2 rounded-lg border text-sm bg-white"
+                        >
                           <MapPin className="h-3.5 w-3.5 text-primary" />
-                          <span className="font-medium truncate">{location.name}</span>
+                          <span className="font-medium truncate">
+                            {location.name}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -190,31 +220,54 @@ export function StaffProfileModal({ isOpen, onClose, staff }: StaffProfileModalP
 
             {activeTab === 'schedule' && (
               <div className="space-y-3">
-                {upcomingAssignments.length > 0 ? upcomingAssignments.map((asgn) => (
-                  <div key={asgn.id} className="group p-3 rounded-xl border hover:border-primary/50 transition-all bg-white shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-bold">
-                        {format(parseISO(asgn.shift?.startTime?.toString() || ''), 'EEEE, MMM d')}
+                {upcomingAssignments.length > 0 ? (
+                  upcomingAssignments.map((asgn) => (
+                    <div
+                      key={asgn.id}
+                      className="group p-3 rounded-xl border hover:border-primary/50 transition-all bg-white shadow-sm"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-bold">
+                          {format(
+                            parseISO(asgn.shift?.startTime?.toString() || ''),
+                            'EEEE, MMM d',
+                          )}
+                        </div>
+                        {asgn.shift?.isPremium && (
+                          <Badge
+                            variant="warning"
+                            className="bg-orange-100 text-orange-700 border-none h-5 text-[10px]"
+                          >
+                            PREMIUM
+                          </Badge>
+                        )}
                       </div>
-                      {asgn.shift?.isPremium && (
-                        <Badge variant="warning" className="bg-orange-100 text-orange-700 border-none h-5 text-[10px]">PREMIUM</Badge>
-                      )}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 font-medium text-foreground">
+                          <Clock className="h-3.5 w-3.5 text-primary" />
+                          {format(
+                            parseISO(asgn.shift?.startTime?.toString() || ''),
+                            'HH:mm',
+                          )}{' '}
+                          -{' '}
+                          {format(
+                            parseISO(asgn.shift?.endTime?.toString() || ''),
+                            'HH:mm',
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-primary" />
+                          {asgn.shift?.location?.name}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1.5 font-medium text-foreground">
-                        <Clock className="h-3.5 w-3.5 text-primary" />
-                        {format(parseISO(asgn.shift?.startTime?.toString() || ''), 'HH:mm')} - {format(parseISO(asgn.shift?.endTime?.toString() || ''), 'HH:mm')}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-primary" />
-                        {asgn.shift?.location?.name}
-                      </div>
-                    </div>
-                  </div>
-                )) : (
+                  ))
+                ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed rounded-xl bg-slate-50/50">
                     <Calendar className="h-10 w-10 text-muted-foreground/30 mb-2" />
-                    <p className="text-sm font-medium">No upcoming shifts scheduled</p>
+                    <p className="text-sm font-medium">
+                      No upcoming shifts scheduled
+                    </p>
                   </div>
                 )}
               </div>

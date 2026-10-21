@@ -1,5 +1,11 @@
 import axios from 'axios';
-import { login, TEST_USERS, clearDynamicData, getNextWednesday, getFutureDate } from '../support/test-helpers';
+import {
+  login,
+  TEST_USERS,
+  clearDynamicData,
+  getNextWednesday,
+  getFutureDate,
+} from '../support/test-helpers';
 import { addHours, setHours } from 'date-fns';
 
 describe('Shift Scheduling & Constraints (Requirement #2)', () => {
@@ -10,16 +16,23 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
 
   beforeAll(async () => {
     await clearDynamicData();
-    managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
+    managerToken = await login(
+      TEST_USERS.manager.email,
+      TEST_USERS.manager.pass,
+    );
   });
 
   async function safePost(url: string, data: any, token: string) {
     try {
-      return await axios.post(url, data, { headers: { Authorization: `Bearer ${token}` } });
+      return await axios.post(url, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
     } catch (e) {
       const errorMsg = e.response?.data?.message || e.message;
       const errorCode = e.response?.data?.code || 'NO_CODE';
-      throw new Error(`API POST ${url} failed: [${e.response?.status}] ${JSON.stringify(errorMsg)} (Code: ${errorCode})`);
+      throw new Error(
+        `API POST ${url} failed: [${e.response?.status}] ${JSON.stringify(errorMsg)} (Code: ${errorCode})`,
+      );
     }
   }
 
@@ -31,31 +44,47 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
       const startTime = setHours(getNextWednesday(baseDate), 14);
       const endTime = addHours(startTime, 4);
 
-      const shiftA = await safePost('/api/shifts', {
-        locationId: loc1Id,
-        requiredSkillId: bartenderSkillId,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        headcountNeeded: 1,
-        status: 'published'
-      }, managerToken);
+      const shiftA = await safePost(
+        '/api/shifts',
+        {
+          locationId: loc1Id,
+          requiredSkillId: bartenderSkillId,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          headcountNeeded: 1,
+          status: 'published',
+        },
+        managerToken,
+      );
 
-      await safePost(`/api/shifts/${shiftA.data.id}/assign`, { userId: staffId }, managerToken);
+      await safePost(
+        `/api/shifts/${shiftA.data.id}/assign`,
+        { userId: staffId },
+        managerToken,
+      );
 
       // Overlapping shift (Shift B starts 2h after Shift A)
-      const shiftB = await safePost('/api/shifts', {
-        locationId: loc1Id,
-        requiredSkillId: bartenderSkillId,
-        startTime: addHours(startTime, 2).toISOString(),
-        endTime: addHours(startTime, 6).toISOString(),
-        headcountNeeded: 1,
-        status: 'published'
-      }, managerToken);
+      const shiftB = await safePost(
+        '/api/shifts',
+        {
+          locationId: loc1Id,
+          requiredSkillId: bartenderSkillId,
+          startTime: addHours(startTime, 2).toISOString(),
+          endTime: addHours(startTime, 6).toISOString(),
+          headcountNeeded: 1,
+          status: 'published',
+        },
+        managerToken,
+      );
 
       try {
-        await axios.post(`/api/shifts/${shiftB.data.id}/assign`, {
-          userId: staffId
-        }, { headers: { Authorization: `Bearer ${managerToken}` } });
+        await axios.post(
+          `/api/shifts/${shiftB.data.id}/assign`,
+          {
+            userId: staffId,
+          },
+          { headers: { Authorization: `Bearer ${managerToken}` } },
+        );
         throw new Error('Should have blocked overlapping assignment');
       } catch (e) {
         expect(e.response.status).toBe(400);
@@ -72,35 +101,53 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
       const startTime = setHours(getNextWednesday(baseDate), 14);
       const endTime = addHours(startTime, 4);
 
-      const shiftC = await safePost('/api/shifts', {
-        locationId: loc1Id,
-        requiredSkillId: bartenderSkillId,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        headcountNeeded: 1,
-        status: 'published'
-      }, managerToken);
+      const shiftC = await safePost(
+        '/api/shifts',
+        {
+          locationId: loc1Id,
+          requiredSkillId: bartenderSkillId,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          headcountNeeded: 1,
+          status: 'published',
+        },
+        managerToken,
+      );
 
-      await safePost(`/api/shifts/${shiftC.data.id}/assign`, { userId: staffId }, managerToken);
+      await safePost(
+        `/api/shifts/${shiftC.data.id}/assign`,
+        { userId: staffId },
+        managerToken,
+      );
 
       // Only 8 hours rest
-      const shiftD = await safePost('/api/shifts', {
-        locationId: loc1Id,
-        requiredSkillId: bartenderSkillId,
-        startTime: addHours(endTime, 8).toISOString(),
-        endTime: addHours(endTime, 12).toISOString(),
-        headcountNeeded: 1,
-        status: 'published'
-      }, managerToken);
+      const shiftD = await safePost(
+        '/api/shifts',
+        {
+          locationId: loc1Id,
+          requiredSkillId: bartenderSkillId,
+          startTime: addHours(endTime, 8).toISOString(),
+          endTime: addHours(endTime, 12).toISOString(),
+          headcountNeeded: 1,
+          status: 'published',
+        },
+        managerToken,
+      );
 
       try {
-        await axios.post(`/api/shifts/${shiftD.data.id}/assign`, {
-          userId: staffId
-        }, { headers: { Authorization: `Bearer ${managerToken}` } });
+        await axios.post(
+          `/api/shifts/${shiftD.data.id}/assign`,
+          {
+            userId: staffId,
+          },
+          { headers: { Authorization: `Bearer ${managerToken}` } },
+        );
         throw new Error('Should have blocked assignment due to 10-hour rest');
       } catch (e) {
         expect(e.response.status).toBe(400);
-        expect(e.response.data.message).toContain('Minimum 10-hour rest period required');
+        expect(e.response.data.message).toContain(
+          'Minimum 10-hour rest period required',
+        );
       }
     });
   });

@@ -3,11 +3,17 @@ import { UserRepository } from '@shiftsync/data-access';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private userRepository: UserRepository,
-  ) {}
+  constructor(private userRepository: UserRepository) {}
 
-  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; email?: string; desiredWeeklyHours?: number }) {
+  async updateProfile(
+    userId: string,
+    data: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      desiredWeeklyHours?: number;
+    },
+  ) {
     const user = await this.userRepository.updateUser(userId, data);
 
     if (!user) {

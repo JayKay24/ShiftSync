@@ -1,9 +1,17 @@
 import axios from 'axios';
-import { execSync } from 'child_process';
-import { addDays, setHours, startOfTomorrow, nextMonday, isMonday, addHours, startOfDay } from 'date-fns';
+import { addDays, setHours, nextMonday, isMonday, startOfDay } from 'date-fns';
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { schema, complianceOverrides, timeEntries, swapRequests, assignments, shifts, notifications, auditLogs } from '@shiftsync/data-access';
+import {
+  schema,
+  complianceOverrides,
+  timeEntries,
+  swapRequests,
+  assignments,
+  shifts,
+  notifications,
+  auditLogs,
+} from '@shiftsync/data-access';
 
 export async function login(email: string, pass: string) {
   const res = await axios.post('/api/auth/login', { email, pass });
@@ -17,7 +25,7 @@ export async function login(email: string, pass: string) {
 export async function clearDynamicData() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const db = drizzle(pool, { schema });
-  
+
   await db.delete(complianceOverrides);
   await db.delete(timeEntries);
   await db.delete(swapRequests);
@@ -25,7 +33,7 @@ export async function clearDynamicData() {
   await db.delete(shifts);
   await db.delete(notifications);
   await db.delete(auditLogs);
-  
+
   await pool.end();
 }
 

@@ -9,11 +9,7 @@ import { NotificationModule } from '../notifications/notification.module';
 import { RepositoriesModule } from '../repositories.module';
 
 @Module({
-  imports: [
-    RepositoriesModule,
-    AuditModule,
-    NotificationModule,
-  ],
+  imports: [RepositoriesModule, AuditModule, NotificationModule],
   providers: [ShiftsService, SwapService, ComplianceService],
   controllers: [ShiftsController, SwapController],
   exports: [ShiftsService, SwapService, ComplianceService],

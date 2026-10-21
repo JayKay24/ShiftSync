@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { api, shiftsApi } from '@/lib/api';
-import { StaffMemberResponse, AssignmentResult } from '@shiftsync/data-access';
+import { StaffMemberResponse } from '@shiftsync/data-access';
 
 /**
  * Custom React hook for fetching and paginating certified staff members and their shift assignments.

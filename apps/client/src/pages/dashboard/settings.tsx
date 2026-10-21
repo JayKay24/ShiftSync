@@ -30,7 +30,7 @@ export default function SettingsPage() {
     try {
       await updateProfile(formData);
       alert('Profile updated successfully');
-    } catch (err) {
+    } catch {
       // Error handled by hook
     }
   };

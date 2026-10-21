@@ -1,6 +1,12 @@
 import axios from 'axios';
-import { login, TEST_USERS, clearDynamicData, getNextWednesday, getFutureDate } from '../support/test-helpers';
-import { setHours, addHours } from 'date-fns';
+import {
+  login,
+  TEST_USERS,
+  clearDynamicData,
+  getNextWednesday,
+  getFutureDate,
+} from '../support/test-helpers';
+import { setHours } from 'date-fns';
 
 describe('Shift Swap Workflow (Requirement #5)', () => {
   let managerToken: string;
@@ -14,17 +20,27 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
 
   beforeAll(async () => {
     await clearDynamicData();
-    managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
-    charlieToken = await login(TEST_USERS.charlie.email, TEST_USERS.charlie.pass);
+    managerToken = await login(
+      TEST_USERS.manager.email,
+      TEST_USERS.manager.pass,
+    );
+    charlieToken = await login(
+      TEST_USERS.charlie.email,
+      TEST_USERS.charlie.pass,
+    );
     frankToken = await login(TEST_USERS.frank.email, TEST_USERS.frank.pass);
   });
 
   async function safePut(url: string, data: any, token: string) {
     try {
-      return await axios.put(url, data, { headers: { Authorization: `Bearer ${token}` } });
+      return await axios.put(url, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
     } catch (e) {
       const errorMsg = e.response?.data?.message || e.message;
-      throw new Error(`API PUT ${url} failed: [${e.response?.status}] ${JSON.stringify(errorMsg)}`);
+      throw new Error(
+        `API PUT ${url} failed: [${e.response?.status}] ${JSON.stringify(errorMsg)}`,
+      );
     }
   }
 
@@ -34,25 +50,37 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
     // Use a Wednesday in the future
     const baseDate = getFutureDate(40);
     const futureDate = getNextWednesday(baseDate);
-    const shift = await axios.post('/api/shifts', {
-      locationId: loc1Id,
-      requiredSkillId: bartenderSkillId,
-      startTime: setHours(futureDate, 14).toISOString(),
-      endTime: setHours(futureDate, 16).toISOString(),
-      headcountNeeded: 1,
-      status: 'published'
-    }, { headers: { Authorization: `Bearer ${managerToken}` } });
+    const shift = await axios.post(
+      '/api/shifts',
+      {
+        locationId: loc1Id,
+        requiredSkillId: bartenderSkillId,
+        startTime: setHours(futureDate, 14).toISOString(),
+        endTime: setHours(futureDate, 16).toISOString(),
+        headcountNeeded: 1,
+        status: 'published',
+      },
+      { headers: { Authorization: `Bearer ${managerToken}` } },
+    );
 
-    await axios.post(`/api/shifts/${shift.data.id}/assign`, {
-      userId: charlieId
-    }, { headers: { Authorization: `Bearer ${managerToken}` } });
+    await axios.post(
+      `/api/shifts/${shift.data.id}/assign`,
+      {
+        userId: charlieId,
+      },
+      { headers: { Authorization: `Bearer ${managerToken}` } },
+    );
 
     // 2. Charlie requests a swap with Frank
-    const swapReq = await axios.post('/api/swaps/request', {
-      shiftId: shift.data.id,
-      targetUserId: frankId,
-      reason: 'Doctor appointment'
-    }, { headers: { Authorization: `Bearer ${charlieToken}` } });
+    const swapReq = await axios.post(
+      '/api/swaps/request',
+      {
+        shiftId: shift.data.id,
+        targetUserId: frankId,
+        reason: 'Doctor appointment',
+      },
+      { headers: { Authorization: `Bearer ${charlieToken}` } },
+    );
 
     expect(swapReq.data.status).toBe('pending_peer');
 
@@ -60,19 +88,25 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
     await safePut(`/api/swaps/accept/${swapReq.data.id}`, {}, frankToken);
 
     // 4. Manager approves the swap
-    const approval = await safePut(`/api/swaps/approve/${swapReq.data.id}`, {
-      approve: true
-    }, managerToken);
+    const approval = await safePut(
+      `/api/swaps/approve/${swapReq.data.id}`,
+      {
+        approve: true,
+      },
+      managerToken,
+    );
 
     expect(approval.data.status).toBe('approved');
 
     // 5. Verify the assignment has changed
     const updatedShift = await axios.get(`/api/shifts/${shift.data.id}`, {
-        headers: { Authorization: `Bearer ${managerToken}` }
+      headers: { Authorization: `Bearer ${managerToken}` },
     });
-    
+
     // Check assignments - Frank should be there, Charlie should not
-    const assignedUserIds = updatedShift.data.assignments.map((a: any) => a.userId);
+    const assignedUserIds = updatedShift.data.assignments.map(
+      (a: any) => a.userId,
+    );
     expect(assignedUserIds).toContain(frankId);
     expect(assignedUserIds).not.toContain(charlieId);
   });
