@@ -97,7 +97,7 @@ function SwapMarketplaceContent() {
       setSelectedShift('');
       setSelectedTarget('');
       setReason('');
-    } catch (error) {
+    } catch {
       // Error handled by hook
     } finally {
       setIsSubmitting(false);

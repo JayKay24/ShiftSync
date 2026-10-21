@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { analyticsApi } from '@/lib/api';
-import {
-  FairnessScoreResponse,
-  HourDistributionRecord,
-} from '@shiftsync/data-access';
+import { FairnessScoreResponse } from '@shiftsync/data-access';
 import {
   Card,
   CardContent,
@@ -14,7 +11,6 @@ import {
 import {
   Loader2,
   BarChart3,
-  Scale,
   TrendingUp,
   Users,
   Info,

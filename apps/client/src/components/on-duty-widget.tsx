@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { shiftsApi } from '@/lib/api';
 import { OnDutyStaffResponse } from '@shiftsync/data-access';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -45,7 +45,10 @@ export function OnDutyWidget() {
             <User className="h-4 w-4 text-green-500" />
             On-Duty Now
           </div>
-          <Badge variant="outline" className="text-[10px] font-normal border-green-200 text-green-700 bg-green-50">
+          <Badge
+            variant="outline"
+            className="text-[10px] font-normal border-green-200 text-green-700 bg-green-50"
+          >
             {onDuty.length} Active
           </Badge>
         </CardTitle>
@@ -58,7 +61,10 @@ export function OnDutyWidget() {
         ) : onDuty.length > 0 ? (
           <div className="space-y-3">
             {onDuty.map((staff) => (
-              <div key={staff.id} className="flex items-start justify-between border-b border-slate-50 pb-2 last:border-0">
+              <div
+                key={staff.id}
+                className="flex items-start justify-between border-b border-slate-50 pb-2 last:border-0"
+              >
                 <div className="space-y-0.5">
                   <p className="text-sm font-semibold">
                     {staff.user.firstName} {staff.user.lastName}
@@ -82,7 +88,9 @@ export function OnDutyWidget() {
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-xs text-muted-foreground italic">No staff currently on-duty.</p>
+            <p className="text-xs text-muted-foreground italic">
+              No staff currently on-duty.
+            </p>
           </div>
         )}
       </CardContent>

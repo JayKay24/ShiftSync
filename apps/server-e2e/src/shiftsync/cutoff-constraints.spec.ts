@@ -1,5 +1,11 @@
 import axios from 'axios';
-import { login, TEST_USERS, clearDynamicData, getPastDate, getSafeFutureDate } from '../support/test-helpers';
+import {
+  login,
+  TEST_USERS,
+  clearDynamicData,
+  getPastDate,
+  getSafeFutureDate,
+} from '../support/test-helpers';
 
 describe('Shift Cutoff & Past Assignment Constraints', () => {
   let managerToken: string;
@@ -10,16 +16,23 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
 
   beforeAll(async () => {
     await clearDynamicData();
-    managerToken = await login(TEST_USERS.manager.email, TEST_USERS.manager.pass);
+    managerToken = await login(
+      TEST_USERS.manager.email,
+      TEST_USERS.manager.pass,
+    );
     adminToken = await login(TEST_USERS.admin.email, TEST_USERS.admin.pass);
   });
 
   async function safePost(url: string, data: any, token: string) {
-    return axios.post(url, data, { headers: { Authorization: `Bearer ${token}` } });
+    return axios.post(url, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   }
 
   async function safePatch(url: string, data: any, token: string) {
-    return axios.patch(url, data, { headers: { Authorization: `Bearer ${token}` } });
+    return axios.patch(url, data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   }
 
   describe('Constraint: No Past Shift Assignment', () => {
@@ -28,21 +41,31 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
       const pastDate = getPastDate(2); // 48h ago
 
       // Create a past shift using Admin (who can bypass constraints if needed)
-      const pastShift = await safePost('/api/shifts', {
-        locationId: loc1Id,
-        requiredSkillId: bartenderSkillId,
-        startTime: pastDate.toISOString(),
-        endTime: new Date(pastDate.getTime() + 4 * 3600000).toISOString(),
-        headcountNeeded: 1,
-        status: 'published'
-      }, adminToken);
+      const pastShift = await safePost(
+        '/api/shifts',
+        {
+          locationId: loc1Id,
+          requiredSkillId: bartenderSkillId,
+          startTime: pastDate.toISOString(),
+          endTime: new Date(pastDate.getTime() + 4 * 3600000).toISOString(),
+          headcountNeeded: 1,
+          status: 'published',
+        },
+        adminToken,
+      );
 
       try {
-        await safePost(`/api/shifts/${pastShift.data.id}/assign`, { userId: staffId }, managerToken);
+        await safePost(
+          `/api/shifts/${pastShift.data.id}/assign`,
+          { userId: staffId },
+          managerToken,
+        );
         throw new Error('Should have blocked past shift assignment');
       } catch (e) {
         expect(e.response.status).toBe(400);
-        expect(e.response.data.message).toContain('Cannot assign staff to a shift that has already started or passed');
+        expect(e.response.data.message).toContain(
+          'Cannot assign staff to a shift that has already started or passed',
+        );
       }
     });
   });
@@ -52,21 +75,33 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
       await clearDynamicData();
       const nearFutureDate = getSafeFutureDate(1); // 24h from now < 48h
 
-      const nearShift = await safePost('/api/shifts', {
-        locationId: loc1Id,
-        requiredSkillId: bartenderSkillId,
-        startTime: nearFutureDate.toISOString(),
-        endTime: new Date(nearFutureDate.getTime() + 4 * 3600000).toISOString(),
-        headcountNeeded: 1,
-        status: 'published'
-      }, adminToken);
+      const nearShift = await safePost(
+        '/api/shifts',
+        {
+          locationId: loc1Id,
+          requiredSkillId: bartenderSkillId,
+          startTime: nearFutureDate.toISOString(),
+          endTime: new Date(
+            nearFutureDate.getTime() + 4 * 3600000,
+          ).toISOString(),
+          headcountNeeded: 1,
+          status: 'published',
+        },
+        adminToken,
+      );
 
       try {
-        await safePatch(`/api/shifts/${nearShift.data.id}`, { headcountNeeded: 2 }, managerToken);
+        await safePatch(
+          `/api/shifts/${nearShift.data.id}`,
+          { headcountNeeded: 2 },
+          managerToken,
+        );
         throw new Error('Should have blocked edit within 48h');
       } catch (e) {
         expect(e.response.status).toBe(400);
-        expect(e.response.data.message).toContain('Shifts cannot be edited or unpublished within 48 hours');
+        expect(e.response.data.message).toContain(
+          'Shifts cannot be edited or unpublished within 48 hours',
+        );
       }
     });
 
@@ -74,16 +109,24 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
       await clearDynamicData();
       const veryNearDate = getSafeFutureDate(0.5); // 12h from now
 
-      const nearShift = await safePost('/api/shifts', {
-        locationId: loc1Id,
-        requiredSkillId: bartenderSkillId,
-        startTime: veryNearDate.toISOString(),
-        endTime: new Date(veryNearDate.getTime() + 4 * 3600000).toISOString(),
-        headcountNeeded: 1,
-        status: 'published'
-      }, adminToken);
+      const nearShift = await safePost(
+        '/api/shifts',
+        {
+          locationId: loc1Id,
+          requiredSkillId: bartenderSkillId,
+          startTime: veryNearDate.toISOString(),
+          endTime: new Date(veryNearDate.getTime() + 4 * 3600000).toISOString(),
+          headcountNeeded: 1,
+          status: 'published',
+        },
+        adminToken,
+      );
 
-      const res = await safePatch(`/api/shifts/${nearShift.data.id}`, { headcountNeeded: 3 }, adminToken);
+      const res = await safePatch(
+        `/api/shifts/${nearShift.data.id}`,
+        { headcountNeeded: 3 },
+        adminToken,
+      );
       expect(res.status).toBe(200);
       expect(res.data.headcountNeeded).toBe(3);
     });
@@ -92,16 +135,26 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
       await clearDynamicData();
       const farFutureDate = getSafeFutureDate(4); // 96h from now > 48h
 
-      const farShift = await safePost('/api/shifts', {
-        locationId: loc1Id,
-        requiredSkillId: bartenderSkillId,
-        startTime: farFutureDate.toISOString(),
-        endTime: new Date(farFutureDate.getTime() + 4 * 3600000).toISOString(),
-        headcountNeeded: 1,
-        status: 'published'
-      }, adminToken);
+      const farShift = await safePost(
+        '/api/shifts',
+        {
+          locationId: loc1Id,
+          requiredSkillId: bartenderSkillId,
+          startTime: farFutureDate.toISOString(),
+          endTime: new Date(
+            farFutureDate.getTime() + 4 * 3600000,
+          ).toISOString(),
+          headcountNeeded: 1,
+          status: 'published',
+        },
+        adminToken,
+      );
 
-      const res = await safePatch(`/api/shifts/${farShift.data.id}`, { headcountNeeded: 2 }, managerToken);
+      const res = await safePatch(
+        `/api/shifts/${farShift.data.id}`,
+        { headcountNeeded: 2 },
+        managerToken,
+      );
       expect(res.status).toBe(200);
       expect(res.data.headcountNeeded).toBe(2);
     });

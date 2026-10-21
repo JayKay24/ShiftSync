@@ -3,7 +3,6 @@ import { login, TEST_USERS, clearDynamicData } from '../support/test-helpers';
 
 describe('Manager Location-Based Access Control', () => {
   let bobToken: string; // Manager for NY
-  let dianaToken: string; // Manager for LA
 
   const locNY = '11111111-1111-4111-8111-111111111111'; // Downtown
   const locUptown = '11111111-1111-4111-8111-111111111112'; // Uptown

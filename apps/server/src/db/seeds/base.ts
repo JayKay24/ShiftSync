@@ -70,7 +70,7 @@ export async function seedBase(db: NodePgDatabase<typeof schema>) {
   console.log('Seeding base data (locations, skills, users)...');
 
   // 1. Seed Locations
-  const seededLocs = await db
+  await db
     .insert(locations)
     .values([
       {
@@ -95,11 +95,10 @@ export async function seedBase(db: NodePgDatabase<typeof schema>) {
         scheduleEditCutoffHours: 24,
       },
     ])
-    .onConflictDoNothing()
-    .returning();
+    .onConflictDoNothing();
 
   // 2. Seed Skills
-  const seededSkills = await db
+  await db
     .insert(skills)
     .values([
       { id: '22222222-2222-4222-8222-222222222221', name: 'bartender' },
@@ -107,14 +106,13 @@ export async function seedBase(db: NodePgDatabase<typeof schema>) {
       { id: '22222222-2222-4222-8222-222222222223', name: 'server' },
       { id: '22222222-2222-4222-8222-222222222224', name: 'host' },
     ])
-    .onConflictDoNothing()
-    .returning();
+    .onConflictDoNothing();
 
   // 3. Seed Users
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash('password123', salt);
 
-  const seededUsers = await db
+  await db
     .insert(users)
     .values([
       {
@@ -225,8 +223,7 @@ export async function seedBase(db: NodePgDatabase<typeof schema>) {
         desiredWeeklyHours: 35,
       },
     ])
-    .onConflictDoNothing()
-    .returning();
+    .onConflictDoNothing();
 
   // Extra staff to demonstrate cursor-based pagination
   await db

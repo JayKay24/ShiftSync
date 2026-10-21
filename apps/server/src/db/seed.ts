@@ -23,7 +23,9 @@ async function main() {
     await seedBase(db);
     await seedScenarios(db);
   } else {
-    console.log('Performing BASE seed only (preserving existing base data if possible)...');
+    console.log(
+      'Performing BASE seed only (preserving existing base data if possible)...',
+    );
     await seedBase(db);
   }
 
@@ -34,7 +36,7 @@ async function main() {
   console.log(`Staff (Charlie): charlie.staff@coastaleats.com`);
   console.log('Password for all: password123');
   console.log('=========================================');
-  
+
   await pool.end();
 }
 

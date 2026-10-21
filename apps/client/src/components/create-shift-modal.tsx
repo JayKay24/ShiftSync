@@ -47,10 +47,10 @@ export function CreateShiftModal({
   // Update default selections once metadata loads
   useEffect(() => {
     if (!formData.locationId && locations.length > 0) {
-      setFormData(prev => ({ ...prev, locationId: locations[0].id }));
+      setFormData((prev) => ({ ...prev, locationId: locations[0].id }));
     }
     if (!formData.requiredSkillId && skills.length > 0) {
-      setFormData(prev => ({ ...prev, requiredSkillId: skills[0].id }));
+      setFormData((prev) => ({ ...prev, requiredSkillId: skills[0].id }));
     }
   }, [locations, skills, formData.locationId, formData.requiredSkillId]);
 
@@ -59,8 +59,12 @@ export function CreateShiftModal({
     setIsLoading(true);
 
     try {
-      const startTime = new Date(`${formData.date}T${formData.startTime}:00`).toISOString();
-      const endTime = new Date(`${formData.date}T${formData.endTime}:00`).toISOString();
+      const startTime = new Date(
+        `${formData.date}T${formData.startTime}:00`,
+      ).toISOString();
+      const endTime = new Date(
+        `${formData.date}T${formData.endTime}:00`,
+      ).toISOString();
 
       await shiftsApi.createShift({
         locationId: formData.locationId,
@@ -94,7 +98,9 @@ export function CreateShiftModal({
               id="location"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={formData.locationId}
-              onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, locationId: e.target.value })
+              }
               required
             >
               {locations.map((loc) => (
@@ -111,7 +117,9 @@ export function CreateShiftModal({
               id="skill"
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={formData.requiredSkillId}
-              onChange={(e) => setFormData({ ...formData, requiredSkillId: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, requiredSkillId: e.target.value })
+              }
               required
             >
               {skills.map((skill) => (
@@ -128,7 +136,9 @@ export function CreateShiftModal({
               id="date"
               type="date"
               value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
               required
             />
           </div>
@@ -140,7 +150,9 @@ export function CreateShiftModal({
                 id="startTime"
                 type="time"
                 value={formData.startTime}
-                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, startTime: e.target.value })
+                }
                 required
               />
             </div>
@@ -150,22 +162,31 @@ export function CreateShiftModal({
                 id="endTime"
                 type="time"
                 value={formData.endTime}
-                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, endTime: e.target.value })
+                }
                 required
               />
             </div>
           </div>
 
           <div className="flex items-center space-x-2 py-2">
-            <input 
-              type="checkbox" 
-              id="premium" 
+            <input
+              type="checkbox"
+              id="premium"
               className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               checked={formData.isPremium}
-              onChange={(e) => setFormData({ ...formData, isPremium: e.target.checked })}
+              onChange={(e) =>
+                setFormData({ ...formData, isPremium: e.target.checked })
+              }
             />
-            <Label htmlFor="premium" className="flex items-center gap-1.5 cursor-pointer">
-              <Star className={`h-3.5 w-3.5 ${formData.isPremium ? 'text-orange-500 fill-orange-500' : 'text-slate-400'}`} />
+            <Label
+              htmlFor="premium"
+              className="flex items-center gap-1.5 cursor-pointer"
+            >
+              <Star
+                className={`h-3.5 w-3.5 ${formData.isPremium ? 'text-orange-500 fill-orange-500' : 'text-slate-400'}`}
+              />
               Mark as Premium Shift
             </Label>
           </div>
@@ -177,13 +198,23 @@ export function CreateShiftModal({
               type="number"
               min="1"
               value={formData.headcountNeeded}
-              onChange={(e) => setFormData({ ...formData, headcountNeeded: Number(e.target.value) })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  headcountNeeded: Number(e.target.value),
+                })
+              }
               required
             />
           </div>
 
           <DialogFooter>
-            <Button type="submit" disabled={isLoading} className="w-full" data-testid="submit-shift-button">
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full"
+              data-testid="submit-shift-button"
+            >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create & Publish Shift
             </Button>

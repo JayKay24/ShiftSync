@@ -2,11 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { swapsApi } from '@/lib/api';
-import {
-  SwapRequestResponse,
-  CreateSwapRequest,
-  ApproveSwapRequest,
-} from '@shiftsync/data-access';
+import { SwapRequestResponse, CreateSwapRequest } from '@shiftsync/data-access';
 
 /**
  * Custom React hook for managing shift swap and drop workflows with cursor pagination.

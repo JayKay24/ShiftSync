@@ -5,12 +5,11 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { 
-  WsNotificationPayload, 
-  WsNotificationReadPayload, 
-  WsScheduleUpdatePayload 
+import {
+  WsNotificationPayload,
+  WsNotificationReadPayload,
+  WsScheduleUpdatePayload,
 } from '@shiftsync/data-access';
 
 @WebSocketGateway({
@@ -18,7 +17,9 @@ import {
     origin: '*', // In production, restrict to your frontend URL
   },
 })
-export class NotificationGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class NotificationGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -38,7 +39,7 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
       const payload = this.jwtService.verify(token);
       this.userSockets.set(payload.sub, client.id);
       console.log(`User connected: ${payload.sub} with socket: ${client.id}`);
-    } catch (e) {
+    } catch {
       client.disconnect();
     }
   }
@@ -54,9 +55,9 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   }
 
   sendToUser(
-    userId: string, 
-    event: 'notification' | 'notification_read', 
-    data: WsNotificationPayload | WsNotificationReadPayload
+    userId: string,
+    event: 'notification' | 'notification_read',
+    data: WsNotificationPayload | WsNotificationReadPayload,
   ) {
     const socketId = this.userSockets.get(userId);
     if (socketId) {

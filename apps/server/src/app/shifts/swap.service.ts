@@ -390,8 +390,7 @@ export class SwapService {
       return { status: 'rejected' };
     }
 
-    const newUserId = request.targetUserId || managerId; // If drop, who picked it up? (Implementation simplifies to targeted swaps for now)
-
+    // If drop, who picked it up? (Implementation simplifies to targeted swaps for now)
     if (!request.targetUserId) {
       throw new BadRequestException(
         'Public drop pick-up logic not implemented yet. Use targeted swaps.',

@@ -1,7 +1,4 @@
-import {
-  CursorPaginatedResponse,
-  CursorPaginationParams,
-} from './api-interfaces';
+import { CursorPaginatedResponse } from './api-interfaces';
 
 /**
  * Internal payload structure encoded inside an opaque pagination cursor.

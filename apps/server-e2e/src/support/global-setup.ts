@@ -14,7 +14,10 @@ module.exports = async function () {
 
   console.log('--- GLOBAL SEEDING (ONCE) ---');
   try {
-    execSync('npm run db:seed -- --full', { stdio: 'inherit', env: { ...process.env, NODE_ENV: 'test' } });
+    execSync('npm run db:seed -- --full', {
+      stdio: 'inherit',
+      env: { ...process.env, NODE_ENV: 'test' },
+    });
   } catch (e) {
     console.error('Global seed failed', e);
     throw e;
