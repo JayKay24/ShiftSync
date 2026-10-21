@@ -45,14 +45,14 @@ export async function seedScenarios(db: NodePgDatabase<typeof schema>) {
   const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 });
 
-  // A. Past Completed Shift
+  // A. Past Completed Shift (guaranteed to be in the previous week regardless of run day)
   const pastShift = await db
     .insert(shifts)
     .values({
       locationId: loc1Id,
       requiredSkillId: skillBartenderId,
-      startTime: setHours(setMinutes(subDays(today, 2), 0), 10),
-      endTime: setHours(setMinutes(subDays(today, 2), 0), 18),
+      startTime: setHours(setMinutes(subDays(weekStart, 2), 0), 10),
+      endTime: setHours(setMinutes(subDays(weekStart, 2), 0), 18),
       headcountNeeded: 1,
       status: 'completed',
       createdBy: bobId,

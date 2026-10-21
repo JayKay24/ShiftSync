@@ -19,7 +19,8 @@
     "paths": {
       "@/*": ["src/*"],
       "@shiftsync/data-access": ["../../libs/shared/data-access/src/index.ts"]
-    }
+    },
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "src/**/*.ts",

@@ -44,7 +44,6 @@
       "plugin": "@nx/vite/plugin",
       "options": {
         "buildTargetName": "build",
-        "testTargetName": "test",
         "serveTargetName": "serve",
         "devTargetName": "dev",
         "previewTargetName": "preview",
@@ -52,6 +51,12 @@
         "typecheckTargetName": "typecheck",
         "buildDepsTargetName": "build-deps",
         "watchDepsTargetName": "watch-deps"
+      }
+    },
+    {
+      "plugin": "@nx/vitest",
+      "options": {
+        "testTargetName": "test"
       }
     },
     {
@@ -64,7 +69,6 @@
   "release": {
     "projects": ["shiftsync"],
     "projectsRelationship": "fixed",
-    "releaseTagPattern": "v{version}",
     "version": {
       "conventionalCommits": true,
       "fallbackCurrentVersionResolver": "disk",
@@ -81,6 +85,9 @@
       "commit": true,
       "commitMessage": "chore(release): v{version}",
       "tag": true
+    },
+    "releaseTag": {
+      "pattern": "v{version}"
     }
   }
 }
