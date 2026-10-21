@@ -8,7 +8,10 @@
     "db:seed": "tsx --tsconfig tsconfig.base.json apps/server/src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
     "prepare": "husky",
-    "typecheck": "tsc -p apps/client/tsconfig.json --noEmit && tsc -p apps/server/tsconfig.app.json --noEmit && tsc -p libs/shared/data-access/tsconfig.lib.json --noEmit"
+    "typecheck": "nx run-many -t typecheck"
+  },
+  "nx": {
+    "includedScripts": []
   },
   "private": true,
   "dependencies": {

@@ -17,11 +17,18 @@ concurrency:
 
 jobs:
   install:
-    name: Install Dependencies
+    name: Install Dependencies & Resolve Nx SHAs
     runs-on: ubuntu-latest
+    outputs:
+      nx_base: ${{ steps.affected-e2e.outputs.nx_base }}
+      nx_head: ${{ steps.affected-e2e.outputs.nx_head }}
+      server_e2e_affected: ${{ steps.affected-e2e.outputs.server_e2e }}
+      client_e2e_affected: ${{ steps.affected-e2e.outputs.client_e2e }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,6 +46,41 @@ jobs:
       - name: Install dependencies
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci --legacy-peer-deps
+
+      - name: Derive base and head SHAs for Nx
+        id: set-shas
+        uses: nrwl/nx-set-shas@v4
+        with:
+          main-branch-name: ${{ github.base_ref || (github.ref_name == 'main' && 'main' || 'develop') }}
+
+      - name: Calculate affected projects for E2E gating
+        id: affected-e2e
+        env:
+          RESOLVED_BASE: ${{ steps.set-shas.outputs.base }}
+          RESOLVED_HEAD: ${{ steps.set-shas.outputs.head }}
+        run: |
+          BASE="${RESOLVED_BASE:-HEAD~1}"
+          HEAD="${RESOLVED_HEAD:-HEAD}"
+          echo "Using base SHA: $BASE"
+          echo "Using head SHA: $HEAD"
+          echo "nx_base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "nx_head=$HEAD" >> "$GITHUB_OUTPUT"
+
+          AFFECTED=$(npx nx show projects --affected --base="$BASE" --head="$HEAD")
+          echo "Affected projects:"
+          echo "$AFFECTED"
+
+          if echo "$AFFECTED" | grep -qx "server-e2e"; then
+            echo "server_e2e=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "server_e2e=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$AFFECTED" | grep -qx "client-e2e"; then
+            echo "client_e2e=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "client_e2e=false" >> "$GITHUB_OUTPUT"
+          fi
 
   commitlint:
     name: Conventional Commits
@@ -74,9 +116,14 @@ jobs:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
     needs: install
+    env:
+      NX_BASE: ${{ needs.install.outputs.nx_base }}
+      NX_HEAD: ${{ needs.install.outputs.nx_head }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -101,20 +148,23 @@ jobs:
           key: ${{ runner.os }}-nx-lint-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-nx-lint-
+            ${{ runner.os }}-nx-
 
-      - name: Run ESLint across monorepo
-        run: npx nx run-many -t lint
-
-      - name: Run TypeScript typecheck
-        run: npm run typecheck
+      - name: Run lint and typecheck for affected projects
+        run: npx nx affected -t lint typecheck --base=$NX_BASE --head=$NX_HEAD
 
   build:
     name: Build Applications
     runs-on: ubuntu-latest
     needs: install
+    env:
+      NX_BASE: ${{ needs.install.outputs.nx_base }}
+      NX_HEAD: ${{ needs.install.outputs.nx_head }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -139,17 +189,23 @@ jobs:
           key: ${{ runner.os }}-nx-build-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-nx-build-
+            ${{ runner.os }}-nx-
 
-      - name: Build applications
-        run: npx nx run-many -t build
+      - name: Build affected applications
+        run: npx nx affected -t build --base=$NX_BASE --head=$NX_HEAD
 
   test-unit:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: install
+    env:
+      NX_BASE: ${{ needs.install.outputs.nx_base }}
+      NX_HEAD: ${{ needs.install.outputs.nx_head }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -174,14 +230,16 @@ jobs:
           key: ${{ runner.os }}-nx-test-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-nx-test-
+            ${{ runner.os }}-nx-
 
-      - name: Run unit tests
-        run: npx nx run-many -t test
+      - name: Run affected unit tests
+        run: npx nx affected -t test --base=$NX_BASE --head=$NX_HEAD
 
   test-integration:
     name: Backend Integration Tests
     runs-on: ubuntu-latest
     needs: install
+    if: needs.install.outputs.server_e2e_affected == 'true'
     services:
       postgres:
         image: postgres:16-alpine
@@ -223,6 +281,15 @@ jobs:
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci --legacy-peer-deps
 
+      - name: Cache Nx computation cache
+        uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: ${{ runner.os }}-nx-server-e2e-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-nx-build-
+            ${{ runner.os }}-nx-
+
       - name: Push database schema
         run: npx drizzle-kit push
 
@@ -236,6 +303,7 @@ jobs:
     name: Client UI E2E Tests
     runs-on: ubuntu-latest
     needs: install
+    if: needs.install.outputs.client_e2e_affected == 'true'
     services:
       postgres:
         image: postgres:16-alpine
@@ -292,6 +360,15 @@ jobs:
       - name: Install Playwright OS dependencies (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
+
+      - name: Cache Nx computation cache
+        uses: actions/cache@v4
+        with:
+          path: .nx/cache
+          key: ${{ runner.os }}-nx-client-e2e-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-nx-build-
+            ${{ runner.os }}-nx-
 
       - name: Push database schema
         run: npx drizzle-kit push
