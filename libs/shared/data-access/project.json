@@ -5,5 +5,21 @@
   "projectType": "library",
   "tags": [],
   "// targets": "to see all targets run: nx show project data-access --web",
-  "targets": {}
+  "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "production",
+        "^production",
+        {
+          "externalDependencies": ["typescript"]
+        }
+      ],
+      "options": {
+        "cwd": "libs/shared/data-access",
+        "command": "tsc --noEmit -p tsconfig.lib.json"
+      }
+    }
+  }
 }
