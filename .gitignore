@@ -50,4 +50,10 @@ Thumbs.db
 .next
 out
 
+# Test reports
+playwright-report
+test-results
+
 .nx/polygraph
+.nx/self-healing
+.nx/migrate-runs

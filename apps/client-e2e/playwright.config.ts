@@ -10,6 +10,7 @@ const baseURL = process.env['BASE_URL'] || 'http://localhost:3000';
  */
 export default defineConfig({
   ...nxE2EPreset(__filename, { testDir: './src' }),
+  reporter: process.env.CI ? 'dot' : [['list'], ['html', { open: 'never' }]],
   globalSetup: require.resolve('./src/support/global-setup'),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -21,7 +22,7 @@ export default defineConfig({
   /* Run local dev servers before starting the tests */
   webServer: [
     {
-      command: 'npx nx run server:serve:development',
+      command: 'npx nx run server:serve',
       url: 'http://localhost:3001/api',
       reuseExistingServer: true,
       cwd: workspaceRoot,
