@@ -1,16 +1,17 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { DashboardLayout } from '@/components/dashboard-layout';
-import LandingPage from '@/pages/landing';
-import LoginPage from '@/pages/login';
-import ManagerOverviewPage from '@/pages/dashboard/manager/overview';
-import ScheduleManagerPage from '@/pages/dashboard/manager/schedule';
-import StaffPage from '@/pages/dashboard/manager/staff';
-import AnalyticsPage from '@/pages/dashboard/manager/analytics';
-import StaffOverviewPage from '@/pages/dashboard/staff/overview';
-import SwapMarketplace from '@/pages/dashboard/staff/swaps';
-import GlobalAuditPage from '@/pages/dashboard/admin/audit';
-import NotificationsPage from '@/pages/dashboard/notifications';
-import SettingsPage from '@/pages/dashboard/settings';
+
+import GlobalAuditPage from '@/app/routes/dashboard/admin/audit';
+import { DashboardLayout } from '@/app/routes/dashboard/dashboard-layout';
+import AnalyticsPage from '@/app/routes/dashboard/manager/analytics';
+import ManagerOverviewPage from '@/app/routes/dashboard/manager/overview';
+import ScheduleManagerPage from '@/app/routes/dashboard/manager/schedule';
+import StaffPage from '@/app/routes/dashboard/manager/staff';
+import NotificationsPage from '@/app/routes/dashboard/notifications';
+import SettingsPage from '@/app/routes/dashboard/settings';
+import StaffOverviewPage from '@/app/routes/dashboard/staff/overview';
+import SwapMarketplace from '@/app/routes/dashboard/staff/swaps';
+import LandingPage from '@/app/routes/landing';
+import LoginPage from '@/app/routes/login';
 
 export function App() {
   return (

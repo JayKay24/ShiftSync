@@ -1,0 +1,45 @@
+'use client';
+
+import { useState, useCallback } from 'react';
+
+import { shiftsApi } from '@/features/shifts/api/shifts-api';
+import { Location, Skill } from '@shiftsync/data-access';
+
+/**
+ * Custom React hook for fetching system metadata (locations and skills).
+ *
+ * @returns {Object} Locations list, skills list, loading flag, error state, and fetch dispatcher.
+ */
+export function useMetadata() {
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMetadata = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [locRes, skillRes] = await Promise.all([
+        shiftsApi.getLocations(),
+        shiftsApi.getSkills(),
+      ]);
+      setLocations(locRes.data);
+      setSkills(skillRes.data);
+      return { locations: locRes.data, skills: skillRes.data };
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch metadata');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  return {
+    locations,
+    skills,
+    isLoading,
+    error,
+    fetchMetadata,
+  };
+}

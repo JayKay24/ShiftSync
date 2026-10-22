@@ -1,9 +1,10 @@
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
-import LandingPage from '../src/pages/landing';
 
-vi.mock('@/hooks/use-auth', () => ({
+import LandingPage from '../src/app/routes/landing';
+
+vi.mock('@/features/auth/hooks/use-auth', () => ({
   useAuth: () => ({
     user: null,
     isLoading: false,
