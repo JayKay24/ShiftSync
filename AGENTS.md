@@ -147,20 +147,57 @@ The project features a comprehensive seed script in `apps/server/src/db/seed.ts`
 
 ## 🌐 Frontend Application (`apps/client`)
 
-The frontend is a **React 19** Single Page Application (SPA) powered by **Vite**, **React Router v7**, **Tailwind CSS** for styling, and **Lucide React** for icons.
+The frontend is a **React 19** Single Page Application (SPA) powered by **Vite**, **React Router v7**, **Tailwind CSS** for styling, and **Lucide React** for icons. It follows the **3-tier unidirectional feature-based architecture** modeled on _React Application Architecture for Production, 2nd Edition_ (Chapter 2).
+
+### Directory Architecture
+
+```text
+apps/client/src/
+├── app/
+│   ├── app.tsx                                  # Root router configuration
+│   ├── global.css                               # Global Tailwind styles
+│   └── routes/                                  # Route views & app shell layout (DashboardLayout)
+├── components/
+│   └── ui/                                      # Pure, domain-agnostic UI primitives (Button, Card, etc.)
+├── config/
+│   └── env.ts                                   # Centralized, Zod-validated environment configuration
+├── features/                                    # 8 domain-scoped modules matching backend domains
+│   ├── {auth,shifts,swaps,staff,analytics,audit,notifications,profile}/
+│   │   ├── api/                                 # Feature-specific API clients (shiftsApi, swapsApi, etc.)
+│   │   ├── components/                          # Feature-specific modals and widgets
+│   │   ├── hooks/                               # Feature-specific custom hooks
+│   │   └── context/                             # Feature-specific React contexts (when applicable)
+├── lib/
+│   ├── api.ts                                   # Shared Axios client, Bearer interceptors, pagination defaults
+│   └── utils.ts                                 # Tailwind cn() helper
+└── main.tsx
+```
+
+### Architectural Boundary Enforcement (`eslint-import-rules.mjs`)
+
+Architectural boundaries are strictly enforced via ESLint:
+
+- **Shared Utilities & UI**: `src/components/**`, `src/config/**`, and `src/lib/**` cannot import from `src/features/**` or `src/app/**`.
+- **Features**: `src/features/**` cannot import from `src/app/**`.
+- **Cross-Feature DAG**: Forbidden cross-feature dependencies are blocked with descriptive errors (e.g. `auth` has 0 dependencies; `shifts` can only import `auth` and `audit`; `swaps` can only import `auth` and `notifications`).
+- **Naming & Structure**: Enforced by `import/no-restricted-paths`, `import/no-cycle`, `import/order`, and `check-file/filename-naming-convention` (`KEBAB_CASE`).
+
+### Environment Configuration (`src/config/env.ts`)
+
+Client environment variables are never accessed raw via `import.meta.env` in domain code:
+
+- **Zod Validation**: `src/config/env.ts` parses and validates variables at startup via `envSchema` (`z.string().url()`), failing fast with formatted errors if required variables are missing or malformed.
+- **Prefix Removal**: Maps Vite's `VITE_API_URL` to clean domain properties (`API_URL`, `SOCKET_URL`).
+- **Monorepo Root Resolution**: `apps/client/vite.config.mts` sets `envDir` pointing to the workspace root (`../../`) so Vite and Vitest reliably discover `.env`.
 
 ### API Consumption
 
-The client communicates with the backend through a centralized Axios instance in `src/lib/api.ts` typed with contracts from `@shiftsync/data-access`:
+The shared Axios instance lives in `src/lib/api.ts` configured with `env.API_URL` and Bearer token interceptors. Feature-specific API endpoints are encapsulated in their respective feature `api/` modules:
 
 ```typescript
-import { ShiftResponse, CreateShiftRequest } from '@shiftsync/data-access';
-
-export const shiftsApi = {
-  getShifts: (params?: { start?: string; end?: string; locationId?: string }) => api.get<ShiftResponse[]>('/shifts', { params }),
-
-  createShift: (data: CreateShiftRequest) => api.post<ShiftResponse>('/shifts', data),
-};
+import { api } from '@/lib/api';
+import { ShiftResponse } from '@shiftsync/data-access';
+import { shiftsApi } from '@/features/shifts/api/shifts-api';
 ```
 
 ### Styling & Utility Helper (`cn`)
@@ -179,7 +216,7 @@ import { cn } from '@/lib/utils';
 
 ### Routing & Authentication
 
-- **Role-Based Redirects**: The landing page (`/` in `src/pages/landing.tsx`) automatically routes users to `/dashboard/manager` or `/dashboard/staff` based on their role stored in `AuthContext`.
+- **Role-Based Redirects**: The landing page (`/` in `src/app/routes/landing.tsx`) automatically routes users to `/dashboard/manager` or `/dashboard/staff` based on their role stored in `AuthContext`.
 - **Axios Interceptors**: Injects Bearer tokens on outgoing requests and handles automatic logout and redirection upon receiving 401 Unauthorized responses.
 - **Notification Context**: Maintains a real-time unread notification badge counter synced across tabs via WebSockets.
 
@@ -244,6 +281,7 @@ All contributions, bug fixes, and feature implementations must strictly follow t
    - Linting: `npx nx run-many -t lint`
    - Unit & integration tests: `npx nx run-many -t test`
 3. **Conventional Commits**: Commit changes following the Conventional Commits specification enforced by Commitlint (e.g., `feat(...)`, `fix(...)`, `docs(...)`).
+   - **Body Line Length**: Every line in the commit message body must not exceed **100 characters** (`body-max-line-length`). Wrap list bullets and explanations accordingly.
 4. **Push & Create PR**: Push the branch to upstream (`origin`) and open a Pull Request targeting the `develop` branch for review and CI validation.
 5. **Automated Release Pipeline**:
    - Merges from `develop` into `main` trigger the `Continuous Integration` suite. Upon successful completion, the `Release` workflow (`.github/workflows/release.yml`) automatically executes.
