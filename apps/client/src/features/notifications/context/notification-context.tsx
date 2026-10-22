@@ -8,13 +8,12 @@ import {
 } from 'react';
 import { io, Socket } from 'socket.io-client';
 
+import { env } from '@/config/env';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { notificationsApi } from '@/features/notifications/api/notifications-api';
 import { Notification } from '@shiftsync/data-access';
 
-const SOCKET_URL = (
-  (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3001/api'
-).replace('/api', '');
+const SOCKET_URL = env.SOCKET_URL;
 
 /**
  * State contract for notification management and real-time updates.
