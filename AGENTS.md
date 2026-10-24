@@ -228,16 +228,16 @@ ShiftSync employs a multi-layered testing strategy verifying business logic, com
 
 ### 1. Unit Tests
 
-Unit tests are implemented with **Vitest** for the client and **Jest** for backend/shared libraries:
+Unit tests are implemented with **Vitest** across the entire monorepo:
 
 - `npx nx run-many -t test`: Runs all unit test suites.
 - `apps/client`: Tests UI components, routing guards, and helper utilities with Vitest.
-- `apps/server`: Tests service business logic, compliance calculation, and repository integration with Jest.
-- `libs/shared/data-access`: Tests DTO validation decorators and schema mapping with Jest.
+- `apps/server`: Tests service business logic, compliance calculation, and repository integration with Vitest and `unplugin-swc`.
+- `libs/shared/data-access`: Tests DTO validation decorators and schema mapping with Vitest.
 
 ### 2. Backend Integration & E2E Tests (`apps/server-e2e`)
 
-The server integration suite uses **Jest** and **Axios** to validate database constraints, labor law rules, and API endpoints against an active PostgreSQL instance:
+The server integration suite uses **Vitest** and **Axios** to validate database constraints, labor law rules, and API endpoints against an active PostgreSQL instance:
 
 - **Command**: `npx nx e2e server-e2e`
 - **Setup & Isolation**: `src/support/global-setup.ts` seeds the test database. Between individual tests, `clearDynamicData()` surgically purges transactional tables (shifts, assignments, swap requests) to maintain isolation without expensive full reseeding.
