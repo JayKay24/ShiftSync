@@ -7,7 +7,7 @@
 [![NestJS](https://img.shields.io/badge/Backend-NestJS-E0234E?style=flat&logo=nestjs&logoColor=white)](https://nestjs.com)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![Drizzle ORM](https://img.shields.io/badge/ORM-Drizzle_ORM-C5F74F?style=flat&logoColor=black)](https://orm.drizzle.team)
-[![Jest](https://img.shields.io/badge/Testing-Jest-C21325?style=flat&logo=jest&logoColor=white)](https://jestjs.io)
+[![Vitest](https://img.shields.io/badge/Testing-Vitest-6E9F18?style=flat&logo=vitest&logoColor=white)](https://vitest.dev)
 [![Playwright](https://img.shields.io/badge/E2E-Playwright-2EAD33?style=flat&logo=playwright&logoColor=white)](https://playwright.dev)
 [![Continuous Integration](https://github.com/JayKay24/ShiftSync/actions/workflows/ci.yml/badge.svg)](https://github.com/JayKay24/ShiftSync/actions/workflows/ci.yml)
 
@@ -70,7 +70,7 @@ flowchart TD
     Commitlint["Conventional Commits"]
     LintTypecheck["ESLint & TypeScript Typecheck"]
     BuildJob["Production Application Builds"]
-    UnitTests["Vitest & Jest Unit Test Suite"]
+    UnitTests["Vitest Unit Test Suite"]
     IntegrationTests["Server E2E & Compliance (PostgreSQL Service)"]
     ClientE2ETests["Client UI E2E (Playwright + PostgreSQL Service)"]
   end
@@ -137,7 +137,7 @@ Based on the operational requirements for Coastal Eats, the platform adheres to 
 - **Frontend**: React 19 SPA with [Vite](https://vite.dev) & [React Router v7](https://reactrouter.com) (TypeScript, Tailwind CSS, Lucide React)
 - **Backend**: NestJS 11 (TypeScript, Socket.io WebSockets, Passport JWT)
 - **Database & ORM**: PostgreSQL 16 with [Drizzle ORM](https://orm.drizzle.team/) & [Drizzle Kit](https://orm.drizzle.team/kit-docs/overview)
-- **Testing**: Vitest & Jest (Unit), Jest (Server Integration), Playwright (Client UI E2E)
+- **Testing**: Vitest (Unit & Integration), Playwright (Client UI E2E)
 - **Continuous Integration**: GitHub Actions with dedicated dependency caching and PostgreSQL service containers
 
 ---
@@ -309,7 +309,7 @@ Every commit and pull request targeting `develop` or `main` triggers our GitHub 
 2. **`commitlint`**: Enforces Conventional Commits format on PRs.
 3. **`lint-and-typecheck`**: Runs monorepo ESLint and TypeScript checks.
 4. **`build`**: Compiles production client and server bundles.
-5. **`test-unit`**: Executes Vitest and Jest unit test suites with Nx computation caching.
+5. **`test-unit`**: Executes Vitest unit test suites across all projects with Nx computation caching.
 6. **`test-integration`**: Launches an ephemeral PostgreSQL 16 container, runs migrations, seeds data, and executes `server-e2e`.
 7. **`client-e2e`**: Runs Playwright end-to-end browser tests against isolated PostgreSQL and backend services.
 

@@ -5,12 +5,11 @@
   "implicitDependencies": ["server"],
   "targets": {
     "e2e": {
-      "executor": "@nx/jest:jest",
+      "executor": "@nx/vitest:test",
       "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
       "options": {
-        "jestConfig": "apps/server-e2e/jest.config.cts",
-        "passWithNoTests": true,
-        "runInBand": true
+        "configFile": "apps/server-e2e/vite.config.mts",
+        "reportsDirectory": "{workspaceRoot}/coverage/apps/server-e2e"
       },
       "dependsOn": ["server:build", "server:serve"]
     }

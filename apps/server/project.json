@@ -75,11 +75,6 @@
         "cwd": "apps/server",
         "command": "tsc --noEmit -p tsconfig.app.json"
       }
-    },
-    "test": {
-      "options": {
-        "passWithNoTests": true
-      }
     }
   }
 }

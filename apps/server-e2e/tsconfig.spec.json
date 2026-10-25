@@ -2,8 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
-    "module": "commonjs",
-    "types": ["jest", "node"]
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["vitest/globals", "node"]
   },
-  "include": ["jest.config.ts", "src/**/*.ts"]
+  "include": ["vite.config.mts", "src/**/*.ts"]
 }
