@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { login, TEST_USERS } from './support/test-helpers';
 
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 test.describe('ShiftSync Client E2E - Manual Test Scenarios', () => {
   test.describe('Scenario 1: Manager Access Control & Privacy', () => {
     test('Bob (Manager) should only see staff certified for his locations', async ({
@@ -68,7 +75,7 @@ test.describe('ShiftSync Client E2E - Manual Test Scenarios', () => {
       // Set date to tomorrow to ensure it's in future but within 48h
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const dateStr = tomorrow.toISOString().split('T')[0];
+      const dateStr = formatLocalDate(tomorrow);
       await page.fill('input[type="date"]', dateStr);
       await page.fill('input[id="startTime"]', '11:00');
       await page.fill('input[id="headcount"]', '99');
@@ -118,12 +125,12 @@ test.describe('ShiftSync Client E2E - Manual Test Scenarios', () => {
       await page.click('text=Schedule Manager');
       await page.click('text=Coastal Eats - Downtown');
 
-      // Create a NEW shift to ensure it has a "Created" log entry
+      // Create a NEW shift in the next week (+7 days) to verify cross-week auto-navigation and "Created" log entry
       await page.getByTestId('create-shift-button').click();
 
       const future = new Date();
-      future.setDate(future.getDate() + 1);
-      const dateStr = future.toISOString().split('T')[0];
+      future.setDate(future.getDate() + 7);
+      const dateStr = formatLocalDate(future);
       await page.fill('input[type="date"]', dateStr);
       await page.fill('input[id="startTime"]', '10:00');
       await page.fill('input[id="headcount"]', '77'); // Unique headcount for selection
