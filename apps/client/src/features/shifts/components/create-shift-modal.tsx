@@ -20,7 +20,7 @@ import { Location, Skill } from '@shiftsync/data-access';
 interface CreateShiftModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (createdDate?: Date) => void;
   locations: Location[];
   skills: Skill[];
   initialDate?: Date;
@@ -60,9 +60,8 @@ export function CreateShiftModal({
     setIsLoading(true);
 
     try {
-      const startTime = new Date(
-        `${formData.date}T${formData.startTime}:00`,
-      ).toISOString();
+      const startDate = new Date(`${formData.date}T${formData.startTime}:00`);
+      const startTime = startDate.toISOString();
       const endTime = new Date(
         `${formData.date}T${formData.endTime}:00`,
       ).toISOString();
@@ -77,7 +76,7 @@ export function CreateShiftModal({
         status: 'published',
       });
 
-      onSuccess();
+      onSuccess(startDate);
       onClose();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to create shift');

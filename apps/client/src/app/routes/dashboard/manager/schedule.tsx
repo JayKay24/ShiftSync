@@ -85,8 +85,17 @@ export default function ManagerSchedule() {
   const getSkillName = (id: string) =>
     skills.find((s) => s.id === id)?.name || 'Unknown';
 
-  const onModalSuccess = () => {
-    refreshShifts();
+  const onModalSuccess = (createdDate?: Date) => {
+    if (createdDate) {
+      const targetWeekStart = startOfWeek(createdDate, { weekStartsOn: 1 });
+      if (targetWeekStart.getTime() !== weekStart.getTime()) {
+        setCurrentDate(createdDate);
+      } else {
+        refreshShifts();
+      }
+    } else {
+      refreshShifts();
+    }
     fetchStats();
     setSelectedShift(null);
   };
