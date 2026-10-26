@@ -429,6 +429,33 @@ The following scenarios serve as reference baselines for system verification:
 - **Fairness Complaint**: Validating claims of inequitable premium shift distribution using the Fairness Index calculation.
 - **Regret Swap**: Ensuring that if a manager updates a shift while a swap is pending, the request is cleanly cancelled and restored.
 
+---
+
+## 🧭 Agent Skills & Execution Policy
+
+> [!IMPORTANT]
+> **No Default Skill Invocations**:
+>
+> - Do NOT load or execute any skill by default.
+> - Never invoke a skill simply because it exists in the repository or configuration.
+> - Only invoke a skill when a user request explicitly matches the designated trigger command or explicit scenario.
+
+### Installed Skills & Trigger Mapping
+
+The following skills are installed via `jsmastery-pro/skills` in `.agents/skills/`:
+
+| Skill           | Explicit Trigger                                            | Purpose & When to Invoke                                                                                                                                              |
+| :-------------- | :---------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`architect`** | `/architect`                                                | Run when choosing between architecture/stack approaches, designing a feature or page, or deciding foundational specs. Writes build specs to `docs/specs/`.            |
+| **`audit`**     | `/audit`                                                    | Run on greenfield projects, undocumented codebases, or designated sub-areas (`/audit <path>`) to bootstrap context files (`AGENTS.md`).                               |
+| **`check`**     | `/check verify` or `/check review`                          | Run after `/develop` to verify implementation against specs (`/check verify`) or perform code review before merging PRs (`/check review`). Writes to `docs/reviews/`. |
+| **`debug`**     | `/debug`                                                    | Run to diagnose and fix a bug's root cause through a reproduce-localize-hypothesize-fix-verify loop.                                                                  |
+| **`develop`**   | `/develop`                                                  | Run to implement a feature, component, API, or service slice from an approved specification or design.                                                                |
+| **`document`**  | `/document [pr \| changelog \| release-note \| postmortem]` | Run to draft human-facing documentation from real git commits and diffs.                                                                                              |
+| **`scope`**     | `/scope`                                                    | Run to decompose product ideas into living scope documents in `docs/scope/`.                                                                                          |
+| **`sync`**      | `/sync`                                                     | Run around merge/completion to surgically reconcile `AGENTS.md` and scope statuses with current repository reality.                                                   |
+| **`test`**      | `/test`                                                     | Run to generate or complete automated test suites targeting recently built or modified code slices.                                                                   |
+
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
