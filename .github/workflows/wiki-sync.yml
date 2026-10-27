@@ -1,0 +1,63 @@
+name: Sync GitHub Wiki
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'docs/wiki/**'
+      - '.github/workflows/wiki-sync.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: wiki-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync-wiki:
+    name: Sync docs/wiki to GitHub Wiki
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git Identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Clone and Sync Wiki
+        env:
+          WIKI_AUTH_TOKEN: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          WIKI_REPO_URL="https://x-access-token:${WIKI_AUTH_TOKEN}@github.com/${{ github.repository }}.wiki.git"
+
+          echo "Attempting to clone GitHub Wiki repository..."
+          if ! git clone "$WIKI_REPO_URL" wiki_temp; then
+            echo "::warning::GitHub Wiki repository is not yet initialized on GitHub."
+            echo "::notice::To initialize the Wiki backing repository, navigate to https://github.com/${{ github.repository }}/wiki, click 'Create the first page', and save an initial page. Subsequent pushes will sync automatically."
+            exit 0
+          fi
+
+          echo "Synchronizing documentation from docs/wiki to wiki workspace..."
+          cp -r docs/wiki/* wiki_temp/
+
+          cd wiki_temp
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "docs(wiki): sync wiki from ${{ github.sha }} [skip ci]"
+            
+            # Determine default branch (usually master for GitHub wikis)
+            DEFAULT_BRANCH=$(git branch --show-current || echo "master")
+            echo "Pushing wiki updates to $DEFAULT_BRANCH..."
+            git push origin "$DEFAULT_BRANCH"
+            echo "GitHub Wiki sync complete."
+          else
+            echo "No wiki changes detected. Wiki is already up to date."
+          fi

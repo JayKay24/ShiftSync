@@ -418,7 +418,7 @@ npx nx release
 
 ---
 
-## 📚 Legacy Assessment Context & Scenarios
+## 📚 Core Operational Verification Scenarios
 
 The following scenarios serve as reference baselines for system verification:
 
@@ -428,6 +428,8 @@ The following scenarios serve as reference baselines for system verification:
 - **Simultaneous Assignment**: Handling race conditions when two managers attempt to assign the same staff member concurrently.
 - **Fairness Complaint**: Validating claims of inequitable premium shift distribution using the Fairness Index calculation.
 - **Regret Swap**: Ensuring that if a manager updates a shift while a swap is pending, the request is cleanly cancelled and restored.
+
+For complete product specifications, labor law rules, architecture records (ADRs), and requirements traceability, see the project wiki in [`docs/wiki/`](file:///Users/jamesnjuguna/Downloads/books/personal_projects/shiftsync/docs/wiki/).
 
 ---
 

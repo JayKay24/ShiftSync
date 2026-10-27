@@ -214,7 +214,7 @@ export class ComplianceService {
     while (currentMs < end.getTime()) {
       const currentDate = new Date(currentMs);
 
-      // Assessment Requirement: Accurate Timezone Handling
+      // Domain Requirement: Accurate Timezone Handling
       // We extract day/time specifically in the target timezone (User's or Location's)
       const fmt = new Intl.DateTimeFormat('en-US', {
         timeZone: timezone,
