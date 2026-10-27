@@ -12,6 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import prettier from 'prettier';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -246,7 +247,26 @@ Scenarios leverage concrete Coastal Eats personas matching seeded restaurant per
   return md;
 }
 
-function main() {
+/**
+ * Formats markdown content using the repository's Prettier configuration.
+ *
+ * @param {string} content - Raw markdown text.
+ * @param {string} filepath - Path for config resolution.
+ * @returns {Promise<string>} Prettier-formatted markdown.
+ */
+async function formatWithPrettier(content, filepath) {
+  try {
+    const config = (await prettier.resolveConfig(filepath)) || {};
+    return await prettier.format(content, {
+      ...config,
+      parser: 'markdown',
+    });
+  } catch {
+    return content;
+  }
+}
+
+async function main() {
   const featureFiles = fs
     .readdirSync(featuresDir)
     .filter((f) => f.endsWith('.feature'))
@@ -256,7 +276,11 @@ function main() {
     parseFeatureFile(path.join(featuresDir, file)),
   );
 
-  const generatedMd = generateMarkdown(features);
+  const rawMd = generateMarkdown(features);
+  const generatedMd = (await formatWithPrettier(rawMd, wikiDocsPath)).replace(
+    /\r\n/g,
+    '\n',
+  );
 
   if (isCheckMode) {
     if (!fs.existsSync(wikiDocsPath)) {
@@ -265,7 +289,9 @@ function main() {
       );
       process.exit(1);
     }
-    const currentMd = fs.readFileSync(wikiDocsPath, 'utf-8');
+    const currentMd = fs
+      .readFileSync(wikiDocsPath, 'utf-8')
+      .replace(/\r\n/g, '\n');
     if (currentMd !== generatedMd) {
       console.error(
         '[BDD-DOCS ERROR] Living documentation is out of date with .feature files. Run "npm run bdd:docs" to update it.',
@@ -284,4 +310,7 @@ function main() {
   );
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
