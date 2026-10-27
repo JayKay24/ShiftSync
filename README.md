@@ -113,21 +113,20 @@ flowchart TD
 
 ---
 
-## 🤔 Implementation Assumptions
+## 📚 Documentation & Project Wiki
 
-Based on the operational requirements for Coastal Eats, the platform adheres to these domain rules:
+Comprehensive functional specifications, labor compliance rules, architecture records, and project history are maintained in the **[ShiftSync GitHub Wiki](https://github.com/JayKay24/ShiftSync/wiki)** (and version-controlled locally under [`docs/wiki/`](docs/wiki/)):
 
-- **Single Organization**: Scoped to Coastal Eats. Multi-tenancy across branches is isolated using `locationId`.
-- **Location-Based Access Control (LBAC)**: Managers can only view, schedule, and approve swaps for staff certified at their assigned locations. Corporate Admins have unrestricted global visibility.
-- **Qualified Peer Swaps**: Staff can browse eligible peers across the organization for cross-location coverage, but the system restricts swap requests strictly to staff certified for that shift's location and skill.
-- **Single Skill per Shift**: Each shift requires exactly one primary skill (e.g., "Bartender", "Server"). Multi-skill needs are scheduled as parallel shifts.
-- **Group Headcount**: A single shift record supports `headcountNeeded > 1`, eliminating duplicate shift entries.
-- **Timezone Robustness**: Calculations (rest gaps, availability, midnight-crossing shifts) use `Intl.DateTimeFormat` with explicit location timezones (e.g., `America/New_York`, `America/Los_Angeles`).
-- **48-Hour Schedule Lock**: Managers cannot edit or unpublish shifts within 48 hours of shift start. Admins can bypass this lock for emergencies.
-- **Unified Swap & Drop Model**: A shift "drop" (putting a shift up for grabs) is modeled as a swap request with a null target user.
-- **Regret Swap Logic**: If a manager updates critical shift details (time, location, skill), all pending swap and drop requests for that shift are automatically cancelled.
-- **Marketplace Guardrail**: Staff members are limited to **three active pending requests** (swaps or drops) to prevent schedule churn.
-- **Immutable Audit Trail**: All creations, assignments, and modifications are recorded with timestamp, actor, and before/after state diffs.
+| Documentation Guide                                                                                           | Topic & Scope                                                                                                     | Local File                                                                                 |
+| :------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------- |
+| **[Product Requirements](https://github.com/JayKay24/ShiftSync/wiki/Product-Requirements)**                   | Multi-location RBAC/LBAC, shift lifecycle, 48h locks, swap workflows, and real-time features                      | [`docs/wiki/Product-Requirements.md`](docs/wiki/Product-Requirements.md)                   |
+| **[Domain Rules & Compliance](https://github.com/JayKay24/ShiftSync/wiki/Domain-Rules-and-Compliance)**       | 10h rest gap, 8h/12h daily limits, 35h/40h overtime, 7th-day overrides, Fairness Index & 6 verification scenarios | [`docs/wiki/Domain-Rules-and-Compliance.md`](docs/wiki/Domain-Rules-and-Compliance.md)     |
+| **[Product Design Decisions](https://github.com/JayKay24/ShiftSync/wiki/Product-Design-Decisions)**           | Edge case resolutions: de-certification, desired hours vs. availability, short shifts, and timezone boundaries    | [`docs/wiki/Product-Design-Decisions.md`](docs/wiki/Product-Design-Decisions.md)           |
+| **[Requirements Traceability](https://github.com/JayKay24/ShiftSync/wiki/Requirements-Traceability)**         | End-to-end matrix mapping requirements to code, tests, and product roadmap                                        | [`docs/wiki/Requirements-Traceability.md`](docs/wiki/Requirements-Traceability.md)         |
+| **[Architecture Overview](https://github.com/JayKay24/ShiftSync/wiki/Architecture-Overview)**                 | Nx monorepo, NestJS backend, Drizzle repositories, 3-tier React SPA, and WebSockets                               | [`docs/wiki/Architecture-Overview.md`](docs/wiki/Architecture-Overview.md)                 |
+| **[Architecture Decision Records](https://github.com/JayKay24/ShiftSync/wiki/Architecture-Decision-Records)** | 12 ADRs capturing key technical decisions (ADR-001 through ADR-012)                                               | [`docs/wiki/Architecture-Decision-Records.md`](docs/wiki/Architecture-Decision-Records.md) |
+| **[Testing & Quality Gates](https://github.com/JayKay24/ShiftSync/wiki/Testing-and-Quality-Gates)**           | Vitest unit/integration testing, Playwright UI E2E, surgical isolation, and CI/CD automation                      | [`docs/wiki/Testing-and-Quality-Gates.md`](docs/wiki/Testing-and-Quality-Gates.md)         |
+| **[Project History](https://github.com/JayKay24/ShiftSync/wiki/Project-History)**                             | Chronological engineering timeline across 7 development phases and 100+ pull requests                             | [`docs/wiki/Project-History.md`](docs/wiki/Project-History.md)                             |
 
 ---
 
@@ -313,6 +312,8 @@ Every commit and pull request targeting `develop` or `main` triggers our GitHub 
 6. **`test-integration`**: Launches an ephemeral PostgreSQL 16 container, runs migrations, seeds data, and executes `server-e2e`.
 7. **`client-e2e`**: Runs Playwright end-to-end browser tests against isolated PostgreSQL and backend services.
 
+_For in-depth CI pipeline architecture and `nx affected` gating rules, see [Testing & Quality Gates](docs/wiki/Testing-and-Quality-Gates.md)._
+
 ### Release & Versioning Automation
 
 ShiftSync uses [Nx Release](https://nx.dev/features/manage-releases) to automate semantic versioning, changelog generation, and GitHub Releases:
@@ -324,6 +325,8 @@ ShiftSync uses [Nx Release](https://nx.dev/features/manage-releases) to automate
   ```sh
   npx nx release --dry-run
   ```
+
+_For detailed ADR documentation on the release pipeline, see [ADR-012](docs/wiki/Architecture-Decision-Records.md#adr-012-cicd-automation-with-nx-affected-gating--semantic-release)._
 
 ---
 

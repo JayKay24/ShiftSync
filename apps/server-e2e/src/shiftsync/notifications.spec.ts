@@ -4,6 +4,7 @@ import {
   TEST_USERS,
   clearDynamicData,
   getFutureDate,
+  getNextWednesday,
 } from '../support/test-helpers';
 import { setHours } from 'date-fns';
 
@@ -33,7 +34,7 @@ describe('Notifications & Persistence (Requirement #7)', () => {
   it('should generate and persist a notification for a swap request', async () => {
     await clearDynamicData();
     // 1. Manager creates and assigns a shift to Charlie
-    const baseDate = getFutureDate(50);
+    const baseDate = getNextWednesday(getFutureDate(50));
     const futureDate = setHours(baseDate, 14);
     const shift = await axios.post(
       '/api/shifts',
