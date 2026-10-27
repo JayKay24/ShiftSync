@@ -75,6 +75,9 @@ Playwright drives real Chromium browser sessions compiled from business-readable
   # Interactive Playwright time-travel UI
   npm run bdd:ui
 
+  # List all registered step definition patterns for reuse
+  npm run bdd:export
+
   # Generate or verify Markdown living documentation
   npm run bdd:docs
   npm run bdd:docs:check
