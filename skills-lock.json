@@ -37,6 +37,12 @@
       "skillPath": "skills/document/SKILL.md",
       "computedHash": "90933443f204d2ed29c84730be87b7b5470f6819fccde6129aedad1df517fb92"
     },
+    "playwright-bdd": {
+      "source": "vitalets/playwright-bdd",
+      "sourceType": "github",
+      "skillPath": "skills/playwright-bdd/SKILL.md",
+      "computedHash": "db55c68596e2f328b4c08a85c50304a5ff941ad950922582dbf5ea316bc46f08"
+    },
     "scope": {
       "source": "jsmastery-pro/skills",
       "sourceType": "github",

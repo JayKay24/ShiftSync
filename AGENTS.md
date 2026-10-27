@@ -260,6 +260,7 @@ User-facing acceptance tests are written in declarative Gherkin `.feature` speci
 - **Commands**:
   - `npm run bdd:test` (or `npx nx e2e client-e2e`): Compiles features via `bddgen` and runs Playwright tests.
   - `npm run bdd:ui`: Opens Playwright interactive UI mode for time-travel debugging.
+  - `npm run bdd:export`: Lists all registered step definition patterns for easy step reuse.
   - `npm run bdd:docs`: Generates Markdown living documentation (`docs/wiki/BDD-Living-Documentation.md`).
   - `npm run bdd:docs:check`: Validates living documentation is synchronized with `.feature` files in CI.
 - **Setup & Fixtures**:
@@ -370,6 +371,9 @@ npm run bdd:test
 
 # Run BDD tests with Playwright interactive UI
 npm run bdd:ui
+
+# List all registered BDD step definition patterns
+npm run bdd:export
 
 # Generate and check BDD living documentation
 npm run bdd:docs

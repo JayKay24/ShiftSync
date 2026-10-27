@@ -13,7 +13,8 @@
     "bdd:test": "nx e2e client-e2e",
     "bdd:ui": "nx e2e client-e2e --ui",
     "bdd:docs": "node tools/scripts/generate-bdd-docs.mjs",
-    "bdd:docs:check": "node tools/scripts/generate-bdd-docs.mjs --check"
+    "bdd:docs:check": "node tools/scripts/generate-bdd-docs.mjs --check",
+    "bdd:export": "bddgen export --config apps/client-e2e/playwright.config.ts"
   },
   "nx": {
     "includedScripts": []
