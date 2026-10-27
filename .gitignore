@@ -53,6 +53,8 @@ out
 # Test reports
 playwright-report
 test-results
+apps/client-e2e/.features-gen
+dist/bdd-report
 
 .nx/polygraph
 .nx/self-healing

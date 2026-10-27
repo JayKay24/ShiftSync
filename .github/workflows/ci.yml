@@ -153,6 +153,9 @@ jobs:
       - name: Run lint and typecheck for affected projects
         run: npx nx affected -t lint typecheck --base=$NX_BASE --head=$NX_HEAD
 
+      - name: Verify BDD living documentation is up-to-date
+        run: npm run bdd:docs:check
+
   build:
     name: Build Applications
     runs-on: ubuntu-latest
@@ -378,6 +381,14 @@ jobs:
 
       - name: Run client Playwright E2E test suite
         run: npx nx e2e client-e2e
+
+      - name: Upload BDD Cucumber living documentation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bdd-living-documentation-html
+          path: dist/bdd-report
+          retention-days: 14
 
       - name: Upload Playwright report on failure
         if: failure()

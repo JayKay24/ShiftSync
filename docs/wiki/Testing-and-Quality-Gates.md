@@ -60,19 +60,24 @@ The server integration suite runs against an active **PostgreSQL 16** container,
   npx nx e2e server-e2e
   ```
 
-### 2.3 Tier 3: Browser UI End-to-End Tests (`apps/client-e2e`)
+### 2.3 Tier 3: Browser UI Behavior-Driven Development (BDD) (`apps/client-e2e`)
 
-Playwright drives real Chromium browser sessions to validate user journeys, UI visual feedback, real-time WebSocket updates, and modal workflows:
+Playwright drives real Chromium browser sessions compiled from business-readable Gherkin specifications (`playwright-bdd`), validating user journeys, labor law constraints, real-time WebSocket updates, and modal workflows:
 
-- **Coverage**: Manager scheduling flows, staff peer swap requests, real-time unread notification badge increments, shift history audit modals, and cross-week calendar navigation.
+- **BDD Living Specs**: 11 domain `.feature` suites in `apps/client-e2e/src/features/` with declarative `Rule:` blocks.
+- **Reporting & Living Docs**: Produces code-free interactive Cucumber HTML reports at `dist/bdd-report/index.html` and synchronizes `docs/wiki/BDD-Living-Documentation.md` to GitHub Wiki.
 - **Execution**:
 
   ```sh
-  # Headless mode
-  npx nx e2e client-e2e
+  # Run full automated BDD acceptance suite
+  npm run bdd:test
 
-  # Interactive UI mode
-  npx nx e2e client-e2e --ui
+  # Interactive Playwright time-travel UI
+  npm run bdd:ui
+
+  # Generate or verify Markdown living documentation
+  npm run bdd:docs
+  npm run bdd:docs:check
   ```
 
 ---

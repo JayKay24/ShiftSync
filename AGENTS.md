@@ -253,21 +253,25 @@ The server integration suite uses **Vitest** and **Axios** to validate database 
   - Use relative date helpers (`getFutureDate`, `getNextWednesday`) to prevent hardcoded date expiration.
   - Use `safePost` and `safePut` helpers for descriptive error logging on API failures.
 
-### 3. Frontend UI E2E Tests (`apps/client-e2e`)
+### 3. Frontend UI Behavior-Driven Development (BDD) (`apps/client-e2e`)
 
-End-to-end UI tests use **Playwright** to validate user journeys in Chromium:
+User-facing acceptance tests are written in declarative Gherkin `.feature` specifications and compiled into native Playwright tests using **`playwright-bdd`**:
 
 - **Commands**:
-  - `npx nx e2e client-e2e`: Runs all Playwright tests.
-  - `npx nx e2e client-e2e --ui`: Opens Playwright's interactive UI mode.
-- **Setup**: `src/support/global-setup.ts` seeds test data; `src/support/test-helpers.ts` provides reusable role-based authentication flows.
-- **Coverage**:
-  - Access Control: Ensures managers only view staff certified for their authorized locations.
-  - Labor Law Warnings: Validates past-shift warnings and 48-hour lock warning banners.
-  - Admin Privileges: Verifies admin schedule editing bypass.
-  - Audit Trail: Confirms shift history and corporate audit logging.
-  - Fairness Index: Validates premium shift visualization for managers.
-  - Shift Swapping: Tests peer swap requests and real-time badge notification synchronization.
+  - `npm run bdd:test` (or `npx nx e2e client-e2e`): Compiles features via `bddgen` and runs Playwright tests.
+  - `npm run bdd:ui`: Opens Playwright interactive UI mode for time-travel debugging.
+  - `npm run bdd:docs`: Generates Markdown living documentation (`docs/wiki/BDD-Living-Documentation.md`).
+  - `npm run bdd:docs:check`: Validates living documentation is synchronized with `.feature` files in CI.
+- **Setup & Fixtures**:
+  - `globalSetup` initializes the full seed baseline (`npm run db:seed -- --full`).
+  - `apps/client-e2e/src/support/bdd-fixtures.ts`: Provides `test.extend` with `ScenarioStateManager` and fast `localStorage` session injection.
+  - `apps/client-e2e/src/support/personas.ts`: Maps Coastal Eats personas (`Alice`, `Bob`, `Diana`, `Charlie`, `Dave`, etc.) to seeded credentials and roles.
+  - `apps/client-e2e/src/support/api-fixtures.ts`: Sets up isolated preconditions and handles automatic post-scenario cleanup.
+- **Living Documentation**:
+  - Automatically outputs interactive Cucumber HTML reports to `dist/bdd-report/index.html`.
+  - Compiles living specifications into `docs/wiki/BDD-Living-Documentation.md` which auto-syncs to the GitHub Wiki.
+- **Interactive AI Browser Walkthroughs**:
+  - Use `/browser` with the `.agents/skills/bdd-browser` skill to interactively step through any `.feature` file or `@tag` in the browser.
 
 ---
 
@@ -361,8 +365,15 @@ npx nx run-many -t test
 # Run backend integration tests
 npx nx e2e server-e2e
 
-# Run frontend Playwright E2E tests
-npx nx e2e client-e2e
+# Run frontend Playwright BDD acceptance suite
+npm run bdd:test
+
+# Run BDD tests with Playwright interactive UI
+npm run bdd:ui
+
+# Generate and check BDD living documentation
+npm run bdd:docs
+npm run bdd:docs:check
 
 # Build all applications for production
 npx nx run-many -t build

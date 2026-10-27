@@ -5,6 +5,35 @@
   "sourceRoot": "apps/client-e2e/src",
   "tags": [],
   "implicitDependencies": ["client", "server"],
-  "// targets": "to see all targets run: nx show project client-e2e --web",
-  "targets": {}
+  "targets": {
+    "bddgen": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{projectRoot}/src/**/*.feature",
+        "{projectRoot}/src/**/*.ts",
+        "{projectRoot}/playwright.config.ts"
+      ],
+      "outputs": ["{projectRoot}/.features-gen"],
+      "options": {
+        "cwd": "apps/client-e2e",
+        "command": "npx bddgen"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "options": {
+        "command": "tsc --noEmit -p apps/client-e2e/tsconfig.json"
+      }
+    },
+    "e2e": {
+      "dependsOn": [
+        "bddgen",
+        { "projects": ["server"], "target": "serve" },
+        { "projects": ["client"], "target": "dev" },
+        { "target": "e2e--wait-for-webserver" }
+      ]
+    }
+  }
 }

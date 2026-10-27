@@ -1,16 +1,40 @@
 import { defineConfig, devices } from '@playwright/test';
 import { nxE2EPreset } from '@nx/playwright/preset';
 import { workspaceRoot } from '@nx/devkit';
+import { defineBddConfig, cucumberReporter } from 'playwright-bdd';
 
 // For CI, you may want to set BASE_URL to the deployed application.
 const baseURL = process.env['BASE_URL'] || 'http://localhost:3000';
+
+const testDir = defineBddConfig({
+  features: 'src/features/**/*.feature',
+  steps: ['src/support/bdd-fixtures.ts', 'src/steps/**/*.steps.ts'],
+  outputDir: '.features-gen',
+});
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  ...nxE2EPreset(__filename, { testDir: './src' }),
-  reporter: process.env.CI ? 'dot' : [['list'], ['html', { open: 'never' }]],
+  ...nxE2EPreset(__filename, { testDir }),
+  reporter: [
+    process.env.CI ? ['dot'] : ['list'],
+    [
+      'html',
+      {
+        open: 'never',
+        outputFolder:
+          '../../dist/.playwright/apps/client-e2e/playwright-report',
+      },
+    ],
+    cucumberReporter('html', {
+      outputFile: '../../dist/bdd-report/index.html',
+      externalAttachments: false,
+    }),
+    cucumberReporter('json', {
+      outputFile: '../../dist/bdd-report/cucumber-report.json',
+    }),
+  ],
   globalSetup: require.resolve('./src/support/global-setup'),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -40,16 +64,5 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    /*
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    */
   ],
 });
