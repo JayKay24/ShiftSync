@@ -8,7 +8,12 @@
     "db:seed": "tsx --tsconfig tsconfig.base.json apps/server/src/db/seed.ts",
     "db:studio": "drizzle-kit studio",
     "prepare": "husky",
-    "typecheck": "nx run-many -t typecheck"
+    "typecheck": "nx run-many -t typecheck",
+    "bdd:gen": "nx run client-e2e:bddgen",
+    "bdd:test": "nx e2e client-e2e",
+    "bdd:ui": "nx e2e client-e2e --ui",
+    "bdd:docs": "node tools/scripts/generate-bdd-docs.mjs",
+    "bdd:docs:check": "node tools/scripts/generate-bdd-docs.mjs --check"
   },
   "nx": {
     "includedScripts": []
@@ -104,6 +109,7 @@
     "jsdom": "^29.1.1",
     "lint-staged": "^17.6.0",
     "nx": "23.3.0",
+    "playwright-bdd": "^9.2.1",
     "postcss": "8.4.38",
     "prettier": "~3.6.2",
     "tailwindcss": "3.4.3",
