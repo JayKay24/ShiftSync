@@ -4,6 +4,7 @@ import {
   TEST_USERS,
   clearDynamicData,
   getFutureDate,
+  getNextWednesday,
 } from '../support/test-helpers';
 import { setHours } from 'date-fns';
 
@@ -207,7 +208,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
 
   describe('GET /api/notifications pagination', () => {
     it('should paginate user notifications using cursor', async () => {
-      const baseDate = getFutureDate(60);
+      const baseDate = getNextWednesday(getFutureDate(60));
       const shift = await axios.post(
         '/api/shifts',
         {
