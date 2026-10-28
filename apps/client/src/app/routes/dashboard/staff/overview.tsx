@@ -11,10 +11,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useStaff } from '@/features/staff/hooks/use-staff';
+import { cn } from '@/lib/utils';
 import { ShiftResponse, AssignmentResult } from '@shiftsync/data-access';
 
 interface AssignmentWithShift extends AssignmentResult {
@@ -142,26 +143,26 @@ export default function StaffDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
-            <Button
-              asChild
-              variant="outline"
-              className="justify-start gap-2 h-9"
+            <Link
+              to="/dashboard/staff/swaps"
+              className={cn(
+                buttonVariants({ variant: 'outline' }),
+                'justify-start gap-2 h-9',
+              )}
             >
-              <Link to="/dashboard/staff/swaps">
-                <ArrowRightLeft className="h-4 w-4 text-primary" />
-                Request Swap
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="justify-start gap-2 h-9"
+              <ArrowRightLeft className="h-4 w-4 text-primary" />
+              Request Swap
+            </Link>
+            <Link
+              to="/dashboard/settings"
+              className={cn(
+                buttonVariants({ variant: 'outline' }),
+                'justify-start gap-2 h-9',
+              )}
             >
-              <Link to="/dashboard/settings">
-                <Calendar className="h-4 w-4 text-primary" />
-                Update Availability
-              </Link>
-            </Button>
+              <Calendar className="h-4 w-4 text-primary" />
+              Update Availability
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -232,18 +233,15 @@ export default function StaffDashboard() {
                     </div>
                   </div>
                   <div className="mt-4 pt-4 border-t opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-primary hover:bg-primary/10"
+                    <Link
+                      to={`/dashboard/staff/swaps?shiftId=${asgn.shift.id}`}
+                      className={cn(
+                        buttonVariants({ variant: 'ghost', size: 'sm' }),
+                        'w-full text-primary hover:bg-primary/10',
+                      )}
                     >
-                      <Link
-                        to={`/dashboard/staff/swaps?shiftId=${asgn.shift.id}`}
-                      >
-                        Initiate Swap Request
-                      </Link>
-                    </Button>
+                      Initiate Swap Request
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

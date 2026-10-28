@@ -9,11 +9,12 @@ import {
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { analyticsApi } from '@/features/analytics/api/analytics-api';
 import { shiftsApi } from '@/features/shifts/api/shifts-api';
 import { OnDutyWidget } from '@/features/shifts/components/on-duty-widget';
+import { cn } from '@/lib/utils';
 import { HourDistributionRecord } from '@shiftsync/data-access';
 
 interface DashboardStats {
@@ -90,14 +91,15 @@ export default function ManagerDashboard() {
               Awaiting your approval
             </p>
             {Number(stats?.pendingSwaps) > 0 && (
-              <Button
-                asChild
-                variant="link"
-                className="h-auto p-0 text-xs"
-                size="sm"
+              <Link
+                to="/dashboard/manager/schedule"
+                className={cn(
+                  buttonVariants({ variant: 'link', size: 'sm' }),
+                  'h-auto p-0 text-xs',
+                )}
               >
-                <Link to="/dashboard/manager/schedule">Review Now</Link>
-              </Button>
+                Review Now
+              </Link>
             )}
           </CardContent>
         </Card>
@@ -161,16 +163,15 @@ export default function ManagerDashboard() {
                     </div>
                   );
                 })}
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-xs text-muted-foreground"
+                <Link
+                  to="/dashboard/manager/analytics"
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'sm' }),
+                    'w-full text-xs text-muted-foreground',
+                  )}
                 >
-                  <Link to="/dashboard/manager/analytics">
-                    View All Analytics
-                  </Link>
-                </Button>
+                  View All Analytics
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -182,33 +183,41 @@ export default function ManagerDashboard() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <Button
-                asChild
-                variant="default"
-                className="justify-start gap-2 h-12"
+              <Link
+                to="/dashboard/manager/schedule"
+                className={cn(
+                  buttonVariants({ variant: 'default' }),
+                  'justify-start gap-2 h-12',
+                )}
               >
-                <Link to="/dashboard/manager/schedule">
-                  <Calendar className="h-5 w-5" />
-                  Labor Scheduling Hub
-                </Link>
-              </Button>
+                <Calendar className="h-5 w-5" />
+                Labor Scheduling Hub
+              </Link>
             </div>
 
             <div className="h-px bg-slate-100 my-2" />
 
             <div className="grid gap-2">
-              <Button asChild variant="outline" className="justify-start gap-2">
-                <Link to="/dashboard/manager/staff">
-                  <Users className="h-4 w-4" />
-                  Staff Certifications
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="justify-start gap-2">
-                <Link to="/dashboard/manager/analytics">
-                  <TrendingUp className="h-4 w-4" />
-                  Fairness & Premium Metrics
-                </Link>
-              </Button>
+              <Link
+                to="/dashboard/manager/staff"
+                className={cn(
+                  buttonVariants({ variant: 'outline' }),
+                  'justify-start gap-2',
+                )}
+              >
+                <Users className="h-4 w-4" />
+                Staff Certifications
+              </Link>
+              <Link
+                to="/dashboard/manager/analytics"
+                className={cn(
+                  buttonVariants({ variant: 'outline' }),
+                  'justify-start gap-2',
+                )}
+              >
+                <TrendingUp className="h-4 w-4" />
+                Fairness & Premium Metrics
+              </Link>
             </div>
 
             <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-100">
