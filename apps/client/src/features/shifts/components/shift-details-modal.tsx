@@ -115,7 +115,7 @@ export function ShiftDetailsModal({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pr-6">
             <DialogTitle>Shift Details</DialogTitle>
@@ -310,16 +310,16 @@ export function ShiftDetailsModal({
               </div>
             )}
           </div>
+
+          <AuditTrailModal
+            isOpen={isAuditOpen}
+            onClose={() => setIsAuditOpen(false)}
+            entityType="shift"
+            entityId={shift.id}
+            title={`Shift History - ${format(parseISO(shift.startTime.toString()), 'MMM d')}`}
+          />
         </DialogContent>
       </Dialog>
-
-      <AuditTrailModal
-        isOpen={isAuditOpen}
-        onClose={() => setIsAuditOpen(false)}
-        entityType="shift"
-        entityId={shift.id}
-        title={`Shift History - ${format(parseISO(shift.startTime.toString()), 'MMM d')}`}
-      />
     </>
   );
 }

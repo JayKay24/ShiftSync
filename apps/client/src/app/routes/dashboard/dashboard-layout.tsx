@@ -14,10 +14,11 @@ import {
 import React, { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -164,12 +165,14 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
         <header className="flex h-14 items-center gap-4 border-b bg-white px-6">
           {mounted ? (
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle menu</span>
-                </Button>
-              </SheetTrigger>
+              <SheetTrigger
+                render={
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle menu</span>
+                  </Button>
+                }
+              />
               <SheetContent side="left" className="w-64 p-0">
                 <SidebarContent />
               </SheetContent>
@@ -179,46 +182,49 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
           )}
 
           <div className="ml-auto flex items-center gap-4">
-            <Button
-              asChild
-              variant="ghost"
-              size="icon"
-              className="relative text-muted-foreground"
+            <Link
+              to="/dashboard/notifications"
+              className={cn(
+                buttonVariants({ variant: 'ghost', size: 'icon' }),
+                'relative text-muted-foreground',
+              )}
             >
-              <Link to="/dashboard/notifications">
-                <Bell className="h-5 w-5" />
-                {mounted && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-                <span className="sr-only">Notifications</span>
-              </Link>
-            </Button>
+              <Bell className="h-5 w-5" />
+              {mounted && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+              <span className="sr-only">Notifications</span>
+            </Link>
 
             {mounted && user ? (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full border"
-                  >
-                    <UserIcon className="h-5 w-5 text-muted-foreground" />
-                    <span className="sr-only">User menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full border"
+                    >
+                      <UserIcon className="h-5 w-5 text-muted-foreground" />
+                      <span className="sr-only">User menu</span>
+                    </Button>
+                  }
+                />
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>
-                    {user?.firstName} {user?.lastName}
-                    <p className="text-xs font-normal text-muted-foreground">
-                      {user?.role}
-                    </p>
-                  </DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>
+                      {user?.firstName} {user?.lastName}
+                      <p className="text-xs font-normal text-muted-foreground">
+                        {user?.role}
+                      </p>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard/settings">Settings</Link>
-                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    render={<Link to="/dashboard/settings">Settings</Link>}
+                  />
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={logout}

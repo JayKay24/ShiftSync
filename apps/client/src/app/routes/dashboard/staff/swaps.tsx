@@ -210,6 +210,7 @@ function SwapMarketplaceContent() {
                 )}
 
                 <Button
+                  type="submit"
                   className="w-full"
                   disabled={isSubmitting || !selectedShift || isLimitReached}
                 >
