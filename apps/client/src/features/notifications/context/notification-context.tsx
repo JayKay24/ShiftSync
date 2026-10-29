@@ -43,9 +43,9 @@ export interface NotificationContextType {
   socket: Socket | null;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(
-  undefined,
-);
+export const NotificationContext = createContext<
+  NotificationContextType | undefined
+>(undefined);
 
 /**
  * Provider component managing real-time WebSocket connection and notification updates.

@@ -274,6 +274,18 @@ User-facing acceptance tests are written in declarative Gherkin `.feature` speci
 - **Interactive AI Browser Walkthroughs**:
   - Use `/browser` with the `.agents/skills/bdd-browser` skill to interactively step through any `.feature` file or `@tag` in the browser.
 
+### 4. Component Testing & Living Documentation (Storybook)
+
+Component-level documentation, visual state cataloging, and automated headless Chromium interaction and WCAG AA accessibility tests are powered by **Storybook 10** (`@storybook/react-vite`), **`@storybook/addon-vitest`**, and **`msw-storybook-addon`**:
+
+- **Commands**:
+  - `npm run storybook` (or `npx nx storybook client`): Starts Storybook dev server on port 6006.
+  - `npm run storybook:build` (or `npx nx run client:build-storybook`): Compiles static documentation into `dist/storybook/client`.
+  - `npm run storybook:test` (or `npx nx run client:test-storybook`): Runs all 16 component stories in headless Chromium via Playwright, executing MSW network mocks, `play()` assertions, and strict `axe-core` accessibility checks (`a11y.test: 'error'`).
+- **Isolation Strategy**:
+  - `withAppProviders` decorator provides `MemoryRouter`, simulated `AuthContext`, and socket-free `NotificationContext`.
+  - MSW v3 handlers intercept API requests in the browser service worker (`apps/client/.storybook/public/mockServiceWorker.js`).
+
 ---
 
 ## 🌿 Development Workflow
@@ -378,6 +390,15 @@ npm run bdd:export
 # Generate and check BDD living documentation
 npm run bdd:docs
 npm run bdd:docs:check
+
+# Start Storybook component explorer (port 6006)
+npm run storybook
+
+# Build static Storybook documentation
+npm run storybook:build
+
+# Run automated Storybook Chromium component & a11y tests
+npm run storybook:test
 
 # Build all applications for production
 npx nx run-many -t build

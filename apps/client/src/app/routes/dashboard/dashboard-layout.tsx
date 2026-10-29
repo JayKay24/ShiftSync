@@ -24,7 +24,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import { cn } from '@/lib/utils';
@@ -174,6 +179,7 @@ export function DashboardLayout({ children }: { children?: React.ReactNode }) {
                 }
               />
               <SheetContent side="left" className="w-64 p-0">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <SidebarContent />
               </SheetContent>
             </Sheet>

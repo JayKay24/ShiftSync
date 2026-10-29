@@ -2,6 +2,7 @@ import path from 'node:path';
 import nx from '@nx/eslint-plugin';
 import checkFile from 'eslint-plugin-check-file';
 import importPlugin from 'eslint-plugin-import';
+import storybook from 'eslint-plugin-storybook';
 
 import baseConfig from '../../eslint.config.mjs';
 import { importRules } from './eslint-import-rules.mjs';
@@ -9,8 +10,19 @@ import { importRules } from './eslint-import-rules.mjs';
 export default [
   ...nx.configs['flat/react-typescript'],
   ...baseConfig,
+  ...storybook.configs['flat/recommended'],
   {
-    ignores: ['dist/**/*', 'vite.config.*.timestamp*'],
+    rules: {
+      'storybook/no-uninstalled-addons': 'off',
+    },
+  },
+  {
+    ignores: [
+      'dist/**/*',
+      'storybook-static/**/*',
+      '.storybook/public/**/*',
+      'vite.config.*.timestamp*',
+    ],
   },
   {
     files: ['eslint.config.*', 'vite.config.*'],

@@ -22,12 +22,13 @@ When(
       desiredWeeklyHours: 35,
     });
 
-    page.once('dialog', async (dialog) => {
-      await dialog.accept();
-    });
+    const dialogPromise = page
+      .waitForEvent('dialog')
+      .then((dialog) => dialog.accept());
 
     await page.fill('input#hours', String(hours));
     await page.click('button:has-text("Save Changes")');
+    await dialogPromise;
   },
 );
 

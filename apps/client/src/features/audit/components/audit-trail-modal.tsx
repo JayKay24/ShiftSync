@@ -112,11 +112,11 @@ export function AuditTrailModal({
                                   key={key}
                                   className="flex flex-col p-1 bg-white rounded border border-gray-200"
                                 >
-                                  <span className="text-gray-400 uppercase text-[10px] mb-1">
+                                  <span className="text-gray-600 uppercase text-[10px] mb-1 font-semibold">
                                     {key}
                                   </span>
                                   <div className="flex items-center space-x-2">
-                                    <span className="line-through text-red-500 opacity-50 truncate max-w-[150px]">
+                                    <span className="line-through text-red-700 truncate max-w-[150px]">
                                       {String(oldValue)}
                                     </span>
                                     <span className="text-gray-300">→</span>

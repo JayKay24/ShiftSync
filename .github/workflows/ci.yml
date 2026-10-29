@@ -24,6 +24,7 @@ jobs:
       nx_head: ${{ steps.affected-e2e.outputs.nx_head }}
       server_e2e_affected: ${{ steps.affected-e2e.outputs.server_e2e }}
       client_e2e_affected: ${{ steps.affected-e2e.outputs.client_e2e }}
+      client_affected: ${{ steps.affected-e2e.outputs.client }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -80,6 +81,12 @@ jobs:
             echo "client_e2e=true" >> "$GITHUB_OUTPUT"
           else
             echo "client_e2e=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if echo "$AFFECTED" | grep -qx "client"; then
+            echo "client=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "client=false" >> "$GITHUB_OUTPUT"
           fi
 
   commitlint:
@@ -397,3 +404,58 @@ jobs:
           name: playwright-report
           path: dist/.playwright/apps/client-e2e
           retention-days: 7
+
+  storybook:
+    name: Storybook Docs & Component Tests
+    runs-on: ubuntu-latest
+    needs: install
+    if: needs.install.outputs.client_affected == 'true'
+    env:
+      VITE_API_URL: http://localhost:3001/api
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Restore node_modules
+        id: node-modules-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Fallback install if cache missed
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --legacy-peer-deps
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium & OS dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright OS dependencies (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Build static Storybook docs
+        run: npx nx run client:build-storybook
+
+      - name: Run automated Storybook Chromium component & a11y tests
+        run: npx nx run client:test-storybook
+
+      - name: Upload Storybook documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-living-documentation
+          path: dist/storybook/client
+          retention-days: 14

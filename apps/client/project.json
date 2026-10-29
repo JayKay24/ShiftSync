@@ -4,6 +4,29 @@
   "sourceRoot": "apps/client",
   "projectType": "application",
   "tags": [],
-  "// targets": "to see all targets run: nx show project client --web",
-  "targets": {}
+  "targets": {
+    "storybook": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "storybook dev -c apps/client/.storybook -p 6006"
+      }
+    },
+    "build-storybook": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production", "!{projectRoot}/specs/**/*"],
+      "outputs": ["{workspaceRoot}/dist/storybook/client"],
+      "options": {
+        "command": "storybook build -c apps/client/.storybook -o dist/storybook/client"
+      }
+    },
+    "test-storybook": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production", "!{projectRoot}/specs/**/*"],
+      "options": {
+        "command": "VITEST_STORYBOOK=true vitest run --config apps/client/vite.config.mts"
+      }
+    }
+  }
 }

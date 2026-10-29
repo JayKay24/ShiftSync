@@ -82,7 +82,8 @@
   body {
     @apply bg-background text-foreground;
   }
-  #root {
+  #root,
+  #storybook-root {
     isolation: isolate;
   }
   button:not(:disabled),

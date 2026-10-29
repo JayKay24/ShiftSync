@@ -126,6 +126,7 @@ export function ShiftDetailsModal({
                 className="h-8 w-8 p-0 mt-[-4px]"
                 onClick={() => setIsAuditOpen(true)}
                 title="View History"
+                aria-label="View History"
               >
                 <History className="h-4 w-4 text-muted-foreground" />
               </Button>
@@ -226,7 +227,7 @@ export function ShiftDetailsModal({
 
                 {pendingStaffId && (
                   <div className="space-y-2 border-l-2 border-orange-500 pl-3 py-1">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-orange-600 uppercase">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-orange-700 uppercase">
                       <ShieldAlert className="h-3 w-3" />
                       Override Required
                     </div>
@@ -284,7 +285,7 @@ export function ShiftDetailsModal({
                           variant={
                             pendingStaffId === staff.id ? 'default' : 'ghost'
                           }
-                          className={`h-8 text-xs ${pendingStaffId === staff.id ? 'bg-orange-600 hover:bg-orange-700' : 'text-primary hover:text-primary hover:bg-primary/10'}`}
+                          className={`h-8 text-xs ${pendingStaffId === staff.id ? 'bg-orange-700 hover:bg-orange-800 text-white' : 'text-primary hover:text-primary hover:bg-primary/10'}`}
                           disabled={
                             isAssigning ||
                             (pendingStaffId === staff.id && !overrideReason)
