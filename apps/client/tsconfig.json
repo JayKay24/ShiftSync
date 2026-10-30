@@ -14,7 +14,7 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["vite/client", "node"],
+    "types": ["vite/client", "node", "msw-storybook-addon/csf3"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
@@ -28,7 +28,10 @@
     "src/**/*.js",
     "src/**/*.jsx",
     "src/**/*.d.ts",
-    "vite.config.ts"
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx",
+    "vite.config.ts",
+    "vite.config.mts"
   ],
   "exclude": [
     "node_modules",

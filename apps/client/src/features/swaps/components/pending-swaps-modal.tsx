@@ -129,7 +129,7 @@ export function PendingSwapsModal({
                   <div className="flex flex-col gap-2">
                     <Button
                       size="sm"
-                      className="h-8 bg-emerald-600 hover:bg-emerald-700"
+                      className="h-8 bg-emerald-700 hover:bg-emerald-800 text-white"
                       onClick={() => handleAction(swap.id, true)}
                       disabled={!!actioningId}
                     >
