@@ -10,10 +10,23 @@ const config: StorybookConfig = {
     '@storybook/addon-a11y',
     '@storybook/addon-vitest',
     'msw-storybook-addon',
+    {
+      name: '@storybook/addon-mcp',
+      options: {
+        toolsets: {
+          dev: true,
+          docs: true,
+          test: true,
+        },
+      },
+    },
   ],
   framework: {
     name: '@storybook/react-vite',
     options: {},
+  },
+  features: {
+    componentsManifest: true,
   },
   staticDirs: ['./public'],
   async viteFinal(config) {
