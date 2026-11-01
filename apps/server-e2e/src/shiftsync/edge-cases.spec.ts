@@ -36,7 +36,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
       const baseDate = getFutureDate(30);
       const futureDate = getNextWednesday(baseDate);
       const shift = await axios.post(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -49,14 +49,14 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
       );
 
       await axios.post(
-        `/api/shifts/${shift.data.id}/assign`,
+        `/api/v1/shifts/${shift.data.id}/assign`,
         { userId: charlieId },
         { headers: { Authorization: `Bearer ${managerToken}` } },
       );
 
       try {
         await axios.post(
-          `/api/shifts/${shift.data.id}/assign`,
+          `/api/v1/shifts/${shift.data.id}/assign`,
           { userId: frankId },
           { headers: { Authorization: `Bearer ${managerToken}` } },
         );
@@ -75,7 +75,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
       const baseDate = getFutureDate(31);
       const futureDate = getNextWednesday(baseDate);
       const shift = await axios.post(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -87,13 +87,13 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
         { headers: { Authorization: `Bearer ${managerToken}` } },
       );
       await axios.post(
-        `/api/shifts/${shift.data.id}/assign`,
+        `/api/v1/shifts/${shift.data.id}/assign`,
         { userId: charlieId },
         { headers: { Authorization: `Bearer ${managerToken}` } },
       );
 
       const swap = await axios.post(
-        '/api/swaps/request',
+        '/api/v1/swaps/request',
         {
           shiftId: shift.data.id,
           targetUserId: frankId,
@@ -103,14 +103,14 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
       );
 
       await axios.patch(
-        `/api/shifts/${shift.data.id}`,
+        `/api/v1/shifts/${shift.data.id}`,
         {
           startTime: setHours(futureDate, 13).toISOString(),
         },
         { headers: { Authorization: `Bearer ${managerToken}` } },
       );
 
-      const swaps = await axios.get('/api/swaps', {
+      const swaps = await axios.get('/api/v1/swaps', {
         headers: { Authorization: `Bearer ${charlieToken}` },
       });
       const updatedSwap = swaps.data.data.find(
@@ -133,7 +133,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
         const endTime = addHours(startTime, 4);
 
         const s = await axios.post(
-          '/api/shifts',
+          '/api/v1/shifts',
           {
             locationId: loc1Id,
             requiredSkillId: bartenderSkillId,
@@ -146,7 +146,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
         );
 
         await axios.post(
-          `/api/shifts/${s.data.id}/assign`,
+          `/api/v1/shifts/${s.data.id}/assign`,
           { userId: charlieId },
           { headers: { Authorization: `Bearer ${managerToken}` } },
         );
@@ -154,7 +154,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
         if (i < 3) {
           // Add 3 pending requests
           await axios.post(
-            '/api/swaps/request',
+            '/api/v1/swaps/request',
             {
               shiftId: s.data.id,
               reason: 'Busy with family',
@@ -165,7 +165,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
           // This is the 4th pending request
           try {
             await axios.post(
-              '/api/swaps/request',
+              '/api/v1/swaps/request',
               {
                 shiftId: s.data.id,
                 reason: 'Too busy with work',
@@ -191,7 +191,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
       const baseDate = getFutureDate(35);
       const monDate = getNextMonday(baseDate);
       const monShift = await axios.post(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -205,7 +205,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
 
       try {
         await axios.post(
-          `/api/shifts/${monShift.data.id}/assign`,
+          `/api/v1/shifts/${monShift.data.id}/assign`,
           { userId: charlieId },
           { headers: { Authorization: `Bearer ${managerToken}` } },
         );
@@ -226,7 +226,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
       const baseDate = getFutureDate(36);
       const monDate = getNextMonday(baseDate);
       const shift = await axios.post(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -239,7 +239,7 @@ describe('Edge Cases & Advanced Constraints (QA Checklist)', () => {
       );
 
       const res = await axios.get(
-        `/api/shifts/${shift.data.id}/available-staff`,
+        `/api/v1/shifts/${shift.data.id}/available-staff`,
         {
           headers: { Authorization: `Bearer ${managerToken}` },
         },

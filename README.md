@@ -47,12 +47,12 @@ flowchart TD
 
   subgraph SharedLib ["Shared Data Access (libs/shared/data-access)"]
     Schemas["Drizzle Schemas & Relations"]
-    DTOs["Request / Response DTOs (class-validator)"]
+    DTOs["Request / Response Schemas (Zod v4 Standard Schema)"]
     Repos["Domain Repositories (Drizzle ORM)"]
   end
 
   subgraph BackendApp ["Backend Application (apps/server)"]
-    APIControllers["REST Controllers (/api)"]
+    APIControllers["REST Controllers (/api/v1)"]
     ComplianceSvc["ComplianceService (10h Rest, 12h Cap, 7th Day)"]
     ShiftsSvc["ShiftsService (Shift Lifecycle & Swaps)"]
     AuthSvc["AuthModule (JWT & RBAC Guards)"]
@@ -134,7 +134,7 @@ Comprehensive functional specifications, labor compliance rules, architecture re
 
 - **Monorepo Architecture**: [Nx](https://nx.dev)
 - **Frontend**: React 19 SPA with [Vite](https://vite.dev) & [React Router v7](https://reactrouter.com) (TypeScript, Tailwind CSS, Lucide React)
-- **Backend**: NestJS 11 (TypeScript, Socket.io WebSockets, Passport JWT)
+- **Backend**: NestJS 12 (TypeScript, Socket.io WebSockets, Passport JWT, OpenAPI Swagger, Zod v4 Standard Schema)
 - **Database & ORM**: PostgreSQL 16 with [Drizzle ORM](https://orm.drizzle.team/) & [Drizzle Kit](https://orm.drizzle.team/kit-docs/overview)
 - **Testing**: Vitest (Unit & Integration), Playwright (Client UI E2E)
 - **Continuous Integration**: GitHub Actions with dedicated dependency caching and PostgreSQL service containers
@@ -170,7 +170,8 @@ ShiftSync uses environment variables for database connections, authentication se
 | `JWT_SECRET`        | Secret key used for signing JWT tokens                    | `supersecretjwtkeyforlocaldevelopment1234567890`                              | Backend           |
 | `PORT`              | HTTP server port for backend API                          | `3001`                                                                        | Backend           |
 | `NODE_ENV`          | Runtime environment (`development`, `test`, `production`) | `development`                                                                 | Backend           |
-| `VITE_API_URL`      | Backend API URL consumed by client                        | `http://localhost:3001/api`                                                   | Frontend          |
+| `VITE_API_URL`      | Backend API URL consumed by client                        | `http://localhost:3001/api/v1`                                                | Frontend          |
+| `SWAGGER_ENABLED`   | Toggle OpenAPI Swagger UI documentation                   | `true`                                                                        | Backend           |
 | `POSTGRES_USER`     | PostgreSQL superuser for Docker container                 | `shiftsync`                                                                   | Docker Compose    |
 | `POSTGRES_PASSWORD` | PostgreSQL password for Docker container                  | `password123`                                                                 | Docker Compose    |
 | `POSTGRES_DB`       | Database name for Docker container                        | `shiftsync`                                                                   | Docker Compose    |
@@ -230,7 +231,9 @@ npx nx serve client
 ### 6. Access Applications
 
 - **Frontend Portal**: [http://localhost:3000](http://localhost:3000)
-- **Backend REST API**: [http://localhost:3001/api](http://localhost:3001/api)
+- **Backend REST API**: [http://localhost:3001/api/v1](http://localhost:3001/api/v1)
+- **OpenAPI / Swagger Explorer**: [http://localhost:3001/api/docs](http://localhost:3001/api/docs)
+- **OpenAPI JSON Spec**: [http://localhost:3001/api/docs-json](http://localhost:3001/api/docs-json)
 - **Drizzle Studio (GUI)**: `npm run db:studio` (available at [https://local.drizzle.studio](https://local.drizzle.studio))
 
 ---

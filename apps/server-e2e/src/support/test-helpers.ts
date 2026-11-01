@@ -14,7 +14,7 @@ import {
 } from '@shiftsync/data-access';
 
 export async function login(email: string, pass: string) {
-  const res = await axios.post('/api/auth/login', { email, pass });
+  const res = await axios.post('/api/v1/auth/login', { email, pass });
   return res.data.access_token;
 }
 

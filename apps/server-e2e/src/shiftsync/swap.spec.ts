@@ -51,7 +51,7 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
     const baseDate = getFutureDate(40);
     const futureDate = getNextWednesday(baseDate);
     const shift = await axios.post(
-      '/api/shifts',
+      '/api/v1/shifts',
       {
         locationId: loc1Id,
         requiredSkillId: bartenderSkillId,
@@ -64,7 +64,7 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
     );
 
     await axios.post(
-      `/api/shifts/${shift.data.id}/assign`,
+      `/api/v1/shifts/${shift.data.id}/assign`,
       {
         userId: charlieId,
       },
@@ -73,7 +73,7 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
 
     // 2. Charlie requests a swap with Frank
     const swapReq = await axios.post(
-      '/api/swaps/request',
+      '/api/v1/swaps/request',
       {
         shiftId: shift.data.id,
         targetUserId: frankId,
@@ -85,11 +85,11 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
     expect(swapReq.data.status).toBe('pending_peer');
 
     // 3. Frank accepts the swap
-    await safePut(`/api/swaps/accept/${swapReq.data.id}`, {}, frankToken);
+    await safePut(`/api/v1/swaps/accept/${swapReq.data.id}`, {}, frankToken);
 
     // 4. Manager approves the swap
     const approval = await safePut(
-      `/api/swaps/approve/${swapReq.data.id}`,
+      `/api/v1/swaps/approve/${swapReq.data.id}`,
       {
         approve: true,
       },
@@ -99,7 +99,7 @@ describe('Shift Swap Workflow (Requirement #5)', () => {
     expect(approval.data.status).toBe('approved');
 
     // 5. Verify the assignment has changed
-    const updatedShift = await axios.get(`/api/shifts/${shift.data.id}`, {
+    const updatedShift = await axios.get(`/api/v1/shifts/${shift.data.id}`, {
       headers: { Authorization: `Bearer ${managerToken}` },
     });
 

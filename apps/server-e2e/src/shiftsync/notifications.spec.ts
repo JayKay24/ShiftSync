@@ -37,7 +37,7 @@ describe('Notifications & Persistence (Requirement #7)', () => {
     const baseDate = getNextWednesday(getFutureDate(50));
     const futureDate = setHours(baseDate, 14);
     const shift = await axios.post(
-      '/api/shifts',
+      '/api/v1/shifts',
       {
         locationId: loc1Id,
         requiredSkillId: bartenderSkillId,
@@ -50,14 +50,14 @@ describe('Notifications & Persistence (Requirement #7)', () => {
     );
 
     await axios.post(
-      `/api/shifts/${shift.data.id}/assign`,
+      `/api/v1/shifts/${shift.data.id}/assign`,
       { userId: charlieId },
       { headers: { Authorization: `Bearer ${managerToken}` } },
     );
 
     // 2. Charlie requests a swap with Dave
     await axios.post(
-      '/api/swaps/request',
+      '/api/v1/swaps/request',
       {
         shiftId: shift.data.id,
         targetUserId: daveId,
@@ -67,7 +67,7 @@ describe('Notifications & Persistence (Requirement #7)', () => {
     );
 
     // 3. Dave checks his notifications via GET
-    const notifications = await axios.get('/api/notifications', {
+    const notifications = await axios.get('/api/v1/notifications', {
       headers: { Authorization: `Bearer ${daveToken}` },
     });
 
@@ -85,7 +85,7 @@ describe('Notifications & Persistence (Requirement #7)', () => {
 
     // 4. Mark notification as read
     const readRes = await axios.post(
-      `/api/notifications/${swapNotif.id}/read`,
+      `/api/v1/notifications/${swapNotif.id}/read`,
       {},
       {
         headers: { Authorization: `Bearer ${daveToken}` },
@@ -94,7 +94,7 @@ describe('Notifications & Persistence (Requirement #7)', () => {
     expect(readRes.status).toBe(201);
 
     // 5. Verify it is now read
-    const updatedNotifications = await axios.get('/api/notifications', {
+    const updatedNotifications = await axios.get('/api/v1/notifications', {
       headers: { Authorization: `Bearer ${daveToken}` },
     });
     const readNotif = updatedNotifications.data.data.find(

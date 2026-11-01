@@ -333,7 +333,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://shiftsync:password123@localhost:5432/shiftsync_test' }}
       JWT_SECRET: ${{ secrets.JWT_SECRET || 'supersecretjwtkeyforlocaltestingandci1234567890' }}
       PORT: 3001
-      VITE_API_URL: http://localhost:3001/api
+      VITE_API_URL: http://localhost:3001/api/v1
       NODE_ENV: test
 
     steps:
@@ -411,7 +411,7 @@ jobs:
     needs: install
     if: needs.install.outputs.client_affected == 'true'
     env:
-      VITE_API_URL: http://localhost:3001/api
+      VITE_API_URL: http://localhost:3001/api/v1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

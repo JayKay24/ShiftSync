@@ -1,6 +1,6 @@
 # ShiftSync - Technical Context & Guidelines
 
-ShiftSync is a multi-location staff scheduling platform for **Coastal Eats**. It is built as a monorepo using **Nx**, featuring a **NestJS** backend, a **React (Vite)** frontend SPA, and a shared data access library.
+ShiftSync is a multi-location staff scheduling platform for **Coastal Eats**. It is built as a monorepo using **Nx**, featuring a **NestJS 12** backend, a **React (Vite)** frontend SPA, and a shared data access library.
 
 ---
 
@@ -54,19 +54,34 @@ The `src/lib/schema.ts` file serves as the centralized hub for the database sche
 - **Unified Schema**: Re-exports all tables and relation definitions into a single `schema` object.
 - **Backend Initialization**: Passed to the backend Drizzle provider to initialize the database connection with complete awareness of all models.
 
-### 📝 API Contracts & DTO Validation (`api-interfaces.ts`)
+### 📝 API Contracts & Schema Validation (Zod v4 Standard Schema)
 
-API request and response structures are defined in `src/lib/api-interfaces.ts`:
+API request and response schemas are declared in `src/lib/schemas/` and centralized in `src/lib/api-interfaces.ts`:
 
-- **Request DTOs**: Use `class-validator` decorators to enforce runtime validation (e.g., `CreateShiftRequest`, `SwapRequestDto`).
-- **Response Interfaces**: Define the exact contract of data returned to the client (e.g., `ShiftResponse`), extending base entity types with relation data.
-- **End-to-End Type Safety**: Shared across NestJS controllers (for validation via `ValidationPipe`) and the Next.js client (for typed Axios calls), eliminating contract drift.
+- **Request DTOs**: Authored with **Zod v4** Standard Schema objects (e.g., `CreateShiftRequestSchema`, `CreateSwapRequestSchema`), validated natively at controller boundaries via NestJS 12's `StandardSchemaValidationPipe({ schema })`.
+- **Response Interfaces & Sanitization**: Strict response contracts (e.g., `ShiftResponseSchema`, `SafeUserSchema` which strips `passwordHash`) enforced via NestJS 12's `StandardSchemaSerializerInterceptor` (`@SerializeOptions({ schema })`).
+- **Array Response Element Iteration**: In NestJS 12, `StandardSchemaSerializerInterceptor.serialize` automatically maps element-by-element over arrays. Controllers returning arrays pass the **element schema** (e.g. `@SerializeOptions({ schema: SkillSchema })`), while Swagger uses `z.array(SkillSchema)`.
+- **Browser-Safe Contract Boundary**: Schemas in `@shiftsync/data-access` contain zero `@nestjs/*` dependencies, ensuring seamless and safe isomorphic import into React Vite client apps and Storybook environments.
+- **End-to-End Type Safety**: Inferred TypeScript types (e.g. `CreateShiftRequest`, `ShiftResponse`) are shared between backend controllers and client API modules without contract drift.
 
 ---
 
 ## 🖥️ Backend Application (`apps/server`)
 
-The backend is a **NestJS** application utilizing **Drizzle ORM** for persistence and **Socket.io** for real-time events.
+The backend is a **NestJS 12** application utilizing **Drizzle ORM** for persistence, **Socket.io** for real-time events, **URI API Versioning**, and native **OpenAPI / Swagger** documentation.
+
+### URI API Versioning
+
+- **Global Versioning**: Configured in `main.ts` using `app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' })`.
+- **Domain Endpoints**: All business domain controllers (`auth`, `shifts`, `swaps`, `users`, `analytics`, `audit`, `notifications`) are mounted under `/api/v1/...`.
+- **Version-Neutral Probes**: Top-level routes like `AppController` (`/api`) remain `VERSION_NEUTRAL` for container health checks and load balancers.
+
+### OpenAPI & Swagger Documentation (`@nestjs/swagger`)
+
+- **Interactive UI**: Interactive Swagger explorer is mounted at `/api/docs` (enabled by default; toggleable via `SWAGGER_ENABLED=true/false`).
+- **OpenAPI JSON Spec**: Raw OpenAPI 3.0 specification exposed at `/api/docs-json`.
+- **Security & Categorization**: Features JWT Bearer security scheme definition (`@ApiBearerAuth('JWT')`) and grouped domain tags (`Health`, `Auth`, `Shifts`, `Swaps`, `Users`, `Analytics`, `Audit`, `Notifications`).
+- **Standard Schema Integration**: Controller endpoints use `@ApiOkResponse({ standardSchema })` and `@ApiCreatedResponse({ standardSchema })` to generate OpenAPI schemas directly from Zod models.
 
 ### Database Connection (`@nestjs/drizzle`)
 
@@ -365,10 +380,10 @@ npm run db:studio
 ### Development
 
 ```sh
-# Start NestJS backend (port 3001)
+# Start NestJS backend (port 3001, API at /api/v1, Swagger at /api/docs)
 npx nx serve server
 
-# Start Next.js frontend (port 3000)
+# Start React (Vite) frontend (port 3000)
 npx nx serve client
 ```
 

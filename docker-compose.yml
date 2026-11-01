@@ -36,12 +36,12 @@ services:
       context: .
       dockerfile: Dockerfile-client
       args:
-        - VITE_API_URL=http://localhost:3001/api
+        - VITE_API_URL=http://localhost:3001/api/v1
     container_name: shiftsync_client
     ports:
       - '3000:3000'
     environment:
-      - VITE_API_URL=http://localhost:3001/api
+      - VITE_API_URL=http://localhost:3001/api/v1
     depends_on:
       - server
     restart: always

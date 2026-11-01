@@ -40,7 +40,7 @@ export const EmptyHistory: Story = {
   parameters: {
     msw: {
       handlers: [
-        http.get('*/api/audit/entity/:type/:id', () => {
+        http.get('*/api/v1/audit/entity/:type/:id', () => {
           return HttpResponse.json({
             data: [],
             nextCursor: null,

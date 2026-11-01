@@ -35,7 +35,7 @@ const config: StorybookConfig = {
       define: {
         ...config.define,
         'import.meta.env.VITE_API_URL': JSON.stringify(
-          process.env.VITE_API_URL || 'http://localhost:3001/api',
+          process.env.VITE_API_URL || 'http://localhost:3001/api/v1',
         ),
       },
     };

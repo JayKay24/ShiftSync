@@ -45,7 +45,7 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
       const endTime = addHours(startTime, 4);
 
       const shiftA = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -58,14 +58,14 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
       );
 
       await safePost(
-        `/api/shifts/${shiftA.data.id}/assign`,
+        `/api/v1/shifts/${shiftA.data.id}/assign`,
         { userId: staffId },
         managerToken,
       );
 
       // Overlapping shift (Shift B starts 2h after Shift A)
       const shiftB = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -79,7 +79,7 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
 
       try {
         await axios.post(
-          `/api/shifts/${shiftB.data.id}/assign`,
+          `/api/v1/shifts/${shiftB.data.id}/assign`,
           {
             userId: staffId,
           },
@@ -102,7 +102,7 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
       const endTime = addHours(startTime, 4);
 
       const shiftC = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -115,14 +115,14 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
       );
 
       await safePost(
-        `/api/shifts/${shiftC.data.id}/assign`,
+        `/api/v1/shifts/${shiftC.data.id}/assign`,
         { userId: staffId },
         managerToken,
       );
 
       // Only 8 hours rest
       const shiftD = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -136,7 +136,7 @@ describe('Shift Scheduling & Constraints (Requirement #2)', () => {
 
       try {
         await axios.post(
-          `/api/shifts/${shiftD.data.id}/assign`,
+          `/api/v1/shifts/${shiftD.data.id}/assign`,
           {
             userId: staffId,
           },

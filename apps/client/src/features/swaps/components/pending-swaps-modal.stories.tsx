@@ -42,7 +42,7 @@ export const EmptyQueue: Story = {
   parameters: {
     msw: {
       handlers: [
-        http.get('*/api/swaps', () => {
+        http.get('*/api/v1/swaps', () => {
           return HttpResponse.json({
             data: [],
             nextCursor: null,
