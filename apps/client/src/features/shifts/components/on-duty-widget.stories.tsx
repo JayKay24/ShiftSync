@@ -30,7 +30,7 @@ export const EmptyState: Story = {
   parameters: {
     msw: {
       handlers: [
-        http.get('*/api/shifts/on-duty', () => {
+        http.get('*/api/v1/shifts/on-duty', () => {
           return HttpResponse.json([]);
         }),
       ],
@@ -47,7 +47,7 @@ export const LoadingState: Story = {
   parameters: {
     msw: {
       handlers: [
-        http.get('*/api/shifts/on-duty', async () => {
+        http.get('*/api/v1/shifts/on-duty', async () => {
           await delay('infinite');
           return HttpResponse.json([]);
         }),

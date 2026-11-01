@@ -20,7 +20,7 @@ describe('Manager Location-Based Access Control', () => {
 
   it('should restrict managers to only see their assigned locations', async () => {
     await clearDynamicData();
-    const bobLocations = await axios.get('/api/shifts/locations', {
+    const bobLocations = await axios.get('/api/v1/shifts/locations', {
       headers: { Authorization: `Bearer ${bobToken}` },
     });
     const bobLocIds = bobLocations.data.map((l: any) => l.id);
@@ -29,7 +29,7 @@ describe('Manager Location-Based Access Control', () => {
     expect(bobLocIds).not.toContain(locLA);
 
     const dianaTokenVal = await loginDiana();
-    const dianaLocations = await axios.get('/api/shifts/locations', {
+    const dianaLocations = await axios.get('/api/v1/shifts/locations', {
       headers: { Authorization: `Bearer ${dianaTokenVal}` },
     });
     const dianaLocIds = dianaLocations.data.map((l: any) => l.id);
@@ -42,7 +42,7 @@ describe('Manager Location-Based Access Control', () => {
     await clearDynamicData();
     // Charlie is certified for NY.
     // Let's assume some staff is only LA. (Grace is LA in seed.ts)
-    const bobStaff = await axios.get('/api/shifts/staff', {
+    const bobStaff = await axios.get('/api/v1/shifts/staff', {
       headers: { Authorization: `Bearer ${bobToken}` },
       params: { limit: 20 },
     });
@@ -51,7 +51,7 @@ describe('Manager Location-Based Access Control', () => {
     expect(bobStaffNames).not.toContain('Grace');
 
     const dianaTokenVal = await loginDiana();
-    const dianaStaff = await axios.get('/api/shifts/staff', {
+    const dianaStaff = await axios.get('/api/v1/shifts/staff', {
       headers: { Authorization: `Bearer ${dianaTokenVal}` },
       params: { limit: 20 },
     });
@@ -66,7 +66,7 @@ describe('Manager Location-Based Access Control', () => {
     // Charlie is NY. Grace is LA.
 
     // Bob should see Charlie in analytics but not Grace.
-    const bobDist = await axios.get('/api/analytics/distribution', {
+    const bobDist = await axios.get('/api/v1/analytics/distribution', {
       headers: { Authorization: `Bearer ${bobToken}` },
     });
     const bobUserIds = bobDist.data.map((d: any) => d.firstName);
@@ -74,7 +74,7 @@ describe('Manager Location-Based Access Control', () => {
     expect(bobUserIds).not.toContain('Grace');
 
     const dianaTokenVal = await loginDiana();
-    const dianaDist = await axios.get('/api/analytics/distribution', {
+    const dianaDist = await axios.get('/api/v1/analytics/distribution', {
       headers: { Authorization: `Bearer ${dianaTokenVal}` },
     });
     const dianaUserIds = dianaDist.data.map((d: any) => d.firstName);
@@ -85,7 +85,7 @@ describe('Manager Location-Based Access Control', () => {
   it('should filter dashboard stats based on manager locations', async () => {
     await clearDynamicData();
     // Bob: NY/Uptown. Diana: Beach Grill.
-    const bobStats = await axios.get('/api/shifts/stats', {
+    const bobStats = await axios.get('/api/v1/shifts/stats', {
       headers: { Authorization: `Bearer ${bobToken}` },
     });
     // Based on seed.ts:
@@ -102,7 +102,7 @@ describe('Manager Location-Based Access Control', () => {
     expect(bobStats.data.totalStaff).toBe(15);
 
     const dianaTokenVal = await loginDiana();
-    const dianaStats = await axios.get('/api/shifts/stats', {
+    const dianaStats = await axios.get('/api/v1/shifts/stats', {
       headers: { Authorization: `Bearer ${dianaTokenVal}` },
     });
     // Diana manages Loc 3: 4 core staff (Grace, Heidi, Ivan, Judy) + 11 pagination-demo staff.

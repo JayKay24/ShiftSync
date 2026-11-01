@@ -42,7 +42,7 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
 
       // Create a past shift using Admin (who can bypass constraints if needed)
       const pastShift = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -56,7 +56,7 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
 
       try {
         await safePost(
-          `/api/shifts/${pastShift.data.id}/assign`,
+          `/api/v1/shifts/${pastShift.data.id}/assign`,
           { userId: staffId },
           managerToken,
         );
@@ -76,7 +76,7 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
       const nearFutureDate = getSafeFutureDate(1); // 24h from now < 48h
 
       const nearShift = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -92,7 +92,7 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
 
       try {
         await safePatch(
-          `/api/shifts/${nearShift.data.id}`,
+          `/api/v1/shifts/${nearShift.data.id}`,
           { headcountNeeded: 2 },
           managerToken,
         );
@@ -110,7 +110,7 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
       const veryNearDate = getSafeFutureDate(0.5); // 12h from now
 
       const nearShift = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -123,7 +123,7 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
       );
 
       const res = await safePatch(
-        `/api/shifts/${nearShift.data.id}`,
+        `/api/v1/shifts/${nearShift.data.id}`,
         { headcountNeeded: 3 },
         adminToken,
       );
@@ -136,7 +136,7 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
       const farFutureDate = getSafeFutureDate(4); // 96h from now > 48h
 
       const farShift = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -151,7 +151,7 @@ describe('Shift Cutoff & Past Assignment Constraints', () => {
       );
 
       const res = await safePatch(
-        `/api/shifts/${farShift.data.id}`,
+        `/api/v1/shifts/${farShift.data.id}`,
         { headcountNeeded: 2 },
         managerToken,
       );

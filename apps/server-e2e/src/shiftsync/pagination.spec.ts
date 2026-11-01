@@ -35,7 +35,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
     await clearDynamicData();
   });
 
-  describe('GET /api/shifts pagination', () => {
+  describe('GET /api/v1/shifts pagination', () => {
     it('should paginate shifts with limit and nextCursor without duplicate or skipped items', async () => {
       const baseDate = getFutureDate(10);
       const createdShiftIds: string[] = [];
@@ -44,7 +44,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
         const start = setHours(baseDate, 10 + i);
         const end = setHours(baseDate, 14 + i);
         const res = await axios.post(
-          '/api/shifts',
+          '/api/v1/shifts',
           {
             locationId: loc1Id,
             requiredSkillId: bartenderSkillId,
@@ -59,7 +59,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
       }
 
       // Page 1: limit = 2
-      const page1 = await axios.get('/api/shifts?limit=2', {
+      const page1 = await axios.get('/api/v1/shifts?limit=2', {
         headers: { Authorization: `Bearer ${managerToken}` },
       });
       expect(page1.status).toBe(200);
@@ -71,7 +71,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
 
       // Page 2: limit = 2 with cursor from Page 1
       const page2 = await axios.get(
-        `/api/shifts?limit=2&cursor=${encodeURIComponent(page1.data.nextCursor)}`,
+        `/api/v1/shifts?limit=2&cursor=${encodeURIComponent(page1.data.nextCursor)}`,
         {
           headers: { Authorization: `Bearer ${managerToken}` },
         },
@@ -90,7 +90,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
       const end = setHours(baseDate, 16).toISOString();
 
       const shiftA = await axios.post(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -103,7 +103,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
       );
 
       const shiftB = await axios.post(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -115,7 +115,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
         { headers: { Authorization: `Bearer ${managerToken}` } },
       );
 
-      const page1 = await axios.get('/api/shifts?limit=1', {
+      const page1 = await axios.get('/api/v1/shifts?limit=1', {
         headers: { Authorization: `Bearer ${managerToken}` },
       });
       expect(page1.data.data.length).toBe(1);
@@ -123,7 +123,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
       expect(page1.data.nextCursor).toBeTruthy();
 
       const page2 = await axios.get(
-        `/api/shifts?limit=1&cursor=${encodeURIComponent(page1.data.nextCursor)}`,
+        `/api/v1/shifts?limit=1&cursor=${encodeURIComponent(page1.data.nextCursor)}`,
         {
           headers: { Authorization: `Bearer ${managerToken}` },
         },
@@ -137,9 +137,9 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
     });
   });
 
-  describe('GET /api/shifts/staff pagination', () => {
+  describe('GET /api/v1/shifts/staff pagination', () => {
     it('should paginate staff members alphabetically by last name with limit and cursor', async () => {
-      const page1 = await axios.get('/api/shifts/staff?limit=2', {
+      const page1 = await axios.get('/api/v1/shifts/staff?limit=2', {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       expect(page1.status).toBe(200);
@@ -148,7 +148,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
       expect(page1.data.nextCursor).toBeTruthy();
 
       const page2 = await axios.get(
-        `/api/shifts/staff?limit=2&cursor=${encodeURIComponent(page1.data.nextCursor)}`,
+        `/api/v1/shifts/staff?limit=2&cursor=${encodeURIComponent(page1.data.nextCursor)}`,
         {
           headers: { Authorization: `Bearer ${adminToken}` },
         },
@@ -163,13 +163,13 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
     });
   });
 
-  describe('GET /api/audit pagination', () => {
+  describe('GET /api/v1/audit pagination', () => {
     it('should paginate audit logs in reverse chronological order', async () => {
       // Trigger multiple audit log events by creating shifts
       const baseDate = getFutureDate(20);
       for (let i = 0; i < 3; i++) {
         await axios.post(
-          '/api/shifts',
+          '/api/v1/shifts',
           {
             locationId: loc1Id,
             requiredSkillId: bartenderSkillId,
@@ -182,7 +182,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
         );
       }
 
-      const page1 = await axios.get('/api/audit?limit=2', {
+      const page1 = await axios.get('/api/v1/audit?limit=2', {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       expect(page1.status).toBe(200);
@@ -191,7 +191,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
       expect(page1.data.nextCursor).toBeTruthy();
 
       const page2 = await axios.get(
-        `/api/audit?limit=2&cursor=${encodeURIComponent(page1.data.nextCursor)}`,
+        `/api/v1/audit?limit=2&cursor=${encodeURIComponent(page1.data.nextCursor)}`,
         {
           headers: { Authorization: `Bearer ${adminToken}` },
         },
@@ -206,11 +206,11 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
     });
   });
 
-  describe('GET /api/notifications pagination', () => {
+  describe('GET /api/v1/notifications pagination', () => {
     it('should paginate user notifications using cursor', async () => {
       const baseDate = getNextWednesday(getFutureDate(60));
       const shift = await axios.post(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: bartenderSkillId,
@@ -227,7 +227,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
 
       // Assigning shift creates a notification for Charlie
       await axios.post(
-        `/api/shifts/${shift.data.id}/assign`,
+        `/api/v1/shifts/${shift.data.id}/assign`,
         { userId: charlieId },
         {
           headers: { Authorization: `Bearer ${managerToken}` },
@@ -236,7 +236,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
 
       // Swap request creates a notification for Dave
       await axios.post(
-        '/api/swaps/request',
+        '/api/v1/swaps/request',
         {
           shiftId: shift.data.id,
           targetUserId: daveId,
@@ -245,7 +245,7 @@ describe('Cursor-Based Pagination across List Endpoints (Issue #40)', () => {
         { headers: { Authorization: `Bearer ${charlieToken}` } },
       );
 
-      const res = await axios.get('/api/notifications?limit=1', {
+      const res = await axios.get('/api/v1/notifications?limit=1', {
         headers: { Authorization: `Bearer ${daveToken}` },
       });
       expect(res.status).toBe(200);

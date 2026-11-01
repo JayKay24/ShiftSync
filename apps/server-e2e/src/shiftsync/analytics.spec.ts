@@ -30,7 +30,7 @@ describe('Analytics & Fairness (Requirement #8)', () => {
     const baseDate = getFutureDate(60);
     const futureDate = getNextWednesday(baseDate);
     const s1 = await axios.post(
-      '/api/shifts',
+      '/api/v1/shifts',
       {
         locationId: loc1Id,
         requiredSkillId: bartenderSkillId,
@@ -42,14 +42,14 @@ describe('Analytics & Fairness (Requirement #8)', () => {
       { headers: { Authorization: `Bearer ${managerToken}` } },
     );
     await axios.post(
-      `/api/shifts/${s1.data.id}/assign`,
+      `/api/v1/shifts/${s1.data.id}/assign`,
       { userId: charlieId },
       { headers: { Authorization: `Bearer ${managerToken}` } },
     );
 
     // Shift 2: Dave (Line Cook, Loc 1) - Use Wednesday (Available)
     const s2 = await axios.post(
-      '/api/shifts',
+      '/api/v1/shifts',
       {
         locationId: loc1Id,
         requiredSkillId: lineCookSkillId,
@@ -61,7 +61,7 @@ describe('Analytics & Fairness (Requirement #8)', () => {
       { headers: { Authorization: `Bearer ${managerToken}` } },
     );
     await axios.post(
-      `/api/shifts/${s2.data.id}/assign`,
+      `/api/v1/shifts/${s2.data.id}/assign`,
       { userId: daveId },
       { headers: { Authorization: `Bearer ${managerToken}` } },
     );
@@ -71,7 +71,7 @@ describe('Analytics & Fairness (Requirement #8)', () => {
     const rangeEnd = addHours(futureDate, 48).toISOString();
 
     const dist = await axios.get(
-      `/api/analytics/distribution?startDate=${rangeStart}&endDate=${rangeEnd}`,
+      `/api/v1/analytics/distribution?startDate=${rangeStart}&endDate=${rangeEnd}`,
       {
         headers: { Authorization: `Bearer ${managerToken}` },
       },
@@ -81,7 +81,7 @@ describe('Analytics & Fairness (Requirement #8)', () => {
 
     // 3. Check Fairness
     const fairness = await axios.get(
-      `/api/analytics/fairness?startDate=${rangeStart}&endDate=${rangeEnd}`,
+      `/api/v1/analytics/fairness?startDate=${rangeStart}&endDate=${rangeEnd}`,
       {
         headers: { Authorization: `Bearer ${managerToken}` },
       },
@@ -99,7 +99,7 @@ describe('Analytics & Fairness (Requirement #8)', () => {
 
     // 4. Test inequality: Add a premium shift to Charlie
     const premiumShift = await axios.post(
-      '/api/shifts',
+      '/api/v1/shifts',
       {
         locationId: loc1Id,
         requiredSkillId: bartenderSkillId,
@@ -113,13 +113,13 @@ describe('Analytics & Fairness (Requirement #8)', () => {
     );
 
     await axios.post(
-      `/api/shifts/${premiumShift.data.id}/assign`,
+      `/api/v1/shifts/${premiumShift.data.id}/assign`,
       { userId: charlieId },
       { headers: { Authorization: `Bearer ${managerToken}` } },
     );
 
     const fairness2 = await axios.get(
-      `/api/analytics/fairness?startDate=${rangeStart}&endDate=${rangeEnd}`,
+      `/api/v1/analytics/fairness?startDate=${rangeStart}&endDate=${rangeEnd}`,
       {
         headers: { Authorization: `Bearer ${managerToken}` },
       },

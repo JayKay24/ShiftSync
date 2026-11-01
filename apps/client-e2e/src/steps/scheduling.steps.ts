@@ -117,6 +117,27 @@ When(
     // Filter to Downtown
     await page.click('button:has-text("Coastal Eats - Downtown")');
 
+    // If shift is scheduled for next/previous week, navigate calendar accordingly
+    if (world.activeShift?.startTime) {
+      const shiftDate = new Date(world.activeShift.startTime as string);
+      const now = new Date();
+      const currentWeekStart = new Date(now);
+      const day = currentWeekStart.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
+      const diffToMonday = (day + 6) % 7;
+      currentWeekStart.setDate(currentWeekStart.getDate() - diffToMonday);
+      currentWeekStart.setHours(0, 0, 0, 0);
+
+      const currentWeekEnd = new Date(currentWeekStart);
+      currentWeekEnd.setDate(currentWeekEnd.getDate() + 6);
+      currentWeekEnd.setHours(23, 59, 59, 999);
+
+      if (shiftDate > currentWeekEnd) {
+        await page.locator('button:has(svg.lucide-chevron-right)').click();
+      } else if (shiftDate < currentWeekStart) {
+        await page.locator('button:has(svg.lucide-chevron-left)').click();
+      }
+    }
+
     // Find shift card matching the created headcount
     const headcount = (world.activeShift?.headcountNeeded as number) || 99;
     const shiftCard = page

@@ -55,7 +55,7 @@ export const NoUpcomingShifts: Story = {
   parameters: {
     msw: {
       handlers: [
-        http.get('*/api/shifts/staff/:userId/assignments', () => {
+        http.get('*/api/v1/shifts/staff/:userId/assignments', () => {
           return HttpResponse.json([]);
         }),
         ...defaultMswHandlers,

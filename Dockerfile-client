@@ -12,7 +12,7 @@ RUN npm install --legacy-peer-deps
 # Copy the entire workspace
 COPY . .
 
-ARG VITE_API_URL=http://localhost:3001/api
+ARG VITE_API_URL=http://localhost:3001/api/v1
 ENV VITE_API_URL=$VITE_API_URL
 
 # Build the client application

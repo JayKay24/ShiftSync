@@ -40,7 +40,7 @@ describe('Labor Law Compliance (Requirement #4)', () => {
       await clearDynamicData();
       const futureDate = getFutureDate(20);
       const shift13h = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: lineCookSkillId,
@@ -54,7 +54,7 @@ describe('Labor Law Compliance (Requirement #4)', () => {
 
       try {
         await axios.post(
-          `/api/shifts/${shift13h.data.id}/assign`,
+          `/api/v1/shifts/${shift13h.data.id}/assign`,
           {
             userId: frankId,
           },
@@ -80,7 +80,7 @@ describe('Labor Law Compliance (Requirement #4)', () => {
       for (let i = 0; i < 6; i++) {
         const currentDay = addDays(baseDate, i);
         const s = await safePost(
-          '/api/shifts',
+          '/api/v1/shifts',
           {
             locationId: loc1Id,
             requiredSkillId: lineCookSkillId,
@@ -93,7 +93,7 @@ describe('Labor Law Compliance (Requirement #4)', () => {
         );
 
         await safePost(
-          `/api/shifts/${s.data.id}/assign`,
+          `/api/v1/shifts/${s.data.id}/assign`,
           { userId: frankId },
           managerToken,
         );
@@ -102,7 +102,7 @@ describe('Labor Law Compliance (Requirement #4)', () => {
       // 7th Day
       const day7Date = addDays(baseDate, 6);
       const day7 = await safePost(
-        '/api/shifts',
+        '/api/v1/shifts',
         {
           locationId: loc1Id,
           requiredSkillId: lineCookSkillId,
@@ -117,7 +117,7 @@ describe('Labor Law Compliance (Requirement #4)', () => {
       // Try without reason
       try {
         await axios.post(
-          `/api/shifts/${day7.data.id}/assign`,
+          `/api/v1/shifts/${day7.data.id}/assign`,
           {
             userId: frankId,
           },
@@ -130,7 +130,7 @@ describe('Labor Law Compliance (Requirement #4)', () => {
 
       // Try with reason
       const res = await safePost(
-        `/api/shifts/${day7.data.id}/assign`,
+        `/api/v1/shifts/${day7.data.id}/assign`,
         {
           userId: frankId,
           overrideReason: 'Staff agreed to extra day',

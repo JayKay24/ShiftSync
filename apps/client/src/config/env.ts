@@ -33,7 +33,7 @@ const parseEnv = () => {
     const validated = envSchema.parse(rawEnv);
     return {
       ...validated,
-      SOCKET_URL: validated.API_URL.replace(/\/api\/?$/, ''),
+      SOCKET_URL: validated.API_URL.replace(/\/api(?:\/v\d+)?\/?$/, ''),
     };
   } catch (error) {
     if (error instanceof z.ZodError) {

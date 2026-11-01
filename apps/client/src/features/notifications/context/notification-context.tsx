@@ -11,7 +11,7 @@ import { io, Socket } from 'socket.io-client';
 import { env } from '@/config/env';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { notificationsApi } from '@/features/notifications/api/notifications-api';
-import { Notification } from '@shiftsync/data-access';
+import { NotificationResponse } from '@shiftsync/data-access';
 
 const SOCKET_URL = env.SOCKET_URL;
 
@@ -20,7 +20,7 @@ const SOCKET_URL = env.SOCKET_URL;
  */
 export interface NotificationContextType {
   /** Array of loaded notifications. */
-  notifications: Notification[];
+  notifications: NotificationResponse[];
   /** Computed count of unread notifications. */
   unreadCount: number;
   /** Initial loading flag. */
@@ -57,7 +57,9 @@ export const NotificationContext = createContext<
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<NotificationResponse[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -146,7 +148,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       console.log('Connected to notification gateway');
     });
 
-    newSocket.on('notification', (notification: Notification) => {
+    newSocket.on('notification', (notification: NotificationResponse) => {
       setNotifications((prev) => [notification, ...prev]);
     });
 

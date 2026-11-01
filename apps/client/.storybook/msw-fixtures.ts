@@ -313,16 +313,16 @@ export const mockAuditLogsList: AuditLogResponse[] = [
  */
 export const defaultMswHandlers = [
   // Shifts endpoints
-  http.get('*/api/shifts/locations', () => {
+  http.get('*/api/v1/shifts/locations', () => {
     return HttpResponse.json(mockLocations);
   }),
-  http.get('*/api/shifts/skills', () => {
+  http.get('*/api/v1/shifts/skills', () => {
     return HttpResponse.json(mockSkills);
   }),
-  http.get('*/api/shifts/on-duty', () => {
+  http.get('*/api/v1/shifts/on-duty', () => {
     return HttpResponse.json(mockOnDutyStaffList);
   }),
-  http.get('*/api/shifts/stats', () => {
+  http.get('*/api/v1/shifts/stats', () => {
     return HttpResponse.json({
       activeShifts: 12,
       totalHours: 96,
@@ -330,13 +330,13 @@ export const defaultMswHandlers = [
       unassignedShifts: 1,
     });
   }),
-  http.get('*/api/shifts/:id/available-staff', () => {
+  http.get('*/api/v1/shifts/:id/available-staff', () => {
     return HttpResponse.json(mockAvailableStaffList);
   }),
-  http.get('*/api/shifts/:id', () => {
+  http.get('*/api/v1/shifts/:id', () => {
     return HttpResponse.json(mockStandardShift);
   }),
-  http.post('*/api/shifts', async ({ request }) => {
+  http.post('*/api/v1/shifts', async ({ request }) => {
     const body = (await request.json()) as any;
     return HttpResponse.json({
       ...mockStandardShift,
@@ -344,7 +344,7 @@ export const defaultMswHandlers = [
       id: 'new-shift-' + Date.now(),
     });
   }),
-  http.post('*/api/shifts/:id/assign', async ({ request }) => {
+  http.post('*/api/v1/shifts/:id/assign', async ({ request }) => {
     const body = (await request.json()) as any;
     return HttpResponse.json({
       id: 'asgn-' + Date.now(),
@@ -358,7 +358,7 @@ export const defaultMswHandlers = [
   }),
 
   // Swaps endpoints
-  http.get('*/api/swaps', () => {
+  http.get('*/api/v1/swaps', () => {
     const response: CursorPaginatedResponse<SwapRequestResponse> = {
       data: mockPendingSwapsList,
       nextCursor: null,
@@ -366,7 +366,7 @@ export const defaultMswHandlers = [
     };
     return HttpResponse.json(response);
   }),
-  http.put('*/api/swaps/approve/:id', () => {
+  http.put('*/api/v1/swaps/approve/:id', () => {
     return HttpResponse.json({
       ...mockPendingSwapsList[0],
       status: 'approved',
@@ -374,7 +374,7 @@ export const defaultMswHandlers = [
   }),
 
   // Staff & Analytics endpoints
-  http.get('*/api/shifts/staff/:userId/assignments', () => {
+  http.get('*/api/v1/shifts/staff/:userId/assignments', () => {
     return HttpResponse.json([
       {
         id: 'asgn-1',
@@ -396,15 +396,15 @@ export const defaultMswHandlers = [
       },
     ]);
   }),
-  http.get('*/api/analytics/fairness', () => {
+  http.get('*/api/v1/analytics/fairness', () => {
     return HttpResponse.json(mockFairnessData);
   }),
-  http.get('*/api/analytics/distribution', () => {
+  http.get('*/api/v1/analytics/distribution', () => {
     return HttpResponse.json(mockDistributionData);
   }),
 
   // Audit endpoints
-  http.get('*/api/audit/entity/:type/:id', () => {
+  http.get('*/api/v1/audit/entity/:type/:id', () => {
     const response: CursorPaginatedResponse<AuditLogResponse> = {
       data: mockAuditLogsList,
       nextCursor: null,
@@ -414,14 +414,14 @@ export const defaultMswHandlers = [
   }),
 
   // Notifications endpoints
-  http.get('*/api/notifications', () => {
+  http.get('*/api/v1/notifications', () => {
     return HttpResponse.json({
       data: [],
       nextCursor: null,
       hasMore: false,
     });
   }),
-  http.put('*/api/notifications/:id/read', () => {
+  http.put('*/api/v1/notifications/:id/read', () => {
     return HttpResponse.json({ success: true });
   }),
 ];

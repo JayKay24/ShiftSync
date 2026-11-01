@@ -1,6 +1,6 @@
 /**
  * @fileoverview API helper fixtures for fast BDD Given precondition setup and scenario isolation.
- * Interacts directly with the ShiftSync backend REST API (http://localhost:3001/api) to set up
+ * Interacts directly with the ShiftSync backend REST API (http://localhost:3001/api/v1) to set up
  * isolated test state without slow UI form fills, and records created IDs for automated post-scenario cleanup.
  */
 
@@ -8,7 +8,7 @@ import axios, { AxiosInstance } from 'axios';
 import { Pool } from 'pg';
 import { getPersona, LOCATIONS, SKILLS } from './personas';
 
-const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:3001/api/v1';
 
 /**
  * Token and user session cache to avoid repeated HTTP login overhead across steps.
