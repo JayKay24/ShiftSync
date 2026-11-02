@@ -92,42 +92,106 @@ describe('Telemetry & Observability', () => {
       interceptor = new TraceResponseInterceptor();
     });
 
-    it('should inject x-trace-id header and actor context when active span exists', async () => {
-      const tracer = trace.getTracer('test-tracer');
+    it('should inject x-trace-id header and actor context when active span exists', () => {
+      const mockSpan = {
+        spanContext: () => ({ traceId: '4bf92f3577b34da6a3ce929d0e0e4736' }),
+        setAttribute: vi.fn(),
+      };
+      vi.spyOn(trace, 'getActiveSpan').mockReturnValue(mockSpan as any);
 
-      await tracer.startActiveSpan('http_request_span', async (span) => {
-        try {
-          const traceId = span.spanContext().traceId;
-          const headers: Record<string, string> = {};
+      const mockReq = {
+        headers: {},
+        user: { userId: 'user-uuid-123', role: 'Manager' },
+      };
+      const mockRes = {
+        setHeader: vi.fn(),
+      };
 
-          const mockReq = {
-            user: { userId: 'user-uuid-123', role: 'Manager' },
-          };
-          const mockRes = {
-            setHeader: vi.fn((key: string, val: string) => {
-              headers[key] = val;
-            }),
-          };
+      const mockContext = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockReq,
+          getResponse: () => mockRes,
+        }),
+      } as unknown as ExecutionContext;
 
-          const mockContext = {
-            getType: () => 'http',
-            switchToHttp: () => ({
-              getRequest: () => mockReq,
-              getResponse: () => mockRes,
-            }),
-          } as unknown as ExecutionContext;
+      const mockHandler: CallHandler = {
+        handle: () => of({ success: true }),
+      };
 
-          const mockHandler: CallHandler = {
-            handle: () => of({ success: true }),
-          };
+      interceptor.intercept(mockContext, mockHandler).subscribe();
 
-          interceptor.intercept(mockContext, mockHandler).subscribe();
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'x-trace-id',
+        '4bf92f3577b34da6a3ce929d0e0e4736',
+      );
+      expect(mockSpan.setAttribute).toHaveBeenCalledWith(
+        'enduser.id',
+        'user-uuid-123',
+      );
+      expect(mockSpan.setAttribute).toHaveBeenCalledWith(
+        'enduser.role',
+        'Manager',
+      );
+    });
 
-          expect(mockRes.setHeader).toHaveBeenCalledWith('x-trace-id', traceId);
-        } finally {
-          span.end();
-        }
-      });
+    it('should extract trace ID from traceparent header when no active span exists', () => {
+      vi.spyOn(trace, 'getActiveSpan').mockReturnValue(undefined);
+
+      const mockReq = {
+        headers: {
+          traceparent:
+            '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+        },
+      };
+      const mockRes = {
+        setHeader: vi.fn(),
+      };
+
+      const mockContext = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockReq,
+          getResponse: () => mockRes,
+        }),
+      } as unknown as ExecutionContext;
+
+      const mockHandler: CallHandler = {
+        handle: () => of({ success: true }),
+      };
+
+      interceptor.intercept(mockContext, mockHandler).subscribe();
+
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'x-trace-id',
+        '4bf92f3577b34da6a3ce929d0e0e4736',
+      );
+    });
+
+    it('should generate a compliant 32-hex trace ID when no active span or traceparent header exists', () => {
+      vi.spyOn(trace, 'getActiveSpan').mockReturnValue(undefined);
+
+      const mockReq = { headers: {} };
+      const mockRes = { setHeader: vi.fn() };
+
+      const mockContext = {
+        getType: () => 'http',
+        switchToHttp: () => ({
+          getRequest: () => mockReq,
+          getResponse: () => mockRes,
+        }),
+      } as unknown as ExecutionContext;
+
+      const mockHandler: CallHandler = {
+        handle: () => of({ success: true }),
+      };
+
+      interceptor.intercept(mockContext, mockHandler).subscribe();
+
+      expect(mockRes.setHeader).toHaveBeenCalledWith(
+        'x-trace-id',
+        expect.stringMatching(/^[0-9a-f]{32}$/),
+      );
     });
 
     it('should gracefully pass through when context is not http', () => {
