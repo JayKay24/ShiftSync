@@ -1,3 +1,5 @@
+import './instrumentation';
+
 import {
   Logger,
   StandardSchemaValidationPipe,
@@ -5,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger as PinoLogger } from 'nestjs-pino';
 import { AppModule } from './app/app.module';
 
 /**
@@ -16,8 +19,11 @@ import { AppModule } from './app/app.module';
  * @returns {Promise<void>} Resolves when server has started listening.
  */
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(PinoLogger));
+  app.enableCors({
+    exposedHeaders: ['x-trace-id'],
+  });
 
   // Global validation using NestJS 12 native Standard Schema pipe
   app.useGlobalPipes(new StandardSchemaValidationPipe());

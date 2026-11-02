@@ -59,6 +59,15 @@ flowchart TD
     AuditSvc["AuditModule (Immutable Audit Log)"]
     SocketGateway["NotificationGateway (Socket.io WebSockets)"]
     DrizzleModule["DrizzleModule (@nestjs/drizzle)"]
+    TelemetrySvc["TelemetryModule (OpenTelemetry & Pino)"]
+  end
+
+  subgraph Observability ["Observability Tier (Grafana LGTM)"]
+    OTelCollector["OTLP HTTP Ingestion (port 4318)"]
+    LokiLogs["Grafana Loki (Logs)"]
+    TempoTraces["Grafana Tempo (Traces)"]
+    MimirMetrics["Mimir / Prometheus (Metrics)"]
+    GrafanaDashboard["Grafana Dashboard (port 3002)"]
   end
 
   subgraph Persistence ["Persistence Tier"]
@@ -106,6 +115,15 @@ flowchart TD
   %% Backend -> Database
   DrizzleModule -->|"Connection Pool"| PostgreSQL
   Repos -->|"SQL Queries / Transactions"| PostgreSQL
+
+  %% Backend -> Observability
+  TelemetrySvc -->|"OTLP Traces, Metrics & Logs"| OTelCollector
+  OTelCollector --> LokiLogs
+  OTelCollector --> TempoTraces
+  OTelCollector --> MimirMetrics
+  LokiLogs -.-> GrafanaDashboard
+  TempoTraces -.-> GrafanaDashboard
+  MimirMetrics -.-> GrafanaDashboard
 
   %% CI to Release Workflow
   CI -->|"On successful main merge"| ReleaseJob
@@ -234,7 +252,23 @@ npx nx serve client
 - **Backend REST API**: [http://localhost:3001/api/v1](http://localhost:3001/api/v1)
 - **OpenAPI / Swagger Explorer**: [http://localhost:3001/api/docs](http://localhost:3001/api/docs)
 - **OpenAPI JSON Spec**: [http://localhost:3001/api/docs-json](http://localhost:3001/api/docs-json)
+- **Grafana LGTM Observability Dashboard**: [http://localhost:3002](http://localhost:3002) (`admin` / `admin`)
 - **Drizzle Studio (GUI)**: `npm run db:studio` (available at [https://local.drizzle.studio](https://local.drizzle.studio))
+
+### 7. Observability & Telemetry (Grafana LGTM + OpenTelemetry)
+
+ShiftSync backend exports distributed traces, RED and domain metrics, and structured logs to Grafana LGTM over OpenTelemetry (OTLP):
+
+```sh
+# Start Grafana LGTM container (Loki, Grafana, Tempo, Mimir)
+npm run obs:up
+
+# Open Grafana at http://localhost:3002 (credentials: admin / admin)
+# Navigate to: Dashboards -> "ShiftSync Operations & API Observability"
+
+# Stop Grafana LGTM container
+npm run obs:down
+```
 
 ---
 

@@ -157,6 +157,28 @@ The project features a comprehensive seed script in `apps/server/src/db/seed.ts`
 - **NotificationModule**: Manages real-time event broadcasting and WebSocket gateways.
 - **AuditModule**: Immutably records schedule modifications with actor, timestamp, and before/after state diffs.
 - **ComplianceService**: Enforces labor law constraints including 10-hour rest gaps, 12-hour daily caps, and 7th consecutive day manager overrides.
+- **TelemetryModule**: Global OpenTelemetry tracing, RED metrics, and Pino structured logging provider.
+
+### 📊 Observability & Telemetry (OpenTelemetry + Grafana LGTM)
+
+ShiftSync backend features a production-grade observability pipeline combining **OpenTelemetry (OTel)** and the **Grafana LGTM** stack (Loki, Grafana, Tempo, Mimir/Prometheus):
+
+- **Pre-boot NodeSDK**: Initialized on line 1 of `apps/server/src/main.ts` before NestJS bootstrap via `apps/server/src/instrumentation.ts`.
+- **Environment Gating (`isTelemetryEnabled()`)**: Gated via `OTEL_ENABLED` which defaults to `false` in `NODE_ENV=test` (zero overhead during automated tests) and `true` in `development` and `production`.
+- **Surgical Instrumentations**: Express, HTTP, NestJS Core, PostgreSQL (`enhancedDatabaseReporting: false` for query parameter privacy), Pino, and Socket.io.
+- **Structured Logging (`nestjs-pino`)**: Correlates `trace_id` and `span_id` with logs, redacts sensitive headers and payloads (`authorization`, `password`, cookies), formats output via `pino-pretty` in dev, and forwards logs via OTLP to Loki.
+- **Trace Propagation**: Injects `x-trace-id` on response headers via `TraceResponseInterceptor` and exposes it through CORS `Access-Control-Expose-Headers`.
+- **Domain Metrics & Spans**:
+  - `shiftsync_compliance_evaluations_total` (counter: `outcome`)
+  - `shiftsync_compliance_violations_total` (counter: `rule`, `severity`)
+  - `shiftsync_compliance_evaluation_duration_ms` (histogram)
+  - `shiftsync_shifts_assignments_total` (counter: `role`, `status`)
+  - `shiftsync_swaps_transitions_total` (counter: `from_status`, `to_status`)
+  - `shiftsync_websocket_connected_users` (observable gauge)
+- **Local LGTM Container (`grafana/otel-lgtm`)**:
+  - Grafana explorer mounted at `http://localhost:3002` (default credentials: `admin` / `admin`).
+  - Pre-provisioned "ShiftSync Operations & API Observability" dashboard at `tools/observability/grafana/dashboards/shiftsync-overview.json`.
+  - Commands: `npm run obs:up` (`docker compose up -d lgtm`) and `npm run obs:down` (`docker compose stop lgtm`).
 
 ---
 
@@ -426,6 +448,16 @@ npm run storybook:test
 
 # Build all applications for production
 npx nx run-many -t build
+```
+
+### Observability & Metrics (Grafana LGTM)
+
+```sh
+# Start Grafana LGTM observability stack (Loki, Grafana, Tempo, Mimir on port 3002)
+npm run obs:up
+
+# Stop Grafana LGTM observability stack
+npm run obs:down
 ```
 
 ### Versioning & Releases
