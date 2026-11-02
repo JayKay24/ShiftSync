@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'ShiftSync Dashboards'
+    orgId: 1
+    folder: 'ShiftSync'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /otel-lgtm/grafana/conf/provisioning/dashboards/shiftsync

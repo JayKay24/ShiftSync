@@ -26,9 +26,29 @@ services:
       - '3001:3001'
     environment:
       - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/shiftsync?sslmode=disable
+      - OTEL_ENABLED=true
+      - OTEL_SERVICE_NAME=shiftsync-server
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4318
     depends_on:
       db:
         condition: service_healthy
+      lgtm:
+        condition: service_started
+    restart: always
+
+  lgtm:
+    image: grafana/otel-lgtm:latest
+    container_name: shiftsync_lgtm
+    ports:
+      - '3002:3000'
+      - '4317:4317'
+      - '4318:4318'
+    environment:
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/otel-lgtm/grafana/conf/provisioning/dashboards/shiftsync/shiftsync-overview.json
+    volumes:
+      - ./tools/observability/grafana/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/shiftsync.yaml:ro
+      - ./tools/observability/grafana/dashboards:/otel-lgtm/grafana/conf/provisioning/dashboards/shiftsync:ro
+      - lgtm_data:/data
     restart: always
 
   client:
@@ -48,3 +68,4 @@ services:
 
 volumes:
   postgres_data:
+  lgtm_data:

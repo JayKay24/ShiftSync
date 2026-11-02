@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   forwardRef,
   Inject,
+  Optional,
 } from '@nestjs/common';
 import {
   SwapRepository,
@@ -18,6 +19,7 @@ import { addHours, subHours, isBefore } from 'date-fns';
 import { ShiftsService } from './shifts.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
+import { TelemetryService } from '../telemetry/telemetry.service';
 
 /**
  * Service managing peer shift swap workflows, drop requests, and manager approval lifecycles.
@@ -32,6 +34,7 @@ export class SwapService {
     private shiftsService: ShiftsService,
     private auditService: AuditService,
     private notificationService: NotificationService,
+    @Optional() private telemetry?: TelemetryService,
   ) {}
 
   /**
@@ -127,6 +130,11 @@ export class SwapService {
       });
     }
 
+    this.telemetry?.recordSwapTransition(
+      'requested',
+      targetUserId ? 'peer' : 'drop',
+    );
+
     return request;
   }
 
@@ -176,6 +184,8 @@ export class SwapService {
         'Your swap request was accepted by your colleague and is now awaiting manager approval.',
       payload: { requestId },
     });
+
+    this.telemetry?.recordSwapTransition('accepted', 'peer');
 
     return { message: 'Swap accepted, awaiting manager approval' };
   }
@@ -229,6 +239,8 @@ export class SwapService {
       message: 'Your swap request was declined by your colleague.',
       payload: { requestId },
     });
+
+    this.telemetry?.recordSwapTransition('declined', 'peer');
 
     return { message: 'Swap request declined' };
   }
@@ -286,6 +298,11 @@ export class SwapService {
       });
     }
 
+    this.telemetry?.recordSwapTransition(
+      'cancelled',
+      request.targetUserId ? 'peer' : 'drop',
+    );
+
     return { message: 'Swap request cancelled' };
   }
 
@@ -342,6 +359,11 @@ export class SwapService {
           payload: { requestId: request.id, shiftId },
         });
       }
+
+      this.telemetry?.recordSwapTransition(
+        'auto_cancelled',
+        request.targetUserId ? 'peer' : 'drop',
+      );
     }
   }
 
@@ -357,131 +379,157 @@ export class SwapService {
    * @throws {BadRequestException} If request is not pending manager approval, or if target user violates compliance constraints.
    */
   async approveSwap(managerId: string, requestId: string, approve: boolean) {
-    const request = await this.swapRepo.findById(requestId);
+    const execute = async () => {
+      const request = await this.swapRepo.findById(requestId);
 
-    if (!request) throw new NotFoundException('Request not found');
-    if (request.status !== 'pending_manager')
-      throw new BadRequestException('Request is not awaiting manager approval');
+      if (!request) throw new NotFoundException('Request not found');
+      if (request.status !== 'pending_manager')
+        throw new BadRequestException(
+          'Request is not awaiting manager approval',
+        );
 
-    if (!approve) {
-      const rejectedRequest = await this.swapRepo.updateStatus(
-        requestId,
-        'rejected',
+      if (!approve) {
+        const rejectedRequest = await this.swapRepo.updateStatus(
+          requestId,
+          'rejected',
+        );
+
+        // Log the rejection
+        await this.auditService.logChange(
+          managerId,
+          'swap_request',
+          requestId,
+          request,
+          rejectedRequest,
+        );
+
+        // Requirement #7: Notify requester of rejection
+        await this.notificationService.createNotification({
+          userId: request.requestingUserId,
+          type: 'swap_request_update',
+          title: 'Swap Request Rejected',
+          message: 'Your swap request was rejected by the manager.',
+          payload: { requestId },
+        });
+
+        this.telemetry?.recordSwapTransition(
+          'rejected',
+          request.targetUserId ? 'peer' : 'drop',
+        );
+
+        return { status: 'rejected' };
+      }
+
+      // If drop, who picked it up? (Implementation simplifies to targeted swaps for now)
+      if (!request.targetUserId) {
+        throw new BadRequestException(
+          'Public drop pick-up logic not implemented yet. Use targeted swaps.',
+        );
+      }
+
+      // IMPORTANT: Re-verify all constraints for the NEW person before finalizing
+      const compliance =
+        await this.shiftsService.complianceService.checkCompliance(
+          request.targetUserId,
+          request.shiftId,
+        );
+      if (compliance.hasHardBlock) {
+        throw new BadRequestException(
+          `Hard Block: ${compliance.warnings.join(', ')}`,
+        );
+      }
+
+      // Deactivate the old assignment
+      const oldAssignment = await this.assignmentRepo.findByUserAndShift(
+        request.requestingUserId,
+        request.shiftId,
       );
 
-      // Log the rejection
+      if (!oldAssignment)
+        throw new NotFoundException('Original assignment not found');
+
+      const updatedOldAssignment = await this.assignmentRepo.updateStatus(
+        request.requestingUserId,
+        request.shiftId,
+        'swapped',
+      );
+
+      // Create the NEW assignment for the target user
+      const newAssignment = await this.assignmentRepo.createAssignment(
+        request.shiftId,
+        request.targetUserId,
+      );
+
+      // Log the assignment update
+      await this.auditService.logChange(
+        managerId,
+        'assignment',
+        oldAssignment.id,
+        oldAssignment,
+        updatedOldAssignment,
+      );
+
+      await this.auditService.logChange(
+        managerId,
+        'assignment',
+        newAssignment.id,
+        null,
+        newAssignment,
+      );
+
+      const finalRequest = await this.swapRepo.updateStatus(
+        requestId,
+        'approved',
+      );
+
+      // Log the final approval
       await this.auditService.logChange(
         managerId,
         'swap_request',
         requestId,
         request,
-        rejectedRequest,
+        finalRequest,
       );
 
-      // Requirement #7: Notify requester of rejection
+      // Requirement #7: Notify both parties of final approval
       await this.notificationService.createNotification({
         userId: request.requestingUserId,
         type: 'swap_request_update',
-        title: 'Swap Request Rejected',
-        message: 'Your swap request was rejected by the manager.',
-        payload: { requestId },
-      });
-
-      return { status: 'rejected' };
-    }
-
-    // If drop, who picked it up? (Implementation simplifies to targeted swaps for now)
-    if (!request.targetUserId) {
-      throw new BadRequestException(
-        'Public drop pick-up logic not implemented yet. Use targeted swaps.',
-      );
-    }
-
-    // IMPORTANT: Re-verify all constraints for the NEW person before finalizing
-    const compliance =
-      await this.shiftsService.complianceService.checkCompliance(
-        request.targetUserId,
-        request.shiftId,
-      );
-    if (compliance.hasHardBlock) {
-      throw new BadRequestException(
-        `Hard Block: ${compliance.warnings.join(', ')}`,
-      );
-    }
-
-    // Deactivate the old assignment
-    const oldAssignment = await this.assignmentRepo.findByUserAndShift(
-      request.requestingUserId,
-      request.shiftId,
-    );
-
-    if (!oldAssignment)
-      throw new NotFoundException('Original assignment not found');
-
-    const updatedOldAssignment = await this.assignmentRepo.updateStatus(
-      request.requestingUserId,
-      request.shiftId,
-      'swapped',
-    );
-
-    // Create the NEW assignment for the target user
-    const newAssignment = await this.assignmentRepo.createAssignment(
-      request.shiftId,
-      request.targetUserId,
-    );
-
-    // Log the assignment update
-    await this.auditService.logChange(
-      managerId,
-      'assignment',
-      oldAssignment.id,
-      oldAssignment,
-      updatedOldAssignment,
-    );
-
-    await this.auditService.logChange(
-      managerId,
-      'assignment',
-      newAssignment.id,
-      null,
-      newAssignment,
-    );
-
-    const finalRequest = await this.swapRepo.updateStatus(
-      requestId,
-      'approved',
-    );
-
-    // Log the final approval
-    await this.auditService.logChange(
-      managerId,
-      'swap_request',
-      requestId,
-      request,
-      finalRequest,
-    );
-
-    // Requirement #7: Notify both parties of final approval
-    await this.notificationService.createNotification({
-      userId: request.requestingUserId,
-      type: 'swap_request_update',
-      title: 'Swap Request Approved',
-      message: 'Your swap request has been approved by the manager.',
-      payload: { requestId, shiftId: request.shiftId },
-    });
-
-    if (request.targetUserId) {
-      await this.notificationService.createNotification({
-        userId: request.targetUserId,
-        type: 'swap_request_update',
-        title: 'Swap Finalized',
-        message:
-          'The shift swap has been approved and your schedule has been updated.',
+        title: 'Swap Request Approved',
+        message: 'Your swap request has been approved by the manager.',
         payload: { requestId, shiftId: request.shiftId },
       });
-    }
 
-    return { status: 'approved' };
+      if (request.targetUserId) {
+        await this.notificationService.createNotification({
+          userId: request.targetUserId,
+          type: 'swap_request_update',
+          title: 'Swap Finalized',
+          message:
+            'The shift swap has been approved and your schedule has been updated.',
+          payload: { requestId, shiftId: request.shiftId },
+        });
+      }
+
+      this.telemetry?.recordSwapTransition(
+        'approved',
+        request.targetUserId ? 'peer' : 'drop',
+      );
+
+      return { status: 'approved' };
+    };
+
+    if (this.telemetry) {
+      return this.telemetry.withSpan(
+        'swaps.approve',
+        {
+          'shiftsync.swap.id': requestId,
+          'shiftsync.swap.approved': approve,
+        },
+        execute,
+      );
+    }
+    return execute();
   }
 
   /**

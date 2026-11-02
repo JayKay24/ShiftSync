@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
   forwardRef,
+  Optional,
 } from '@nestjs/common';
 import {
   ShiftRepository,
@@ -24,6 +25,7 @@ import { ComplianceService } from './compliance.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notifications/notification.service';
 import { SwapService } from './swap.service';
+import { TelemetryService } from '../telemetry/telemetry.service';
 
 /**
  * Service managing shift scheduling, staff assignments, operational statistics, and 48-hour edit locks.
@@ -43,6 +45,7 @@ export class ShiftsService {
     private notificationService: NotificationService,
     @Inject(forwardRef(() => SwapService))
     private swapService: SwapService,
+    @Optional() private telemetry?: TelemetryService,
   ) {}
 
   /**
@@ -105,42 +108,53 @@ export class ShiftsService {
    * @throws {NotFoundException} If the shift does not exist.
    */
   async findAvailableStaff(shiftId: string) {
-    const shift = await this.shiftRepo.findById(shiftId);
+    const execute = async () => {
+      const shift = await this.shiftRepo.findById(shiftId);
 
-    if (!shift) throw new NotFoundException('Shift not found');
+      if (!shift) throw new NotFoundException('Shift not found');
 
-    const qualifiedStaff =
-      await this.userRepo.findQualifiedStaffWithAssignments(shiftId);
+      const qualifiedStaff =
+        await this.userRepo.findQualifiedStaffWithAssignments(shiftId);
 
-    const results = [];
-    for (const user of qualifiedStaff) {
-      // Finding 4: Don't suggest staff already assigned to this shift
-      if (user.assignments && user.assignments.length > 0) continue;
+      const results = [];
+      for (const user of qualifiedStaff) {
+        // Finding 4: Don't suggest staff already assigned to this shift
+        if (user.assignments && user.assignments.length > 0) continue;
 
-      const isCertified = user.staffCertifications.some(
-        (c: any) => c.locationId === shift.locationId,
-      );
-      const hasSkill = user.staffSkills.some(
-        (s: any) => s.skillId === shift.requiredSkillId,
-      );
-
-      if (isCertified && hasSkill) {
-        const compliance = await this.complianceService.checkCompliance(
-          user.id,
-          shiftId,
+        const isCertified = user.staffCertifications.some(
+          (c: any) => c.locationId === shift.locationId,
+        );
+        const hasSkill = user.staffSkills.some(
+          (s: any) => s.skillId === shift.requiredSkillId,
         );
 
-        if (!compliance.hasHardBlock) {
-          results.push({
-            user,
-            warnings: compliance.warnings,
-            requiresOverride: compliance.requiresOverride,
-          });
+        if (isCertified && hasSkill) {
+          const compliance = await this.complianceService.checkCompliance(
+            user.id,
+            shiftId,
+          );
+
+          if (!compliance.hasHardBlock) {
+            results.push({
+              user,
+              warnings: compliance.warnings,
+              requiresOverride: compliance.requiresOverride,
+            });
+          }
         }
       }
-    }
 
-    return results;
+      return results;
+    };
+
+    if (this.telemetry) {
+      return this.telemetry.withSpan(
+        'shifts.find_available_staff',
+        { 'shiftsync.shift.id': shiftId },
+        execute,
+      );
+    }
+    return execute();
   }
 
   /**
@@ -348,125 +362,146 @@ export class ShiftsService {
     managerId?: string,
     overrideReason?: string,
   ) {
-    // 1. Check if shift exists
-    const shift = await this.shiftRepo.findById(shiftId);
+    const execute = async () => {
+      // 1. Check if shift exists
+      const shift = await this.shiftRepo.findById(shiftId);
 
-    if (!shift) {
-      throw new NotFoundException('Shift not found');
-    }
+      if (!shift) {
+        throw new NotFoundException('Shift not found');
+      }
 
-    // New Requirement: Cannot assign staff to shifts that happened in the past
-    if (isBefore(new Date(shift.startTime), new Date())) {
-      throw new BadRequestException(
-        'Cannot assign staff to a shift that has already started or passed',
+      // New Requirement: Cannot assign staff to shifts that happened in the past
+      if (isBefore(new Date(shift.startTime), new Date())) {
+        throw new BadRequestException(
+          'Cannot assign staff to a shift that has already started or passed',
+        );
+      }
+
+      // 2. Check if shift is already full
+      const assignmentCount =
+        await this.assignmentRepo.countConfirmedByShift(shiftId);
+
+      if (assignmentCount >= shift.headcountNeeded) {
+        throw new BadRequestException('Shift is already full');
+      }
+
+      // 3. Check if user is already assigned to this shift
+      const existingAssignment = await this.assignmentRepo.findByUserAndShift(
+        userId,
+        shiftId,
       );
-    }
 
-    // 2. Check if shift is already full
-    const assignmentCount =
-      await this.assignmentRepo.countConfirmedByShift(shiftId);
+      if (existingAssignment) {
+        throw new BadRequestException(
+          'Staff member is already assigned to this shift',
+        );
+      }
 
-    if (assignmentCount >= shift.headcountNeeded) {
-      throw new BadRequestException('Shift is already full');
-    }
-
-    // 3. Check if user is already assigned to this shift
-    const existingAssignment = await this.assignmentRepo.findByUserAndShift(
-      userId,
-      shiftId,
-    );
-
-    if (existingAssignment) {
-      throw new BadRequestException(
-        'Staff member is already assigned to this shift',
+      // 3. Constraint: Location Certification
+      const isCertified = await this.userRepo.hasCertification(
+        userId,
+        shift.locationId,
       );
-    }
 
-    // 3. Constraint: Location Certification
-    const isCertified = await this.userRepo.hasCertification(
-      userId,
-      shift.locationId,
-    );
+      if (!isCertified) {
+        throw new BadRequestException(
+          'Staff member is not certified for this location',
+        );
+      }
 
-    if (!isCertified) {
-      throw new BadRequestException(
-        'Staff member is not certified for this location',
+      // 4. Constraint: Skill Matching
+      const hasSkill = await this.userRepo.hasSkill(
+        userId,
+        shift.requiredSkillId,
       );
-    }
 
-    // 4. Constraint: Skill Matching
-    const hasSkill = await this.userRepo.hasSkill(
-      userId,
-      shift.requiredSkillId,
-    );
+      if (!hasSkill) {
+        throw new BadRequestException(
+          'Staff member does not have the required skill for this shift',
+        );
+      }
 
-    if (!hasSkill) {
-      throw new BadRequestException(
-        'Staff member does not have the required skill for this shift',
+      // 5. Compliance Checks (Requirement #2 & #4)
+      // This now covers: Double-booking, 10-hour rest, Availability, Daily/Weekly hours, Consecutive days
+      const compliance = await this.complianceService.checkCompliance(
+        userId,
+        shiftId,
       );
-    }
 
-    // 5. Compliance Checks (Requirement #2 & #4)
-    // This now covers: Double-booking, 10-hour rest, Availability, Daily/Weekly hours, Consecutive days
-    const compliance = await this.complianceService.checkCompliance(
-      userId,
-      shiftId,
-    );
+      if (compliance.hasHardBlock) {
+        throw new BadRequestException(
+          `Hard Block: ${compliance.warnings.join(', ')}`,
+        );
+      }
 
-    if (compliance.hasHardBlock) {
-      throw new BadRequestException(
-        `Hard Block: ${compliance.warnings.join(', ')}`,
+      const isOverridden = Boolean(
+        compliance.requiresOverride && managerId && overrideReason,
       );
-    }
 
-    if (compliance.requiresOverride) {
-      if (!overrideReason || !managerId) {
-        throw new BadRequestException({
-          message: 'Assignment requires manager override (7th consecutive day)',
-          warnings: compliance.warnings,
-          code: 'OVERRIDE_REQUIRED',
+      if (compliance.requiresOverride) {
+        if (!overrideReason || !managerId) {
+          throw new BadRequestException({
+            message:
+              'Assignment requires manager override (7th consecutive day)',
+            warnings: compliance.warnings,
+            code: 'OVERRIDE_REQUIRED',
+          });
+        }
+      }
+
+      // 6. Create assignment
+      const assignment = await this.assignmentRepo.createAssignment(
+        shiftId,
+        userId,
+      );
+
+      this.telemetry?.recordShiftAssignment(isOverridden);
+
+      // 10. Log override if applicable
+      if (compliance.requiresOverride && managerId && overrideReason) {
+        await this.assignmentRepo.createComplianceOverride(
+          assignment.id,
+          managerId,
+          overrideReason,
+        );
+      }
+
+      // Log the assignment
+      if (managerId) {
+        await this.auditService.logChange(
+          managerId,
+          'assignment',
+          assignment.id,
+          null,
+          assignment,
+        );
+
+        // Requirement #7: Notify staff of new assignment
+        await this.notificationService.createNotification({
+          userId,
+          type: 'shift_assigned',
+          title: 'New Shift Assigned',
+          message: `You have been assigned to a shift starting at ${new Date(shift.startTime).toLocaleString()}.`,
+          payload: { shiftId, assignmentId: assignment.id },
         });
       }
-    }
 
-    // 6. Create assignment
-    const assignment = await this.assignmentRepo.createAssignment(
-      shiftId,
-      userId,
-    );
-
-    // 10. Log override if applicable
-    if (compliance.requiresOverride && managerId && overrideReason) {
-      await this.assignmentRepo.createComplianceOverride(
-        assignment.id,
-        managerId,
-        overrideReason,
-      );
-    }
-
-    // Log the assignment
-    if (managerId) {
-      await this.auditService.logChange(
-        managerId,
-        'assignment',
-        assignment.id,
-        null,
-        assignment,
-      );
-
-      // Requirement #7: Notify staff of new assignment
-      await this.notificationService.createNotification({
-        userId,
-        type: 'shift_assigned',
-        title: 'New Shift Assigned',
-        message: `You have been assigned to a shift starting at ${new Date(shift.startTime).toLocaleString()}.`,
-        payload: { shiftId, assignmentId: assignment.id },
-      });
-    }
-
-    return {
-      ...assignment,
-      warnings: compliance.warnings,
+      return {
+        ...assignment,
+        warnings: compliance.warnings,
+      };
     };
+
+    if (this.telemetry) {
+      return this.telemetry.withSpan(
+        'shifts.assign_staff',
+        {
+          'shiftsync.shift.id': shiftId,
+          'shiftsync.user.id': userId,
+        },
+        execute,
+      );
+    }
+    return execute();
   }
 }

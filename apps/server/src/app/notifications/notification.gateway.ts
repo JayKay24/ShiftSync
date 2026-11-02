@@ -4,6 +4,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
+import { Logger, Optional, OnModuleInit } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -11,6 +12,7 @@ import {
   WsNotificationReadPayload,
   WsScheduleUpdatePayload,
 } from '@shiftsync/data-access';
+import { TelemetryService } from '../telemetry/telemetry.service';
 
 @WebSocketGateway({
   cors: {
@@ -18,15 +20,26 @@ import {
   },
 })
 export class NotificationGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
 {
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(NotificationGateway.name);
+
   // Track connected users to their socket IDs
   private userSockets = new Map<string, string>();
 
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    @Optional() private telemetry?: TelemetryService,
+  ) {}
+
+  onModuleInit() {
+    this.telemetry?.registerWebSocketConnectionResolver(
+      () => this.userSockets.size,
+    );
+  }
 
   async handleConnection(client: Socket) {
     try {
@@ -38,7 +51,9 @@ export class NotificationGateway
 
       const payload = this.jwtService.verify(token);
       this.userSockets.set(payload.sub, client.id);
-      console.log(`User connected: ${payload.sub} with socket: ${client.id}`);
+      this.logger.log(
+        `User connected: ${payload.sub} with socket: ${client.id}`,
+      );
     } catch {
       client.disconnect();
     }
@@ -48,7 +63,7 @@ export class NotificationGateway
     for (const [userId, socketId] of this.userSockets.entries()) {
       if (socketId === client.id) {
         this.userSockets.delete(userId);
-        console.log(`User disconnected: ${userId}`);
+        this.logger.log(`User disconnected: ${userId}`);
         break;
       }
     }

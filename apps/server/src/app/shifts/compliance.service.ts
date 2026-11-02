@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   AssignmentRepository,
   ShiftRepository,
@@ -11,6 +11,7 @@ import {
   endOfDay,
   subDays,
 } from 'date-fns';
+import { TelemetryService } from '../telemetry/telemetry.service';
 
 /**
  * Evaluation outcome returned by compliance and labor law checks.
@@ -33,6 +34,7 @@ export class ComplianceService {
     private assignmentRepo: AssignmentRepository,
     private shiftRepo: ShiftRepository,
     private userRepo: UserRepository,
+    @Optional() private telemetry?: TelemetryService,
   ) {}
 
   /**
@@ -48,144 +50,202 @@ export class ComplianceService {
     userId: string,
     shiftId: string,
   ): Promise<ComplianceResult> {
-    const result: ComplianceResult = {
-      hasHardBlock: false,
-      warnings: [],
-      requiresOverride: false,
-    };
+    const startTime = performance.now();
 
-    const shift = await this.shiftRepo.findById(shiftId);
-    const user = await this.userRepo.findById(userId);
+    const execute = async (span?: any): Promise<ComplianceResult> => {
+      const result: ComplianceResult = {
+        hasHardBlock: false,
+        warnings: [],
+        requiresOverride: false,
+      };
 
-    if (!shift || !user) return result;
+      const shift = await this.shiftRepo.findById(shiftId);
+      const user = await this.userRepo.findById(userId);
 
-    const shiftStart = new Date(shift.startTime);
-    const shiftEnd = new Date(shift.endTime);
-    const shiftDuration =
-      (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
+      if (!shift || !user) return result;
 
-    const userAssignments =
-      await this.assignmentRepo.getConfirmedShiftTimesForUserExcluding(
-        userId,
-        shiftId,
-      );
+      const shiftStart = new Date(shift.startTime);
+      const shiftEnd = new Date(shift.endTime);
+      const shiftDuration =
+        (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
 
-    for (const existing of userAssignments) {
-      const existingStart = new Date(existing.startTime).getTime();
-      const existingEnd = new Date(existing.endTime).getTime();
-      const newStart = shiftStart.getTime();
-      const newEnd = shiftEnd.getTime();
+      const userAssignments =
+        await this.assignmentRepo.getConfirmedShiftTimesForUserExcluding(
+          userId,
+          shiftId,
+        );
 
-      if (newStart < existingEnd && newEnd > existingStart) {
-        result.hasHardBlock = true;
-        result.warnings.push('Staff member has an overlapping shift');
+      for (const existing of userAssignments) {
+        const existingStart = new Date(existing.startTime).getTime();
+        const existingEnd = new Date(existing.endTime).getTime();
+        const newStart = shiftStart.getTime();
+        const newEnd = shiftEnd.getTime();
+
+        if (newStart < existingEnd && newEnd > existingStart) {
+          result.hasHardBlock = true;
+          result.warnings.push('Staff member has an overlapping shift');
+          this.telemetry?.recordComplianceViolation('overlap');
+        }
+
+        const restPeriodMs = 10 * 60 * 60 * 1000;
+        if (
+          (existingEnd > newStart - restPeriodMs && existingEnd <= newStart) ||
+          (existingStart < newEnd + restPeriodMs && existingStart >= newEnd)
+        ) {
+          result.hasHardBlock = true;
+          result.warnings.push(
+            'Minimum 10-hour rest period required between shifts',
+          );
+          this.telemetry?.recordComplianceViolation('rest_10h');
+        }
       }
 
-      const restPeriodMs = 10 * 60 * 60 * 1000;
-      if (
-        (existingEnd > newStart - restPeriodMs && existingEnd <= newStart) ||
-        (existingStart < newEnd + restPeriodMs && existingStart >= newEnd)
-      ) {
+      const userAvailability = await this.userRepo.getUserAvailability(userId);
+
+      const isAvailable = await this.checkUserAvailability(
+        userId,
+        user.timezone,
+        shiftStart,
+        shiftEnd,
+        userAvailability,
+      );
+      if (!isAvailable) {
         result.hasHardBlock = true;
         result.warnings.push(
-          'Minimum 10-hour rest period required between shifts',
+          'Shift falls outside of staff availability windows',
+        );
+        this.telemetry?.recordComplianceViolation('availability');
+      }
+
+      const dayStart = startOfDay(shiftStart);
+      const dayEnd = endOfDay(shiftStart);
+
+      const calculateHoursInRange = (
+        start: Date,
+        end: Date,
+        rangeStart: Date,
+        rangeEnd: Date,
+      ) => {
+        const actualStart = start > rangeStart ? start : rangeStart;
+        const actualEnd = end < rangeEnd ? end : rangeEnd;
+        const ms = actualEnd.getTime() - actualStart.getTime();
+        return ms > 0 ? ms / (1000 * 60 * 60) : 0;
+      };
+
+      let totalDailyHours = shiftDuration;
+      for (const a of userAssignments) {
+        totalDailyHours += calculateHoursInRange(
+          new Date(a.startTime),
+          new Date(a.endTime),
+          dayStart,
+          dayEnd,
         );
       }
-    }
 
-    const userAvailability = await this.userRepo.getUserAvailability(userId);
+      if (totalDailyHours > 12.01) {
+        result.hasHardBlock = true;
+        result.warnings.push(
+          `Daily hours (${totalDailyHours.toFixed(1)}) exceed 12-hour hard block limit`,
+        );
+        this.telemetry?.recordComplianceViolation('daily_12h');
+      } else if (totalDailyHours > 8.01) {
+        result.warnings.push(
+          `Daily hours (${totalDailyHours.toFixed(1)}) exceed 8-hour warning threshold`,
+        );
+        this.telemetry?.recordComplianceViolation('daily_8h');
+      }
 
-    const isAvailable = await this.checkUserAvailability(
-      userId,
-      user.timezone,
-      shiftStart,
-      shiftEnd,
-      userAvailability,
-    );
-    if (!isAvailable) {
-      result.hasHardBlock = true;
-      result.warnings.push('Shift falls outside of staff availability windows');
-    }
+      const weekStart = startOfWeek(shiftStart, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(shiftStart, { weekStartsOn: 1 });
 
-    const dayStart = startOfDay(shiftStart);
-    const dayEnd = endOfDay(shiftStart);
+      let totalWeeklyHours = shiftDuration;
+      for (const a of userAssignments) {
+        totalWeeklyHours += calculateHoursInRange(
+          new Date(a.startTime),
+          new Date(a.endTime),
+          weekStart,
+          weekEnd,
+        );
+      }
 
-    const calculateHoursInRange = (
-      start: Date,
-      end: Date,
-      rangeStart: Date,
-      rangeEnd: Date,
-    ) => {
-      const actualStart = start > rangeStart ? start : rangeStart;
-      const actualEnd = end < rangeEnd ? end : rangeEnd;
-      const ms = actualEnd.getTime() - actualStart.getTime();
-      return ms > 0 ? ms / (1000 * 60 * 60) : 0;
+      if (totalWeeklyHours >= 40) {
+        result.warnings.push(
+          `Weekly hours (${totalWeeklyHours.toFixed(1)}) exceed 40-hour high alert`,
+        );
+        this.telemetry?.recordComplianceViolation('weekly_40h');
+      } else if (totalWeeklyHours >= 35) {
+        result.warnings.push(
+          `Weekly hours (${totalWeeklyHours.toFixed(1)}) approaching 40 (35+)`,
+        );
+        this.telemetry?.recordComplianceViolation('weekly_35h');
+      }
+
+      let consecutiveDays = 0;
+      for (let i = 1; i <= 7; i++) {
+        const checkDay = subDays(shiftStart, i);
+        const worked = await this.assignmentRepo.hasWorkedOnDay(
+          userId,
+          checkDay,
+        );
+
+        if (worked) {
+          consecutiveDays++;
+        } else {
+          break;
+        }
+      }
+
+      if (consecutiveDays === 5) {
+        result.warnings.push('6th consecutive day worked in a week (warning)');
+        this.telemetry?.recordComplianceViolation('consecutive_6th');
+      } else if (consecutiveDays >= 6) {
+        result.requiresOverride = true;
+        result.warnings.push('7th consecutive day requires manager override');
+        this.telemetry?.recordComplianceViolation('consecutive_7th');
+      }
+
+      const outcome = result.hasHardBlock
+        ? 'hard_block'
+        : result.requiresOverride
+          ? 'override_required'
+          : result.warnings.length > 0
+            ? 'warning'
+            : 'pass';
+
+      const durationMs = performance.now() - startTime;
+      this.telemetry?.recordComplianceEvaluation(outcome, durationMs);
+
+      if (span) {
+        span.setAttribute(
+          'shiftsync.compliance.hard_block',
+          result.hasHardBlock,
+        );
+        span.setAttribute(
+          'shiftsync.compliance.requires_override',
+          result.requiresOverride,
+        );
+        span.setAttribute(
+          'shiftsync.compliance.warning_count',
+          result.warnings.length,
+        );
+        span.setAttribute('shiftsync.compliance.outcome', outcome);
+      }
+
+      return result;
     };
 
-    let totalDailyHours = shiftDuration;
-    for (const a of userAssignments) {
-      totalDailyHours += calculateHoursInRange(
-        new Date(a.startTime),
-        new Date(a.endTime),
-        dayStart,
-        dayEnd,
+    if (this.telemetry) {
+      return this.telemetry.withSpan(
+        'compliance.check',
+        {
+          'shiftsync.shift.id': shiftId,
+          'shiftsync.user.id': userId,
+        },
+        (span) => execute(span),
       );
     }
 
-    if (totalDailyHours > 12.01) {
-      result.hasHardBlock = true;
-      result.warnings.push(
-        `Daily hours (${totalDailyHours.toFixed(1)}) exceed 12-hour hard block limit`,
-      );
-    } else if (totalDailyHours > 8.01) {
-      result.warnings.push(
-        `Daily hours (${totalDailyHours.toFixed(1)}) exceed 8-hour warning threshold`,
-      );
-    }
-
-    const weekStart = startOfWeek(shiftStart, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(shiftStart, { weekStartsOn: 1 });
-
-    let totalWeeklyHours = shiftDuration;
-    for (const a of userAssignments) {
-      totalWeeklyHours += calculateHoursInRange(
-        new Date(a.startTime),
-        new Date(a.endTime),
-        weekStart,
-        weekEnd,
-      );
-    }
-
-    if (totalWeeklyHours >= 40) {
-      result.warnings.push(
-        `Weekly hours (${totalWeeklyHours.toFixed(1)}) exceed 40-hour high alert`,
-      );
-    } else if (totalWeeklyHours >= 35) {
-      result.warnings.push(
-        `Weekly hours (${totalWeeklyHours.toFixed(1)}) approaching 40 (35+)`,
-      );
-    }
-
-    let consecutiveDays = 0;
-    for (let i = 1; i <= 7; i++) {
-      const checkDay = subDays(shiftStart, i);
-      const worked = await this.assignmentRepo.hasWorkedOnDay(userId, checkDay);
-
-      if (worked) {
-        consecutiveDays++;
-      } else {
-        break;
-      }
-    }
-
-    if (consecutiveDays === 5) {
-      result.warnings.push('6th consecutive day worked in a week (warning)');
-    } else if (consecutiveDays >= 6) {
-      result.requiresOverride = true;
-      result.warnings.push('7th consecutive day requires manager override');
-    }
-
-    return result;
+    return execute();
   }
 
   /**
